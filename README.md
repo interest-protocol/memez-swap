@@ -1,1 +1,1 @@
-# sc-amm
+# sc-dex
