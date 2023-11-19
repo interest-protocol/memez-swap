@@ -56,16 +56,6 @@ module sc_dex::sui_coins_amm {
     locked: bool     
   } 
 
-  struct SwapState has drop, copy {
-    balance_x: u64,
-    balance_y: u64,
-    decimals_x: u64,
-    decimals_y: u64,
-    fees: Fees,
-    is_x: bool,
-    volatile: bool
-  }  
-
   struct Receipt {
     pool_id: ID,
     repay_amount_x: u64,
@@ -73,6 +63,7 @@ module sc_dex::sui_coins_amm {
     prev_k: u256
   }
 
+  #[allow(unused_function)]
   fun init(ctx: &mut TxContext) {
     share_object(
       Registry {
@@ -264,11 +255,9 @@ module sc_dex::sui_coins_amm {
     let pool_state = borrow_mut_pool_state<CoinX, CoinY, LpCoin>(pool);
     assert!(!pool_state.locked, errors::pool_is_locked());
 
-    let swap_state = make_swap_state(pool_state, true);
-
     let coin_in_amount = coin::value(&coin_x);
     
-    let (amount_out, fee_x, fee_y) = swap_amounts(swap_state, coin_in_amount, coin_y_min_value);
+    let (amount_out, fee_x, fee_y) = swap_amounts(pool_state, coin_in_amount, coin_y_min_value, true);
 
     if (fee_x != 0) {
       balance::join(&mut pool_state.admin_balance_x, coin::into_balance(coin::split(&mut coin_x, fee_x, ctx)));
@@ -292,11 +281,9 @@ module sc_dex::sui_coins_amm {
     let pool_state = borrow_mut_pool_state<CoinX, CoinY, LpCoin>(pool);
     assert!(!pool_state.locked, errors::pool_is_locked());
 
-    let swap_state = make_swap_state(pool_state, false);
-
     let coin_in_amount = coin::value(&coin_y);
 
-    let (amount_out, fee_y, fee_x) = swap_amounts(swap_state, coin_in_amount, coin_x_min_value);
+    let (amount_out, fee_y, fee_x) = swap_amounts(pool_state, coin_in_amount, coin_x_min_value, false);
 
     if (fee_y != 0) {
       balance::join(&mut pool_state.admin_balance_y, coin::into_balance(coin::split(&mut coin_y, fee_y, ctx)));
@@ -326,82 +313,64 @@ module sc_dex::sui_coins_amm {
     )
   }
 
-  fun swap_amounts(
-    state: SwapState,
+  fun swap_amounts<CoinX, CoinY, LpCoin>(
+    pool_state: &PoolState<CoinX, CoinY, LpCoin>,
     coin_in_amount: u64,
-    coin_out_min_value: u64 
+    coin_out_min_value: u64,
+    is_x: bool 
   ): (u64, u64, u64) {
-    let prev_k = invariant_(state);
+    let (balance_x, balance_y, _) = get_amounts_internal(pool_state);
 
-    let fee_in = fees::get_fee_in_amount(&state.fees, coin_in_amount);
-    let admin_fee_in = fees::get_admin_amount(&state.fees, fee_in);
+    let prev_k = if (pool_state.volatile) 
+      volatile::invariant_(balance_x, balance_y) 
+    else 
+      stable::invariant_(balance_x, balance_y, pool_state.decimals_x, pool_state.decimals_y);
+
+    let fee_in = fees::get_fee_in_amount(&pool_state.fees, coin_in_amount);
+    let admin_fee_in = fees::get_admin_amount(&pool_state.fees, fee_in);
 
     let coin_in_amount = coin_in_amount - fee_in;
 
-    let amount_out = calculate_amount_out(prev_k, coin_in_amount, state);
+    let amount_out = if (pool_state.volatile) {
+      if (is_x) 
+        volatile::get_amount_out(coin_in_amount, balance_x, balance_y)
+      else 
+        volatile::get_amount_out(coin_in_amount, balance_y, balance_x)
+    } else {
+        stable::get_amount_out(
+          prev_k, 
+          coin_in_amount, 
+          balance_x, 
+          balance_y, 
+          pool_state.decimals_x, 
+          pool_state.decimals_y, 
+          is_x
+        )
+    };
 
-    let fee_out = fees::get_fee_out_amount(&state.fees, amount_out);
-    let admin_fee_out = fees::get_admin_amount(&state.fees, fee_out);
+    let fee_out = fees::get_fee_out_amount(&pool_state.fees, amount_out);
+    let admin_fee_out = fees::get_admin_amount(&pool_state.fees, fee_out);
 
     let amount_out = amount_out - fee_out;
 
     assert!(amount_out >= coin_out_min_value, errors::slippage());
 
-    let new_k = if (state.volatile) {
-      if (state.is_x)
-        volatile::invariant_(state.balance_x + coin_in_amount + fee_in - admin_fee_in, state.balance_y - amount_out - admin_fee_out)
+    let new_k = if (pool_state.volatile) {
+      if (is_x)
+        volatile::invariant_(balance_x + coin_in_amount + fee_in - admin_fee_in, balance_y - amount_out - admin_fee_out)
       else
-        volatile::invariant_(state.balance_x - amount_out - admin_fee_out, state.balance_y + coin_in_amount + fee_in - admin_fee_in)
+        volatile::invariant_(balance_x - amount_out - admin_fee_out, balance_y + coin_in_amount + fee_in - admin_fee_in)
     } else {
-      if (state.is_x) 
-        stable::invariant_(state.balance_x + coin_in_amount + fee_in - admin_fee_in, state.balance_y - amount_out - admin_fee_out, state.decimals_x, state.decimals_y)
+      if (is_x) 
+        stable::invariant_(balance_x + coin_in_amount + fee_in - admin_fee_in, balance_y - amount_out - admin_fee_out, pool_state.decimals_x, pool_state.decimals_y)
       else
-        stable::invariant_(state.balance_x - amount_out - admin_fee_out, state.balance_y + fee_in + coin_in_amount - admin_fee_in, state.decimals_x, state.decimals_y)
+        stable::invariant_(balance_x - amount_out - admin_fee_out, balance_y + fee_in + coin_in_amount - admin_fee_in, pool_state.decimals_x, pool_state.decimals_y)
     };
 
     assert!(new_k >= prev_k, errors::invalid_invariant());
 
     (amount_out, admin_fee_in, admin_fee_out)    
   }
-
-  fun invariant_(state: SwapState): u256 {
-    if (state.volatile) 
-      volatile::invariant_(state.balance_x, state.balance_y) 
-    else 
-      stable::invariant_(state.balance_x, state.balance_y, state.decimals_x, state.decimals_y)
-  }
-
-  fun calculate_amount_out(k: u256, coin_in_amount: u64, state: SwapState): u64 {
-    if (state.volatile) {
-      if (state.is_x) 
-        volatile::get_amount_out(coin_in_amount, state.balance_x, state.balance_y)
-      else 
-        volatile::get_amount_out(coin_in_amount, state.balance_y, state.balance_x)
-    } else {
-        stable::get_amount_out(
-          k, 
-          coin_in_amount, 
-          state.balance_x, 
-          state.balance_y, 
-          state.decimals_x, 
-          state.decimals_y, 
-          state.is_x
-        )
-    }
-  }
-
-  fun make_swap_state<CoinX, CoinY, LpCoin>(state: &PoolState<CoinX, CoinY, LpCoin>, is_x: bool): SwapState {
-    let (balance_x, balance_y, _) = get_amounts_internal(state);
-    SwapState {
-      balance_x,
-      balance_y,
-      decimals_x: state.decimals_x,
-      decimals_y: state.decimals_y,
-      fees: state.fees,
-      volatile: state.volatile,
-      is_x,
-    }
-  }  
 
   fun borrow_pool_state<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): &PoolState<CoinX, CoinY, LpCoin> {
     df::borrow(&pool.id, PoolStateKey {})
