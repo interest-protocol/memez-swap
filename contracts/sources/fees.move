@@ -6,8 +6,8 @@ module sc_dex::fees {
   use sc_dex::errors;
 
   const PRECISION: u256 = 1_000_000_000_000_000_000;
-  const MAX_FEE_PERCENT: u256 = 20000000000000000; // 2%
-  const MAX_ADMIN_FEE: u256 = 200000000000000000; // 20%
+  const MAX_FEE_PERCENT: u256 = 20_000_000_000_000_000; // 2%
+  const MAX_ADMIN_FEE: u256 = 200_000_000_000_000_000; // 20%
 
   struct Fees has store, copy, drop {
     fee_in_percent: u256,

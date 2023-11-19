@@ -55,4 +55,16 @@ module sc_dex::errors {
   public fun wrong_repay_amount(): u64 {
     12
   }
+
+  public fun wrong_name(): u64 {
+    13
+  }
+
+  public fun wrong_symbol(): u64 {
+    14
+  }
+
+  public fun wrong_module_name(): u64 {
+    14
+  }
 }

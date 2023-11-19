@@ -1,5 +1,9 @@
 module sc_dex::utils {
+  use std::ascii;
+  use std::string;
   use std::type_name;
+
+  use sui::coin::{Self, CoinMetadata};
 
   use sc_dex::errors;
   use sc_dex::comparator;
@@ -36,5 +40,55 @@ module sc_dex::utils {
 
   public fun quote_liquidity(amount_a: u64, reserves_a: u64, reserves_b: u64): u64 {
     mul_div_up(amount_a, reserves_b, reserves_a)
+  }
+
+  public fun assert_lp_coin_metadata<CoinX, CoinY, LpCoin>(
+    coin_x_metadata: &CoinMetadata<CoinX>,
+    coin_y_metadata: &CoinMetadata<CoinY>,  
+    lp_coin_metadata: &CoinMetadata<LpCoin>,
+  ) {
+    let coin_x_type_name = type_name::get<CoinX>();
+    let coin_y_type_name = type_name::get<CoinY>();
+    let lp_coin_type_name = type_name::get<LpCoin>();
+
+    let coin_x_module_name = type_name::get_module(&coin_x_type_name);
+    let coin_y_module_name = type_name::get_module(&coin_y_type_name);
+    let lp_coin_module_name = type_name::get_module(&lp_coin_type_name);
+
+    let expected_lp_coin_module_name = string::utf8(b"");
+    string::append_utf8(&mut expected_lp_coin_module_name, b"sc_");
+    string::append_utf8(&mut expected_lp_coin_module_name, ascii::into_bytes(coin_x_module_name));
+    string::append_utf8(&mut expected_lp_coin_module_name, b"_");
+    string::append_utf8(&mut expected_lp_coin_module_name, ascii::into_bytes(coin_y_module_name));
+
+    assert!(
+      comparator::is_equal(&comparator::compare(&lp_coin_module_name, &string::to_ascii(expected_lp_coin_module_name))), 
+      errors::wrong_module_name()
+    );
+
+    let lp_coin_name = coin::get_name(lp_coin_metadata);
+    let lp_coin_symbol = coin::get_symbol(lp_coin_metadata);
+
+    let coin_x_name = coin::get_name(coin_x_metadata);
+    let coin_x_symbol = coin::get_symbol(coin_x_metadata);
+
+    let coin_y_name = coin::get_name(coin_y_metadata);
+    let coin_y_symbol = coin::get_symbol(coin_y_metadata);
+
+    let expected_lp_coin_name = string::utf8(b"");
+    string::append_utf8(&mut expected_lp_coin_name, b"sc-");
+    string::append_utf8(&mut expected_lp_coin_name, *string::bytes(&coin_x_name));
+    string::append_utf8(&mut expected_lp_coin_name, b"-");
+    string::append_utf8(&mut expected_lp_coin_name, *string::bytes(&coin_y_name));
+
+    assert!(comparator::is_equal(&comparator::compare(&lp_coin_name, &expected_lp_coin_name)), errors::wrong_name());
+
+    let expected_lp_coin_symbol = string::utf8(b"");
+    string::append_utf8(&mut expected_lp_coin_symbol, b"sc-");
+    string::append_utf8(&mut expected_lp_coin_symbol, ascii::into_bytes(coin_x_symbol));
+    string::append_utf8(&mut expected_lp_coin_symbol, b"-");
+    string::append_utf8(&mut expected_lp_coin_symbol, ascii::into_bytes(coin_y_symbol));
+
+    assert!(comparator::is_equal(&comparator::compare(&lp_coin_symbol, &string::to_ascii(expected_lp_coin_symbol))), errors::wrong_symbol());
   }
 }

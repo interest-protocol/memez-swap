@@ -24,10 +24,10 @@ module sc_dex::sui_coins_amm {
 
   const PRECISION: u256 = 1_000_000_000_000_000_000;
   const MINIMUM_LIQUIDITY: u64 = 100;
-  const INITIAL_STABLE_FEE_PERCENT: u256 = 250000000000000; // 0.025%
-  const INITIAL_VOLATILE_FEE_PERCENT: u256 = 3000000000000000; // 0.3%
-  const INITIAL_ADMIN_FEE: u256 = 200000000000000000; // 20%
-  const FLASH_LOAN_FEE_PERCENT: u256 = 5000000000000000; //0.5% 
+  const INITIAL_STABLE_FEE_PERCENT: u256 = 250_000_000_000_000; // 0.025%
+  const INITIAL_VOLATILE_FEE_PERCENT: u256 = 3_000_000_000_000_000; // 0.3%
+  const INITIAL_ADMIN_FEE: u256 = 200_000_000_000_000_000; // 20%
+  const FLASH_LOAN_FEE_PERCENT: u256 = 5_000_000_000_000_000; //0.5% 
 
   struct Registry has key {
     id: UID,
@@ -80,9 +80,12 @@ module sc_dex::sui_coins_amm {
     coin_x: Coin<CoinX>,
     coin_y: Coin<CoinY>,
     lp_coin_supply: Supply<LpCoin>,
+    coin_x_metadata: &CoinMetadata<CoinX>,
+    coin_y_metadata: &CoinMetadata<CoinY>,  
     lp_coin_metadata: &CoinMetadata<LpCoin>,
     ctx: &mut TxContext    
   ): Coin<LpCoin> {
+    utils::assert_lp_coin_metadata(coin_x_metadata, coin_y_metadata, lp_coin_metadata);
     let lp_coin_decimals = coin::get_decimals(lp_coin_metadata);
     new_pool<Volatile, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, lp_coin_supply, 0, 0, lp_coin_decimals, true, ctx)
   }
@@ -97,6 +100,8 @@ module sc_dex::sui_coins_amm {
     lp_coin_metadata: &CoinMetadata<LpCoin>,
     ctx: &mut TxContext       
   ): Coin<LpCoin> { 
+    utils::assert_lp_coin_metadata(coin_x_metadata, coin_y_metadata, lp_coin_metadata);
+
     let lp_coin_decimals = coin::get_decimals(lp_coin_metadata);
     let decimals_x = pow(10, coin::get_decimals(coin_x_metadata));
     let decimals_y = pow(10, coin::get_decimals(coin_y_metadata));
