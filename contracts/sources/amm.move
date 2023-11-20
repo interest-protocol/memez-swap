@@ -14,6 +14,7 @@ module sc_dex::sui_coins_amm {
   use sc_dex::utils;
   use sc_dex::errors;
   use sc_dex::stable;
+  use sc_dex::events;
   use sc_dex::volatile; 
   use sc_dex::admin::Admin;
   use sc_dex::fees::{Self, Fees};
@@ -134,6 +135,7 @@ module sc_dex::sui_coins_amm {
 
     assert!(coin_x_value != 0 && coin_y_value != 0, errors::provide_both_coins());
 
+    let pool_id = object::id(pool);
     let pool_state = borrow_mut_pool_state<CoinX, CoinY, LpCoin>(pool);
     assert!(!pool_state.locked, errors::pool_is_locked());
 
@@ -160,6 +162,8 @@ module sc_dex::sui_coins_amm {
     balance::join(&mut pool_state.balance_x, coin::into_balance(coin_x));
     balance::join(&mut pool_state.balance_y, coin::into_balance(coin_y));
 
+    events::add_liquidity<CoinX, CoinY>(pool_id, optimal_x_amount, optimal_y_amount, shares_to_mint);
+
     (coin::from_balance(balance::increase_supply(&mut pool_state.lp_coin_supply, shares_to_mint), ctx), extra_x, extra_y)
   }
 
@@ -174,6 +178,7 @@ module sc_dex::sui_coins_amm {
 
     assert!(lp_coin_value != 0, errors::no_zero_coin());
     
+    let pool_id = object::id(pool);
     let pool_state = borrow_mut_pool_state<CoinX, CoinY, LpCoin>(pool);
     assert!(!pool_state.locked, errors::pool_is_locked());
 
@@ -186,6 +191,8 @@ module sc_dex::sui_coins_amm {
     assert!(coin_y_removed >= coin_y_min_amount, errors::slippage());
 
     balance::decrease_supply(&mut pool_state.lp_coin_supply, coin::into_balance(lp_coin));
+
+    events::remove_liquidity<CoinX, CoinY>(pool_id, coin_x_removed, coin_y_removed, lp_coin_value);
 
     (
       coin::take(&mut pool_state.balance_x, coin_x_removed, ctx),
@@ -246,6 +253,8 @@ module sc_dex::sui_coins_amm {
 
     table::add(&mut registry.pools, registry_key, object::id(&pool));
 
+    events::new_pool<Curve, CoinX, CoinY>(object::id(&pool), coin_x_value, coin_y_value);
+
     share_object(pool);
 
     coin::from_balance(sender_balance, ctx)
@@ -257,6 +266,7 @@ module sc_dex::sui_coins_amm {
     coin_y_min_value: u64,
     ctx: &mut TxContext
   ): Coin<CoinY> {
+    let pool_id = object::id(pool);
     let pool_state = borrow_mut_pool_state<CoinX, CoinY, LpCoin>(pool);
     assert!(!pool_state.locked, errors::pool_is_locked());
 
@@ -274,6 +284,8 @@ module sc_dex::sui_coins_amm {
 
     balance::join(&mut pool_state.balance_x, coin::into_balance(coin_x));
 
+    events::swap<CoinX, CoinY>(pool_id, coin_in_amount, amount_out, fee_x, fee_y);
+
     coin::take(&mut pool_state.balance_y, amount_out, ctx) 
   }
 
@@ -283,6 +295,7 @@ module sc_dex::sui_coins_amm {
     coin_x_min_value: u64,
     ctx: &mut TxContext
   ): Coin<CoinX> {
+    let pool_id = object::id(pool);
     let pool_state = borrow_mut_pool_state<CoinX, CoinY, LpCoin>(pool);
     assert!(!pool_state.locked, errors::pool_is_locked());
 
@@ -299,6 +312,8 @@ module sc_dex::sui_coins_amm {
     };
 
     balance::join(&mut pool_state.balance_y, coin::into_balance(coin_y));
+
+    events::swap<CoinY, CoinX>(pool_id, coin_in_amount, amount_out, fee_y, fee_x);
 
     coin::take(&mut pool_state.balance_x, amount_out, ctx) 
   }  
