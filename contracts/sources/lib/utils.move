@@ -77,13 +77,9 @@ module sc_dex::utils {
     coin_y_metadata: &CoinMetadata<CoinY>,  
     lp_coin_metadata: &CoinMetadata<LpCoin>,
   ) {
-    let coin_x_type_name = type_name::get<CoinX>();
-    let coin_y_type_name = type_name::get<CoinY>();
-    let lp_coin_type_name = type_name::get<LpCoin>();
-
-    let coin_x_module_name = type_name::get_module(&coin_x_type_name);
-    let coin_y_module_name = type_name::get_module(&coin_y_type_name);
-    let lp_coin_module_name = type_name::get_module(&lp_coin_type_name);
+    let coin_x_module_name = type_name::get_module(&type_name::get<CoinX>());
+    let coin_y_module_name = type_name::get_module(&type_name::get<CoinY>());
+    let lp_coin_module_name = type_name::get_module(&type_name::get<LpCoin>());
 
     let expected_lp_coin_module_name = string::utf8(b"");
     string::append_utf8(&mut expected_lp_coin_module_name, b"sc_");

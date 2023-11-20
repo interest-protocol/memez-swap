@@ -76,7 +76,7 @@ module sc_dex::sui_coins_amm {
 
   // === Mutative Functions ===  
 
-  public fun new_volatile_pool<CoinX, CoinY, LpCoin>(
+  public fun new_pool<CoinX, CoinY, LpCoin>(
     registry: &mut Registry,
     coin_x: Coin<CoinX>,
     coin_y: Coin<CoinY>,
@@ -84,28 +84,10 @@ module sc_dex::sui_coins_amm {
     coin_x_metadata: &CoinMetadata<CoinX>,
     coin_y_metadata: &CoinMetadata<CoinY>,  
     lp_coin_metadata: &mut CoinMetadata<LpCoin>,
+    volatile: bool,
     ctx: &mut TxContext    
   ): Coin<LpCoin> {
-    utils::assert_lp_coin_otw(coin_x_metadata, coin_y_metadata, lp_coin_metadata);
-    let lp_coin_decimals = coin::get_decimals(lp_coin_metadata);
-
-    coin::update_name(&lp_coin_cap, lp_coin_metadata, utils::get_lp_coin_name(coin_x_metadata, coin_y_metadata));
-    coin::update_symbol(&lp_coin_cap, lp_coin_metadata, utils::get_lp_coin_symbol(coin_x_metadata, coin_y_metadata));
-
-    new_pool<Volatile, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, coin::treasury_into_supply(lp_coin_cap), 0, 0, lp_coin_decimals, true, ctx)
-  }
-
-  public fun new_stable_pool<CoinX, CoinY, LpCoin>(
-    registry: &mut Registry,
-    coin_x: Coin<CoinX>,
-    coin_y: Coin<CoinY>,
-    lp_coin_cap: TreasuryCap<LpCoin>,
-    coin_x_metadata: &CoinMetadata<CoinX>,
-    coin_y_metadata: &CoinMetadata<CoinY>,  
-    lp_coin_metadata: &mut CoinMetadata<LpCoin>,
-    ctx: &mut TxContext       
-  ): Coin<LpCoin> { 
-    utils::assert_lp_coin_otw(coin_x_metadata, coin_y_metadata, lp_coin_metadata);
+   utils::assert_lp_coin_otw(coin_x_metadata, coin_y_metadata, lp_coin_metadata);
 
     coin::update_name(&lp_coin_cap, lp_coin_metadata, utils::get_lp_coin_name(coin_x_metadata, coin_y_metadata));
     coin::update_symbol(&lp_coin_cap, lp_coin_metadata, utils::get_lp_coin_symbol(coin_x_metadata, coin_y_metadata));
@@ -113,7 +95,11 @@ module sc_dex::sui_coins_amm {
     let lp_coin_decimals = coin::get_decimals(lp_coin_metadata);
     let decimals_x = pow(10, coin::get_decimals(coin_x_metadata));
     let decimals_y = pow(10, coin::get_decimals(coin_y_metadata));
-    new_pool<Stable, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, coin::treasury_into_supply(lp_coin_cap), decimals_x, decimals_y, lp_coin_decimals, false, ctx)
+
+    if (volatile)
+      new_pool_internal<Volatile, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, coin::treasury_into_supply(lp_coin_cap), decimals_x, decimals_y, lp_coin_decimals, true, ctx)
+    else 
+      new_pool_internal<Stable, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, coin::treasury_into_supply(lp_coin_cap), decimals_x, decimals_y, lp_coin_decimals, false, ctx)
   }
 
   public fun swap<CoinIn, CoinOut, LpCoin>(
@@ -146,7 +132,7 @@ module sc_dex::sui_coins_amm {
     let pool_state = borrow_mut_pool_state<CoinX, CoinY, LpCoin>(pool);
     assert!(!pool_state.locked, errors::pool_is_locked());
 
-    let (balance_x, balance_y, lp_coin_supply) = get_amounts_internal(pool_state);
+    let (balance_x, balance_y, lp_coin_supply) = get_amounts(pool_state);
 
     let (optimal_x_amount, optimal_y_amount) = utils::calculate_optimal_add_liquidity(
       coin_x_value,
@@ -189,7 +175,7 @@ module sc_dex::sui_coins_amm {
     let pool_state = borrow_mut_pool_state<CoinX, CoinY, LpCoin>(pool);
     assert!(!pool_state.locked, errors::pool_is_locked());
 
-    let (balance_x, balance_y, lp_coin_supply) = get_amounts_internal(pool_state);
+    let (balance_x, balance_y, lp_coin_supply) = get_amounts(pool_state);
 
     let coin_x_removed = mul_div_down(lp_coin_value, balance_x, lp_coin_supply);
     let coin_y_removed = mul_div_down(lp_coin_value, balance_y, lp_coin_supply);
@@ -209,7 +195,7 @@ module sc_dex::sui_coins_amm {
 
   // === Private Functions ===    
 
-  fun new_pool<Curve, CoinX, CoinY, LpCoin>(
+  fun new_pool_internal<Curve, CoinX, CoinY, LpCoin>(
     registry: &mut Registry,
     coin_x: Coin<CoinX>,
     coin_y: Coin<CoinY>,
@@ -332,7 +318,7 @@ module sc_dex::sui_coins_amm {
       fees::new(INITIAL_STABLE_FEE_PERCENT, INITIAL_STABLE_FEE_PERCENT, INITIAL_ADMIN_FEE)
   }
 
-  fun get_amounts_internal<CoinX, CoinY, LpCoin>(state: &PoolState<CoinX, CoinY, LpCoin>): (u64, u64, u64) {
+  fun get_amounts<CoinX, CoinY, LpCoin>(state: &PoolState<CoinX, CoinY, LpCoin>): (u64, u64, u64) {
     ( 
       balance::value(&state.balance_x), 
       balance::value(&state.balance_y),
@@ -346,7 +332,7 @@ module sc_dex::sui_coins_amm {
     coin_out_min_value: u64,
     is_x: bool 
   ): (u64, u64, u64) {
-    let (balance_x, balance_y, _) = get_amounts_internal(pool_state);
+    let (balance_x, balance_y, _) = get_amounts(pool_state);
 
     let prev_k = if (pool_state.volatile) 
       volatile::invariant_(balance_x, balance_y) 
@@ -453,7 +439,7 @@ module sc_dex::sui_coins_amm {
     
     pool_state.locked = true;
 
-    let (balance_x, balance_y, _) = get_amounts_internal(pool_state);
+    let (balance_x, balance_y, _) = get_amounts(pool_state);
 
     let prev_k = if (pool_state.volatile) 
       volatile::invariant_(balance_x, balance_y) 
@@ -492,7 +478,7 @@ module sc_dex::sui_coins_amm {
    coin::put(&mut pool_state.balance_x, coin_x);
    coin::put(&mut pool_state.balance_y, coin_y);
 
-   let (balance_x, balance_y, _) = get_amounts_internal(pool_state);
+   let (balance_x, balance_y, _) = get_amounts(pool_state);
 
    let k = if (pool_state.volatile) 
       volatile::invariant_(balance_x, balance_y) 
