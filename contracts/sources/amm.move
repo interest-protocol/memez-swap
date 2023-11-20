@@ -9,7 +9,7 @@ module sc_dex::sui_coins_amm {
   use sui::transfer::share_object;
   use sui::object::{Self, UID, ID};
   use sui::balance::{Self, Supply, Balance};
-  use sui::coin::{Self, Coin, CoinMetadata};
+  use sui::coin::{Self, Coin, CoinMetadata, TreasuryCap};
 
   use sc_dex::utils;
   use sc_dex::errors;
@@ -80,33 +80,40 @@ module sc_dex::sui_coins_amm {
     registry: &mut Registry,
     coin_x: Coin<CoinX>,
     coin_y: Coin<CoinY>,
-    lp_coin_supply: Supply<LpCoin>,
+    lp_coin_cap: TreasuryCap<LpCoin>,
     coin_x_metadata: &CoinMetadata<CoinX>,
     coin_y_metadata: &CoinMetadata<CoinY>,  
-    lp_coin_metadata: &CoinMetadata<LpCoin>,
+    lp_coin_metadata: &mut CoinMetadata<LpCoin>,
     ctx: &mut TxContext    
   ): Coin<LpCoin> {
-    utils::assert_lp_coin_metadata(coin_x_metadata, coin_y_metadata, lp_coin_metadata);
+    utils::assert_lp_coin_otw(coin_x_metadata, coin_y_metadata, lp_coin_metadata);
     let lp_coin_decimals = coin::get_decimals(lp_coin_metadata);
-    new_pool<Volatile, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, lp_coin_supply, 0, 0, lp_coin_decimals, true, ctx)
+
+    coin::update_name(&lp_coin_cap, lp_coin_metadata, utils::get_lp_coin_name(coin_x_metadata, coin_y_metadata));
+    coin::update_symbol(&lp_coin_cap, lp_coin_metadata, utils::get_lp_coin_symbol(coin_x_metadata, coin_y_metadata));
+
+    new_pool<Volatile, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, coin::treasury_into_supply(lp_coin_cap), 0, 0, lp_coin_decimals, true, ctx)
   }
 
   public fun new_stable_pool<CoinX, CoinY, LpCoin>(
     registry: &mut Registry,
     coin_x: Coin<CoinX>,
     coin_y: Coin<CoinY>,
-    lp_coin_supply: Supply<LpCoin>,
+    lp_coin_cap: TreasuryCap<LpCoin>,
     coin_x_metadata: &CoinMetadata<CoinX>,
     coin_y_metadata: &CoinMetadata<CoinY>,  
-    lp_coin_metadata: &CoinMetadata<LpCoin>,
+    lp_coin_metadata: &mut CoinMetadata<LpCoin>,
     ctx: &mut TxContext       
   ): Coin<LpCoin> { 
-    utils::assert_lp_coin_metadata(coin_x_metadata, coin_y_metadata, lp_coin_metadata);
+    utils::assert_lp_coin_otw(coin_x_metadata, coin_y_metadata, lp_coin_metadata);
+
+    coin::update_name(&lp_coin_cap, lp_coin_metadata, utils::get_lp_coin_name(coin_x_metadata, coin_y_metadata));
+    coin::update_symbol(&lp_coin_cap, lp_coin_metadata, utils::get_lp_coin_symbol(coin_x_metadata, coin_y_metadata));
 
     let lp_coin_decimals = coin::get_decimals(lp_coin_metadata);
     let decimals_x = pow(10, coin::get_decimals(coin_x_metadata));
     let decimals_y = pow(10, coin::get_decimals(coin_y_metadata));
-    new_pool<Stable, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, lp_coin_supply, decimals_x, decimals_y, lp_coin_decimals, false, ctx)
+    new_pool<Stable, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, coin::treasury_into_supply(lp_coin_cap), decimals_x, decimals_y, lp_coin_decimals, false, ctx)
   }
 
   public fun swap<CoinIn, CoinOut, LpCoin>(
