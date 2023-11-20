@@ -43,26 +43,30 @@ module sc_dex::quote {
 
   public fun quote_amount_in<CoinIn, CoinOut, LpCoin>(pool: &SuiCoinsPool, amount_out: u64): u64 {
     if (is_coin_x<CoinIn, CoinOut>()) {
+       let fees = sui_coins_amm::fees<CoinIn, CoinOut, LpCoin>(pool);
+       let amount_out = fees::get_fee_out_initial_amount(&fees, amount_out);
        let balance_x = sui_coins_amm::balance_x<CoinIn, CoinOut, LpCoin>(pool);
        let balance_y = sui_coins_amm::balance_y<CoinIn, CoinOut, LpCoin>(pool);
       if (sui_coins_amm::volatile<CoinIn, CoinOut, LpCoin>(pool)) {
-        volatile::get_amount_in(amount_out, balance_x, balance_y)
+        fees::get_fee_in_initial_amount(&fees, volatile::get_amount_in(amount_out, balance_x, balance_y))
       } else {
         let decimals_x = sui_coins_amm::decimals_x<CoinIn, CoinOut, LpCoin>(pool);
         let decimals_y = sui_coins_amm::decimals_y<CoinIn, CoinOut, LpCoin>(pool);
         let k = stable::invariant_(balance_x, balance_y, decimals_x, decimals_y);
-        stable::get_amount_in(k, amount_out, balance_x, balance_y, decimals_x, decimals_y, true)
+        fees::get_fee_in_initial_amount(&fees, stable::get_amount_in(k, amount_out, balance_x, balance_y, decimals_x, decimals_y, true))
       }
     } else {
-        let balance_x = sui_coins_amm::balance_x<CoinOut, CoinIn, LpCoin>(pool);
+       let fees = sui_coins_amm::fees<CoinIn, CoinOut, LpCoin>(pool);
+       let amount_out = fees::get_fee_out_initial_amount(&fees, amount_out);
+       let balance_x = sui_coins_amm::balance_x<CoinOut, CoinIn, LpCoin>(pool);
        let balance_y = sui_coins_amm::balance_y<CoinOut, CoinIn, LpCoin>(pool);
       if (sui_coins_amm::volatile<CoinOut, CoinIn, LpCoin>(pool)) {
-        volatile::get_amount_in(amount_out, balance_y, balance_x)
+        fees::get_fee_in_initial_amount(&fees, volatile::get_amount_in(amount_out, balance_y, balance_x))
       } else {
         let decimals_x = sui_coins_amm::decimals_x<CoinOut, CoinIn, LpCoin>(pool);
         let decimals_y = sui_coins_amm::decimals_y<CoinOut, CoinIn, LpCoin>(pool);
         let k = stable::invariant_(balance_x, balance_y, decimals_x, decimals_y);
-        stable::get_amount_in(k, amount_out, balance_x, balance_y, decimals_x, decimals_y, false)
+        fees::get_fee_in_initial_amount(&fees, stable::get_amount_in(k, amount_out, balance_x, balance_y, decimals_x, decimals_y, false))
       }
     }
   }

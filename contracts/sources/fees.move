@@ -71,7 +71,19 @@ module sc_dex::fees {
     get_fee_amount(amount, fees.admin_fee_percent)
   }
 
+  public fun get_fee_in_initial_amount(fees: &Fees, amount: u64): u64 {
+    get_initial_amount(amount, fees.fee_in_percent)
+  }
+
+  public fun get_fee_out_initial_amount(fees: &Fees, amount: u64): u64 {
+    get_initial_amount(amount, fees.fee_out_percent)
+  }
+
   fun get_fee_amount(x: u64, percent: u256): u64 {
     (mul_div_up((x as u256), percent, PRECISION) as u64)
+  }
+
+  fun get_initial_amount(x: u64, percent: u256): u64 {
+    (mul_div_up((x as u256), PRECISION, PRECISION - percent) as u64)
   }
 }
