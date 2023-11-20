@@ -7,11 +7,11 @@ module sc_dex::quote {
   use sc_dex::sui_coins_amm::{Self, SuiCoinsPool};
   use sc_dex::utils::{calculate_optimal_add_liquidity, is_coin_x};
 
-  public fun quote_amount_out<Curve, CoinIn, CoinOut, LpCoin>(pool: &SuiCoinsPool, amount_in: u64): u64 { 
+  public fun quote_amount_out<CoinIn, CoinOut, LpCoin>(pool: &SuiCoinsPool, amount_in: u64): u64 { 
     if (is_coin_x<CoinIn, CoinOut>()) {
        let balance_x = sui_coins_amm::balance_x<CoinIn, CoinOut, LpCoin>(pool);
        let balance_y = sui_coins_amm::balance_y<CoinIn, CoinOut, LpCoin>(pool);
-      if (is_volatile<Curve>()) {
+      if (sui_coins_amm::volatile<CoinIn, CoinOut, LpCoin>(pool)) {
         volatile::get_amount_out(amount_in, balance_x, balance_y)
       } else {
         let decimals_x = sui_coins_amm::decimals_x<CoinIn, CoinOut, LpCoin>(pool);
@@ -22,7 +22,7 @@ module sc_dex::quote {
     } else {
         let balance_x = sui_coins_amm::balance_x<CoinOut, CoinIn, LpCoin>(pool);
        let balance_y = sui_coins_amm::balance_y<CoinOut, CoinIn, LpCoin>(pool);
-      if (is_volatile<Curve>()) {
+      if (sui_coins_amm::volatile<CoinOut, CoinIn, LpCoin>(pool)) {
         volatile::get_amount_out(amount_in, balance_y, balance_x)
       } else {
         let decimals_x = sui_coins_amm::decimals_x<CoinOut, CoinIn, LpCoin>(pool);
@@ -33,11 +33,11 @@ module sc_dex::quote {
     }
   }
 
-  public fun quote_amount_in<Curve, CoinIn, CoinOut, LpCoin>(pool: &SuiCoinsPool, amount_out: u64): u64 {
+  public fun quote_amount_in<CoinIn, CoinOut, LpCoin>(pool: &SuiCoinsPool, amount_out: u64): u64 {
     if (is_coin_x<CoinIn, CoinOut>()) {
        let balance_x = sui_coins_amm::balance_x<CoinIn, CoinOut, LpCoin>(pool);
        let balance_y = sui_coins_amm::balance_y<CoinIn, CoinOut, LpCoin>(pool);
-      if (is_volatile<Curve>()) {
+      if (sui_coins_amm::volatile<CoinIn, CoinOut, LpCoin>(pool)) {
         volatile::get_amount_in(amount_out, balance_x, balance_y)
       } else {
         let decimals_x = sui_coins_amm::decimals_x<CoinIn, CoinOut, LpCoin>(pool);
@@ -48,7 +48,7 @@ module sc_dex::quote {
     } else {
         let balance_x = sui_coins_amm::balance_x<CoinOut, CoinIn, LpCoin>(pool);
        let balance_y = sui_coins_amm::balance_y<CoinOut, CoinIn, LpCoin>(pool);
-      if (is_volatile<Curve>()) {
+      if (sui_coins_amm::volatile<CoinOut, CoinIn, LpCoin>(pool)) {
         volatile::get_amount_in(amount_out, balance_y, balance_x)
       } else {
         let decimals_x = sui_coins_amm::decimals_x<CoinOut, CoinIn, LpCoin>(pool);
