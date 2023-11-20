@@ -1,5 +1,5 @@
 module sc_dex::sui_coins_amm {
-  use std::option::Option;
+  use std::option::{Self, Option};
   use std::type_name::{Self, TypeName};
 
   use sui::math::pow;
@@ -498,6 +498,19 @@ module sc_dex::sui_coins_amm {
   }
 
   // === View Functions ===
+
+  public fun pool_id<Curve, CoinX, CoinY>(registry: &Registry): Option<ID> {
+    let registry_key = type_name::get<RegistryKey<Curve, CoinX, CoinY>>();
+
+    if (table::contains(&registry.pools, registry_key))
+      option::some(*table::borrow(&registry.pools, registry_key))
+    else
+      option::none()
+  }
+
+  public fun pool_exists<Curve, CoinX, CoinY>(registry: &Registry): bool {
+    table::contains(&registry.pools, type_name::get<RegistryKey<Curve, CoinX, CoinY>>())   
+  }
 
   public fun lp_coin_supply<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
     let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
