@@ -59,4 +59,8 @@ module sc_dex::errors {
   public fun wrong_module_name(): u64 {
     13
   }
+
+  public fun insufficient_liquidity(): u64 {
+    14
+  }
 }

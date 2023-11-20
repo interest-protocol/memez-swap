@@ -1,6 +1,7 @@
 module sc_dex::stable {
 
-  use sc_dex::math256::diff;
+  use sc_dex::errors;
+  use sc_dex::math256::{diff, div_up};
 
   const PRECISION: u256 = 1_000_000_000_000_000_000;
 
@@ -25,6 +26,8 @@ module sc_dex::stable {
     decimals_y: u64,
     is_x: bool
   ): u64 {
+    assert!(coin_amount != 0, errors::no_zero_coin());
+    assert!(balance_x != 0 && balance_y != 0, errors::insufficient_liquidity());
     let (coin_amount, balance_x, balance_y, decimals_x, decimals_y) =
       (
         (coin_amount as u256),
@@ -44,7 +47,7 @@ module sc_dex::stable {
               else 
                  y( reserve_y - amount_out, k, reserve_x) - reserve_x;
 
-    ((y * if (is_x) { decimals_y } else { decimals_x }) / PRECISION as u64)   
+    (div_up((y * if (is_x) { decimals_y } else { decimals_x }), PRECISION) as u64)  
   }   
 
   public fun get_amount_out(
@@ -56,6 +59,9 @@ module sc_dex::stable {
     decimals_y: u64,
     is_x: bool
   ): u64 {
+    assert!(coin_amount != 0, errors::no_zero_coin());
+    assert!(balance_x != 0 && balance_y != 0, errors::insufficient_liquidity());
+
     let (coin_amount, balance_x, balance_y, decimals_x, decimals_y) =
       (
         (coin_amount as u256),

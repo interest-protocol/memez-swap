@@ -1,3 +1,4 @@
+#[test_only]
 module sc_dex::stable_tests {
   use sui::test_utils::assert_eq;
 
@@ -35,12 +36,12 @@ module sc_dex::stable_tests {
     let k = stable::invariant_(2558285805075701, 25582858050757, 100000000, 1000000);
     assert_eq(
       stable::get_amount_in(k, 251305800000,  2558285805075701, 25582858050757, 100000000, 1000000, true),
-      2513058000
+      2513058001
     );
 
     assert_eq(
       stable::get_amount_in(k, 2513058000,  2558285805075701, 25582858050757, 100000000, 1000000, false),
-      251305800000
+      251305800001
     );
   }
 
