@@ -72,11 +72,13 @@ module sc_dex::utils {
     string::to_ascii(expected_lp_coin_symbol)
   }
 
-  public fun assert_lp_coin_otw<CoinX, CoinY, LpCoin>(
-    coin_x_metadata: &CoinMetadata<CoinX>,
-    coin_y_metadata: &CoinMetadata<CoinY>,  
-    lp_coin_metadata: &CoinMetadata<LpCoin>,
-  ) {
+  public fun assert_lp_coin_integrity<CoinX, CoinY, LpCoin>(lp_coin_metadata: &CoinMetadata<LpCoin>) {
+     assert!(coin::get_decimals(lp_coin_metadata) == 9, errors::lp_coins_must_have_9_decimals());
+     assert_lp_coin_otw<CoinX, CoinY, LpCoin>()
+  }
+
+  fun assert_lp_coin_otw<CoinX, CoinY, LpCoin>() {
+    assert!(are_coins_ordered<CoinX, CoinY>(), errors::coins_must_be_ordered());
     let coin_x_module_name = type_name::get_module(&type_name::get<CoinX>());
     let coin_y_module_name = type_name::get_module(&type_name::get<CoinY>());
     let lp_coin_module_name = type_name::get_module(&type_name::get<LpCoin>());

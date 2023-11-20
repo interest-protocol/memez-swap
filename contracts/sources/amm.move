@@ -18,7 +18,6 @@ module sc_dex::sui_coins_amm {
   use sc_dex::volatile; 
   use sc_dex::admin::Admin;
   use sc_dex::fees::{Self, Fees};
-  use sc_dex::utils::are_coins_ordered; 
   use sc_dex::math64::{min, mul_div_down}; 
   use sc_dex::math256::{sqrt_down, mul_div_up};
   use sc_dex::curves::{Self, Volatile, Stable};
@@ -87,19 +86,18 @@ module sc_dex::sui_coins_amm {
     volatile: bool,
     ctx: &mut TxContext    
   ): Coin<LpCoin> {
-   utils::assert_lp_coin_otw(coin_x_metadata, coin_y_metadata, lp_coin_metadata);
-
+    utils::assert_lp_coin_integrity<CoinX, CoinY, LpCoin>(lp_coin_metadata);
+    
     coin::update_name(&lp_coin_cap, lp_coin_metadata, utils::get_lp_coin_name(coin_x_metadata, coin_y_metadata));
     coin::update_symbol(&lp_coin_cap, lp_coin_metadata, utils::get_lp_coin_symbol(coin_x_metadata, coin_y_metadata));
 
-    let lp_coin_decimals = coin::get_decimals(lp_coin_metadata);
     let decimals_x = pow(10, coin::get_decimals(coin_x_metadata));
     let decimals_y = pow(10, coin::get_decimals(coin_y_metadata));
 
     if (volatile)
-      new_pool_internal<Volatile, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, coin::treasury_into_supply(lp_coin_cap), decimals_x, decimals_y, lp_coin_decimals, true, ctx)
+      new_pool_internal<Volatile, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, coin::treasury_into_supply(lp_coin_cap), decimals_x, decimals_y,true, ctx)
     else 
-      new_pool_internal<Stable, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, coin::treasury_into_supply(lp_coin_cap), decimals_x, decimals_y, lp_coin_decimals, false, ctx)
+      new_pool_internal<Stable, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, coin::treasury_into_supply(lp_coin_cap), decimals_x, decimals_y, false, ctx)
   }
 
   public fun swap<CoinIn, CoinOut, LpCoin>(
@@ -202,18 +200,15 @@ module sc_dex::sui_coins_amm {
     lp_coin_supply: Supply<LpCoin>,
     decimals_x: u64,
     decimals_y: u64,
-    lp_coin_decimals: u8,
     volatile: bool,
     ctx: &mut TxContext
   ): Coin<LpCoin> {
     assert!(balance::supply_value(&lp_coin_supply) == 0, errors::supply_must_have_zero_value());
-    assert!(lp_coin_decimals == 9, errors::lp_coins_must_have_9_decimals());
 
     let coin_x_value = coin::value(&coin_x);
     let coin_y_value = coin::value(&coin_y);
 
     assert!(coin_x_value != 0 && coin_y_value != 0, errors::provide_both_coins());
-    assert!(are_coins_ordered<CoinX, CoinY>(), errors::coins_must_be_ordered());
 
     let registry_key = type_name::get<RegistryKey<Curve, CoinX, CoinY>>();
 

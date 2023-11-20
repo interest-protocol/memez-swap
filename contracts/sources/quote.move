@@ -2,7 +2,6 @@ module sc_dex::quote {
 
   use sc_dex::stable;
   use sc_dex::volatile;
-  use sc_dex::curves::is_volatile;
   use sc_dex::math64::{min, mul_div_down};
   use sc_dex::sui_coins_amm::{Self, SuiCoinsPool};
   use sc_dex::utils::{calculate_optimal_add_liquidity, is_coin_x};
