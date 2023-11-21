@@ -9,6 +9,7 @@ module sc_dex::quote {
   public fun quote_amount_out<CoinIn, CoinOut, LpCoin>(pool: &SuiCoinsPool, amount_in: u64): u64 { 
    
     if (is_coin_x<CoinIn, CoinOut>()) {
+
       let (balance_x, balance_y, decimals_x, decimals_y, k, volatile, fees) = get_pool_data<CoinIn, CoinOut, LpCoin>(pool);
       let amount_in = amount_in - fees::get_fee_in_amount(&fees, amount_in);
 
@@ -22,10 +23,11 @@ module sc_dex::quote {
       let (balance_x, balance_y, decimals_x, decimals_y, k, volatile, fees) = get_pool_data<CoinOut, CoinIn, LpCoin>(pool);
       let amount_in = amount_in - fees::get_fee_in_amount(&fees, amount_in);
 
-      if (volatile) {
+      if (volatile)
         get_amount_out(fees, volatile::get_amount_out(amount_in, balance_y, balance_x))
-      } else
+      else
         get_amount_out(fees, stable::get_amount_out(k, amount_in, balance_x, balance_y, decimals_x, decimals_y, false))
+
     }
   }
 
@@ -41,12 +43,14 @@ module sc_dex::quote {
         fees::get_fee_in_initial_amount(&fees, stable::get_amount_in(k, amount_out, balance_x, balance_y, decimals_x, decimals_y, true))
 
     } else {
+      
       let (balance_x, balance_y, decimals_x, decimals_y, k, volatile, fees) = get_pool_data<CoinIn, CoinOut, LpCoin>(pool);
 
       if (volatile) 
         fees::get_fee_in_initial_amount(&fees, volatile::get_amount_in(amount_out, balance_y, balance_x))
       else 
         fees::get_fee_in_initial_amount(&fees, stable::get_amount_in(k, amount_out, balance_x, balance_y, decimals_x, decimals_y, false))
+
     }
   }
 
