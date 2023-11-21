@@ -97,13 +97,13 @@ module sc_dex::quote {
     amount_out - fee_amount
   }
 
-  fun get_pool_data<CoinIn, CoinOut, LpCoin>(pool: &SuiCoinsPool): (u64, u64, u64, u64, u256, bool, Fees) {
-    let fees = sui_coins_amm::fees<CoinIn, CoinOut, LpCoin>(pool);
-    let balance_x = sui_coins_amm::balance_x<CoinIn, CoinOut, LpCoin>(pool);
-    let balance_y = sui_coins_amm::balance_y<CoinIn, CoinOut, LpCoin>(pool);
-    let is_volatile = sui_coins_amm::volatile<CoinIn, CoinOut, LpCoin>(pool);
-    let decimals_x = sui_coins_amm::decimals_x<CoinIn, CoinOut, LpCoin>(pool);
-    let decimals_y = sui_coins_amm::decimals_y<CoinIn, CoinOut, LpCoin>(pool);
+  fun get_pool_data<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): (u64, u64, u64, u64, u256, bool, Fees) {
+    let fees = sui_coins_amm::fees<CoinX, CoinY, LpCoin>(pool);
+    let balance_x = sui_coins_amm::balance_x<CoinX, CoinY, LpCoin>(pool);
+    let balance_y = sui_coins_amm::balance_y<CoinX, CoinY, LpCoin>(pool);
+    let is_volatile = sui_coins_amm::volatile<CoinX, CoinY, LpCoin>(pool);
+    let decimals_x = sui_coins_amm::decimals_x<CoinX, CoinY, LpCoin>(pool);
+    let decimals_y = sui_coins_amm::decimals_y<CoinX, CoinY, LpCoin>(pool);
     let k = stable::invariant_(balance_x, balance_y, decimals_x, decimals_y);
     (balance_x, balance_y, decimals_x, decimals_y, k, is_volatile, fees)
   }
