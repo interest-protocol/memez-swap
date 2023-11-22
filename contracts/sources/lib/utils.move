@@ -50,10 +50,11 @@ module sc_dex::utils {
     let coin_y_name = coin::get_name(coin_y_metadata);
 
     let expected_lp_coin_name = string::utf8(b"");
-    string::append_utf8(&mut expected_lp_coin_name, b"sc-");
+    string::append_utf8(&mut expected_lp_coin_name, b"sc ");
     string::append_utf8(&mut expected_lp_coin_name, *string::bytes(&coin_x_name));
-    string::append_utf8(&mut expected_lp_coin_name, b"-");
+    string::append_utf8(&mut expected_lp_coin_name, b" ");
     string::append_utf8(&mut expected_lp_coin_name, *string::bytes(&coin_y_name));
+    string::append_utf8(&mut expected_lp_coin_name, b" Lp Coin");
     expected_lp_coin_name
   }
 

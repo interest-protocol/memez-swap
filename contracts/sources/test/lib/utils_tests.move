@@ -1,29 +1,41 @@
 #[test_only]
 module sc_dex::utils_tests {
+  use std::string::utf8;
 
   use sui::sui::SUI;
+  use sui::coin::CoinMetadata;
   use sui::test_utils::assert_eq;
+  use sui::test_scenario::{Self as test, next_tx};
 
-  use sc_dex::utils::{are_coins_ordered, is_coin_x, get_optimal_add_liquidity, quote_liquidity};
+  use sc_dex::btc::BTC;
+  use sc_dex::eth::ETH;
+  use sc_dex::test_utils::{scenario, people, deploy_coins};
+  use sc_dex::utils::{
+    is_coin_x, 
+    quote_liquidity,
+    get_lp_coin_name,
+    are_coins_ordered, 
+    get_optimal_add_liquidity, 
+  };
 
-  struct BTC {}
+  struct ABC {}
 
-  struct ETH {}
+  struct CAB {}
 
   #[test]
   fun test_are_coins_ordered() {
-    assert_eq(are_coins_ordered<SUI, BTC>(), true);
-    assert_eq(are_coins_ordered<BTC, SUI>(), false);
-    assert_eq(are_coins_ordered<BTC, ETH>(), true);
-    assert_eq(are_coins_ordered<ETH, BTC>(), false);
+    assert_eq(are_coins_ordered<SUI, ABC>(), true);
+    assert_eq(are_coins_ordered<ABC, SUI>(), false);
+    assert_eq(are_coins_ordered<ABC, CAB>(), true);
+    assert_eq(are_coins_ordered<CAB, ABC>(), false);
   }
 
   #[test]
   fun test_is_coin_x() {
-    assert_eq(is_coin_x<SUI, BTC>(), true);
-    assert_eq(is_coin_x<BTC, SUI>(), false);
-    assert_eq(is_coin_x<BTC, ETH>(), true);
-    assert_eq(is_coin_x<ETH, BTC>(), false);
+    assert_eq(is_coin_x<SUI, ABC>(), true);
+    assert_eq(is_coin_x<ABC, SUI>(), false);
+    assert_eq(is_coin_x<ABC, CAB>(), true);
+    assert_eq(is_coin_x<CAB, ABC>(), false);
     // does not throw
     assert_eq(is_coin_x<ETH, ETH>(), false);
   }
@@ -66,6 +78,34 @@ module sc_dex::utils_tests {
     assert_eq(quote_liquidity(7, 7, 7), 7);
     assert_eq(quote_liquidity(0, 2, 100), 0);
     assert_eq(quote_liquidity(7, 3, 2), 5); // ~ 4.6
+  }
+
+  #[test]
+  fun test_get_lp_coin_name() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    deploy_coins(test);
+
+    next_tx(test, alice); 
+    {
+      let btc_metadata = test::take_shared<CoinMetadata<BTC>>(test);
+      let eth_metadata = test::take_shared<CoinMetadata<ETH>>(test);
+
+      assert_eq(get_lp_coin_name<BTC, ETH>(
+        &btc_metadata,
+        &eth_metadata
+      ),
+      utf8(b"sc Bitcoin Ether Lp Coin")
+      );
+
+      test::return_shared(btc_metadata);
+      test::return_shared(eth_metadata);
+    };
+
+    test::end(scenario);
   }
 
   #[test]
