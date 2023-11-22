@@ -132,7 +132,7 @@ module sc_dex::sui_coins_amm {
 
     let (balance_x, balance_y, lp_coin_supply) = get_amounts(pool_state);
 
-    let (optimal_x_amount, optimal_y_amount) = utils::calculate_optimal_add_liquidity(
+    let (optimal_x_amount, optimal_y_amount) = utils::get_optimal_add_liquidity(
       coin_x_value,
       coin_y_value,
       balance_x,

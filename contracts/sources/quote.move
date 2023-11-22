@@ -4,7 +4,7 @@ module sc_dex::quote {
   use sc_dex::fees::{Self, Fees};
   use sc_dex::math64::{min, mul_div_down};
   use sc_dex::sui_coins_amm::{Self, SuiCoinsPool};
-  use sc_dex::utils::{calculate_optimal_add_liquidity, is_coin_x};
+  use sc_dex::utils::{get_optimal_add_liquidity, is_coin_x};
 
   public fun quote_amount_out<CoinIn, CoinOut, LpCoin>(pool: &SuiCoinsPool, amount_in: u64): u64 { 
 
@@ -57,7 +57,7 @@ module sc_dex::quote {
     let balance_y = sui_coins_amm::balance_y<CoinX, CoinY, LpCoin>(pool);
     let supply = sui_coins_amm::lp_coin_supply<CoinX, CoinY, LpCoin>(pool);
 
-    let (optimal_x_amount, optimal_y_amount) = calculate_optimal_add_liquidity(
+    let (optimal_x_amount, optimal_y_amount) = get_optimal_add_liquidity(
       amount_x,
       amount_y,
       balance_x,

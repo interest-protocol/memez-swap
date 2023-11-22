@@ -22,7 +22,7 @@ module sc_dex::utils {
     comparator::is_smaller_than(&comparator::compare(&type_name::get<CoinA>(), &type_name::get<CoinB>()))
   }
 
-  public fun calculate_optimal_add_liquidity(
+  public fun get_optimal_add_liquidity(
     desired_amount_x: u64,
     desired_amount_y: u64,
     reserve_x: u64,
