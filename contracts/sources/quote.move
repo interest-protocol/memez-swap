@@ -7,9 +7,8 @@ module sc_dex::quote {
   use sc_dex::utils::{calculate_optimal_add_liquidity, is_coin_x};
 
   public fun quote_amount_out<CoinIn, CoinOut, LpCoin>(pool: &SuiCoinsPool, amount_in: u64): u64 { 
-   
-    if (is_coin_x<CoinIn, CoinOut>()) {
 
+    if (is_coin_x<CoinIn, CoinOut>()) {
       let (balance_x, balance_y, decimals_x, decimals_y, k, volatile, fees) = get_pool_data<CoinIn, CoinOut, LpCoin>(pool);
       let amount_in = amount_in - fees::get_fee_in_amount(&fees, amount_in);
 
