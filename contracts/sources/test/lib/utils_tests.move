@@ -1,6 +1,6 @@
 #[test_only]
 module sc_dex::utils_tests {
-  use std::string::utf8;
+  use std::string::{utf8, to_ascii};
 
   use sui::sui::SUI;
   use sui::coin::CoinMetadata;
@@ -15,6 +15,8 @@ module sc_dex::utils_tests {
     quote_liquidity,
     get_lp_coin_name,
     are_coins_ordered, 
+    get_lp_coin_symbol,
+    assert_lp_coin_integrity,
     get_optimal_add_liquidity, 
   };
 
@@ -99,6 +101,34 @@ module sc_dex::utils_tests {
         &eth_metadata
       ),
       utf8(b"sc Bitcoin Ether Lp Coin")
+      );
+
+      test::return_shared(btc_metadata);
+      test::return_shared(eth_metadata);
+    };
+
+    test::end(scenario);
+  }
+
+  #[test]
+  fun test_get_lp_coin_symbol() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    deploy_coins(test);
+
+    next_tx(test, alice); 
+    {
+      let btc_metadata = test::take_shared<CoinMetadata<BTC>>(test);
+      let eth_metadata = test::take_shared<CoinMetadata<ETH>>(test);
+
+      assert_eq(get_lp_coin_symbol<BTC, ETH>(
+        &btc_metadata,
+        &eth_metadata
+      ),
+      to_ascii(utf8(b"sc-BTC-ETH"))
       );
 
       test::return_shared(btc_metadata);
