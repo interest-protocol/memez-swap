@@ -117,9 +117,9 @@ module sc_dex::fees_tests {
     test::end(scenario);
   }
 
-#[test]
-#[expected_failure(abort_code = 1)]  
-fun aborts_max_fee_in() {
+  #[test]
+  #[expected_failure(abort_code = 1)]  
+  fun aborts_max_fee_in() {
     let scenario = scenario();
     let (alice, _) = people();
 
@@ -134,9 +134,9 @@ fun aborts_max_fee_in() {
     test::end(scenario);
   }  
 
-#[test]
-#[expected_failure(abort_code = 1)]  
-fun aborts_max_fee_out() {
+  #[test]
+  #[expected_failure(abort_code = 1)]  
+  fun aborts_max_fee_out() {
     let scenario = scenario();
     let (alice, _) = people();
 
@@ -151,9 +151,9 @@ fun aborts_max_fee_out() {
     test::end(scenario);
   }   
 
-#[test]
-#[expected_failure(abort_code = 1)]  
-fun aborts_max_admin_fee() {
+  #[test]
+  #[expected_failure(abort_code = 1)]  
+  fun aborts_max_admin_fee() {
     let scenario = scenario();
     let (alice, _) = people();
 
@@ -162,7 +162,6 @@ fun aborts_max_admin_fee() {
     next_tx(test, alice);
     {
       let fees = fees::new(0, 0, 0);
-
       fees::update_admin_fee_percent(&mut fees, option::some(MAX_ADMIN_FEE + 1));
     };
     test::end(scenario);

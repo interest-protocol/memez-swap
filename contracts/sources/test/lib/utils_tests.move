@@ -318,35 +318,3 @@ module sc_dex::sc_btce_eth {
     init(SC_BTCE_ETH {}, ctx);
   }  
 }
-
-#[test_only]
-module sc_dex::sc_btc_eth {
-  use std::option;
-
-  use sui::transfer;
-  use sui::coin;
-  use sui::tx_context::{Self, TxContext};
-
-  struct SC_BTC_ETH has drop {}
-
-
-  fun init(witness: SC_BTC_ETH, ctx: &mut TxContext) {
-      let (treasury_cap, metadata) = coin::create_currency<SC_BTC_ETH>(
-            witness, 
-            9, 
-            b"",
-            b"", 
-            b"", 
-            option::none(), 
-            ctx
-        );
-
-      transfer::public_transfer(treasury_cap, tx_context::sender(ctx));
-      transfer::public_share_object(metadata);
-  }
-
-  #[test_only]
-  public fun init_for_testing(ctx: &mut TxContext) {
-    init(SC_BTC_ETH {}, ctx);
-  }  
-}

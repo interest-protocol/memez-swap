@@ -561,4 +561,10 @@ module sc_dex::sui_coins_amm {
   public fun previous_k(receipt: &Receipt): u256 {
     receipt.prev_k
   }
+
+  // === Test Only Functions ===
+  #[test_only]
+  public fun init_for_testing(ctx: &mut TxContext) {
+    init(ctx);
+  }
 }
