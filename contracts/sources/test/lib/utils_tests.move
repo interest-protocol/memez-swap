@@ -224,7 +224,7 @@ module sc_dex::utils_tests {
   #[test]
   #[expected_failure(abort_code = 13)]
   fun test_assert_lp_coin_integrity_wrong_lp_module_name() {
-   let scenario = scenario();
+    let scenario = scenario();
     let (alice, _) = people();
 
     let test = &mut scenario;
