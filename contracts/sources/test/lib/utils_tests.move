@@ -5,10 +5,13 @@ module sc_dex::utils_tests {
   use sui::sui::SUI;
   use sui::coin::CoinMetadata;
   use sui::test_utils::assert_eq;
-  use sui::test_scenario::{Self as test, next_tx};
+  use sui::test_scenario::{Self as test, next_tx, ctx};
 
   use sc_dex::btc::BTC;
   use sc_dex::eth::ETH;
+  use sc_dex::sc_btc_eth::{Self, SC_BTC_ETH};
+  use sc_dex::sc_btce_eth::{Self, SC_BTCE_ETH};
+  use sc_dex::sc_btc_eth_wrong_decimals::{Self, SC_BTC_ETH_WRONG_DECIMALS};
   use sc_dex::test_utils::{scenario, people, deploy_coins};
   use sc_dex::utils::{
     is_coin_x, 
@@ -139,8 +142,211 @@ module sc_dex::utils_tests {
   }
 
   #[test]
+  fun test_assert_lp_coin_integrity() {
+   let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    deploy_coins(test);
+
+    next_tx(test, alice);
+    {
+      sc_btc_eth::init_for_testing(ctx(test));
+    };
+
+    next_tx(test, alice); 
+    {
+      let metadata = test::take_shared<CoinMetadata<SC_BTC_ETH>>(test);
+
+      assert_lp_coin_integrity<BTC, ETH, SC_BTC_ETH>(&metadata);
+
+      test::return_shared(metadata);
+    };
+
+    test::end(scenario);    
+  }
+
+  #[test]
+  #[expected_failure(abort_code = 7)]
+  fun test_assert_lp_coin_integrity_wrong_decimal() {
+   let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    deploy_coins(test);
+
+    next_tx(test, alice);
+    {
+      sc_btc_eth_wrong_decimals::init_for_testing(ctx(test));
+    };
+
+    next_tx(test, alice); 
+    {
+      let metadata = test::take_shared<CoinMetadata<SC_BTC_ETH_WRONG_DECIMALS>>(test);
+
+      assert_lp_coin_integrity<BTC, ETH, SC_BTC_ETH_WRONG_DECIMALS>(&metadata);
+
+      test::return_shared(metadata);
+    };
+
+    test::end(scenario);    
+  }
+
+  #[test]
+  #[expected_failure(abort_code = 4)]
+  fun test_assert_lp_coin_integrity_wrong_coin_order() {
+   let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    deploy_coins(test);
+
+    next_tx(test, alice);
+    {
+      sc_btc_eth_wrong_decimals::init_for_testing(ctx(test));
+    };
+
+    next_tx(test, alice); 
+    {
+      let metadata = test::take_shared<CoinMetadata<BTC>>(test);
+
+      assert_lp_coin_integrity<ETH, BTC, BTC>(&metadata);
+
+      test::return_shared(metadata);
+    };
+
+    test::end(scenario);    
+  }
+
+  #[test]
+  #[expected_failure(abort_code = 13)]
+  fun test_assert_lp_coin_integrity_wrong_lp_module_name() {
+   let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    deploy_coins(test);
+
+    next_tx(test, alice);
+    {
+      sc_btce_eth::init_for_testing(ctx(test));
+    };
+
+    next_tx(test, alice); 
+    {
+      let metadata = test::take_shared<CoinMetadata<SC_BTCE_ETH>>(test);
+
+      assert_lp_coin_integrity<BTC, ETH, SC_BTCE_ETH>(&metadata);
+
+      test::return_shared(metadata);
+    };
+
+    test::end(scenario);    
+  }
+
+  #[test]
   #[expected_failure]
   fun test_are_coins_ordered_same_coin() {
     are_coins_ordered<SUI, SUI>();
   }
+}
+
+#[test_only]
+module sc_dex::sc_btc_eth_wrong_decimals {
+  use std::option;
+
+  use sui::transfer;
+  use sui::coin;
+  use sui::tx_context::{Self, TxContext};
+
+  struct SC_BTC_ETH_WRONG_DECIMALS has drop {}
+
+
+  fun init(witness: SC_BTC_ETH_WRONG_DECIMALS, ctx: &mut TxContext) {
+      let (treasury_cap, metadata) = coin::create_currency<SC_BTC_ETH_WRONG_DECIMALS>(
+            witness, 
+            8, 
+            b"",
+            b"", 
+            b"", 
+            option::none(), 
+            ctx
+        );
+
+      transfer::public_transfer(treasury_cap, tx_context::sender(ctx));
+      transfer::public_share_object(metadata);
+  }
+
+  #[test_only]
+  public fun init_for_testing(ctx: &mut TxContext) {
+    init(SC_BTC_ETH_WRONG_DECIMALS {}, ctx);
+  }  
+}
+
+#[test_only]
+module sc_dex::sc_btce_eth {
+  use std::option;
+
+  use sui::transfer;
+  use sui::coin;
+  use sui::tx_context::{Self, TxContext};
+
+  struct SC_BTCE_ETH has drop {}
+
+
+  fun init(witness: SC_BTCE_ETH, ctx: &mut TxContext) {
+      let (treasury_cap, metadata) = coin::create_currency<SC_BTCE_ETH>(
+            witness, 
+            9, 
+            b"",
+            b"", 
+            b"", 
+            option::none(), 
+            ctx
+        );
+
+      transfer::public_transfer(treasury_cap, tx_context::sender(ctx));
+      transfer::public_share_object(metadata);
+  }
+
+  #[test_only]
+  public fun init_for_testing(ctx: &mut TxContext) {
+    init(SC_BTCE_ETH {}, ctx);
+  }  
+}
+
+#[test_only]
+module sc_dex::sc_btc_eth {
+  use std::option;
+
+  use sui::transfer;
+  use sui::coin;
+  use sui::tx_context::{Self, TxContext};
+
+  struct SC_BTC_ETH has drop {}
+
+
+  fun init(witness: SC_BTC_ETH, ctx: &mut TxContext) {
+      let (treasury_cap, metadata) = coin::create_currency<SC_BTC_ETH>(
+            witness, 
+            9, 
+            b"",
+            b"", 
+            b"", 
+            option::none(), 
+            ctx
+        );
+
+      transfer::public_transfer(treasury_cap, tx_context::sender(ctx));
+      transfer::public_share_object(metadata);
+  }
+
+  #[test_only]
+  public fun init_for_testing(ctx: &mut TxContext) {
+    init(SC_BTC_ETH {}, ctx);
+  }  
 }
