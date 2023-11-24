@@ -572,8 +572,15 @@ module sc_dex::sui_coins_amm {
   }
 
   // === Test Only Functions ===
+  
   #[test_only]
   public fun init_for_testing(ctx: &mut TxContext) {
     init(ctx);
+  }
+
+  #[test_only]
+  public fun seed_liquidity<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
+    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
+    balance::value(&pool_state.seed_liquidity)
   }
 }
