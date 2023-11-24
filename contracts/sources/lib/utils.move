@@ -45,12 +45,14 @@ module sc_dex::utils {
   public fun get_lp_coin_name<CoinX, CoinY>(
     coin_x_metadata: &CoinMetadata<CoinX>,
     coin_y_metadata: &CoinMetadata<CoinY>,  
+    volatile: bool
   ): String {
     let coin_x_name = coin::get_name(coin_x_metadata);
     let coin_y_name = coin::get_name(coin_y_metadata);
 
     let expected_lp_coin_name = string::utf8(b"");
     string::append_utf8(&mut expected_lp_coin_name, b"sc ");
+    string::append_utf8(&mut expected_lp_coin_name, if (volatile) b"volatile " else b"stable ");
     string::append_utf8(&mut expected_lp_coin_name, *string::bytes(&coin_x_name));
     string::append_utf8(&mut expected_lp_coin_name, b" ");
     string::append_utf8(&mut expected_lp_coin_name, *string::bytes(&coin_y_name));
@@ -60,25 +62,27 @@ module sc_dex::utils {
 
   public fun get_lp_coin_symbol<CoinX, CoinY>(
     coin_x_metadata: &CoinMetadata<CoinX>,
-    coin_y_metadata: &CoinMetadata<CoinY>,  
+    coin_y_metadata: &CoinMetadata<CoinY>,
+    volatile: bool  
   ): ascii::String {
     let coin_x_symbol = coin::get_symbol(coin_x_metadata);
     let coin_y_symbol = coin::get_symbol(coin_y_metadata);
 
     let expected_lp_coin_symbol = string::utf8(b"");
     string::append_utf8(&mut expected_lp_coin_symbol, b"sc-");
+    string::append_utf8(&mut expected_lp_coin_symbol, if (volatile) b"v-" else b"s-");
     string::append_utf8(&mut expected_lp_coin_symbol, ascii::into_bytes(coin_x_symbol));
     string::append_utf8(&mut expected_lp_coin_symbol, b"-");
     string::append_utf8(&mut expected_lp_coin_symbol, ascii::into_bytes(coin_y_symbol));
     string::to_ascii(expected_lp_coin_symbol)
   }
 
-  public fun assert_lp_coin_integrity<CoinX, CoinY, LpCoin>(lp_coin_metadata: &CoinMetadata<LpCoin>) {
+  public fun assert_lp_coin_integrity<CoinX, CoinY, LpCoin>(lp_coin_metadata: &CoinMetadata<LpCoin>, volatile: bool) {
      assert!(coin::get_decimals(lp_coin_metadata) == 9, errors::lp_coins_must_have_9_decimals());
-     assert_lp_coin_otw<CoinX, CoinY, LpCoin>()
+     assert_lp_coin_otw<CoinX, CoinY, LpCoin>(volatile)
   }
 
-  fun assert_lp_coin_otw<CoinX, CoinY, LpCoin>() {
+  fun assert_lp_coin_otw<CoinX, CoinY, LpCoin>(volatile: bool) {
     assert!(are_coins_ordered<CoinX, CoinY>(), errors::coins_must_be_ordered());
     let coin_x_module_name = type_name::get_module(&type_name::get<CoinX>());
     let coin_y_module_name = type_name::get_module(&type_name::get<CoinY>());
@@ -86,6 +90,7 @@ module sc_dex::utils {
 
     let expected_lp_coin_module_name = string::utf8(b"");
     string::append_utf8(&mut expected_lp_coin_module_name, b"sc_");
+    string::append_utf8(&mut expected_lp_coin_module_name, if (volatile) b"v_" else b"s_");
     string::append_utf8(&mut expected_lp_coin_module_name, ascii::into_bytes(coin_x_module_name));
     string::append_utf8(&mut expected_lp_coin_module_name, b"_");
     string::append_utf8(&mut expected_lp_coin_module_name, ascii::into_bytes(coin_y_module_name));

@@ -9,7 +9,7 @@ module sc_dex::utils_tests {
 
   use sc_dex::btc::BTC;
   use sc_dex::eth::ETH;
-  use sc_dex::sc_btc_eth::{Self, SC_BTC_ETH};
+  use sc_dex::sc_v_btc_eth::{Self, SC_V_BTC_ETH};
   use sc_dex::sc_btce_eth::{Self, SC_BTCE_ETH};
   use sc_dex::sc_btc_eth_wrong_decimals::{Self, SC_BTC_ETH_WRONG_DECIMALS};
   use sc_dex::test_utils::{scenario, people, deploy_coins};
@@ -101,9 +101,18 @@ module sc_dex::utils_tests {
 
       assert_eq(get_lp_coin_name<BTC, ETH>(
         &btc_metadata,
-        &eth_metadata
+        &eth_metadata,
+        true
       ),
-      utf8(b"sc Bitcoin Ether Lp Coin")
+      utf8(b"sc volatile Bitcoin Ether Lp Coin")
+      );
+
+      assert_eq(get_lp_coin_name<BTC, ETH>(
+        &btc_metadata,
+        &eth_metadata,
+        false
+      ),
+      utf8(b"sc stable Bitcoin Ether Lp Coin")
       );
 
       test::return_shared(btc_metadata);
@@ -129,9 +138,18 @@ module sc_dex::utils_tests {
 
       assert_eq(get_lp_coin_symbol<BTC, ETH>(
         &btc_metadata,
-        &eth_metadata
+        &eth_metadata,
+        true
       ),
-      to_ascii(utf8(b"sc-BTC-ETH"))
+      to_ascii(utf8(b"sc-v-BTC-ETH"))
+      );
+
+      assert_eq(get_lp_coin_symbol<BTC, ETH>(
+        &btc_metadata,
+        &eth_metadata,
+        false
+      ),
+      to_ascii(utf8(b"sc-s-BTC-ETH"))
       );
 
       test::return_shared(btc_metadata);
@@ -152,14 +170,14 @@ module sc_dex::utils_tests {
 
     next_tx(test, alice);
     {
-      sc_btc_eth::init_for_testing(ctx(test));
+      sc_v_btc_eth::init_for_testing(ctx(test));
     };
 
     next_tx(test, alice); 
     {
-      let metadata = test::take_shared<CoinMetadata<SC_BTC_ETH>>(test);
+      let metadata = test::take_shared<CoinMetadata<SC_V_BTC_ETH>>(test);
 
-      assert_lp_coin_integrity<BTC, ETH, SC_BTC_ETH>(&metadata);
+      assert_lp_coin_integrity<BTC, ETH, SC_V_BTC_ETH>(&metadata, true);
 
       test::return_shared(metadata);
     };
@@ -186,7 +204,7 @@ module sc_dex::utils_tests {
     {
       let metadata = test::take_shared<CoinMetadata<SC_BTC_ETH_WRONG_DECIMALS>>(test);
 
-      assert_lp_coin_integrity<BTC, ETH, SC_BTC_ETH_WRONG_DECIMALS>(&metadata);
+      assert_lp_coin_integrity<BTC, ETH, SC_BTC_ETH_WRONG_DECIMALS>(&metadata, true);
 
       test::return_shared(metadata);
     };
@@ -213,7 +231,7 @@ module sc_dex::utils_tests {
     {
       let metadata = test::take_shared<CoinMetadata<BTC>>(test);
 
-      assert_lp_coin_integrity<ETH, BTC, BTC>(&metadata);
+      assert_lp_coin_integrity<ETH, BTC, BTC>(&metadata, true);
 
       test::return_shared(metadata);
     };
@@ -240,7 +258,7 @@ module sc_dex::utils_tests {
     {
       let metadata = test::take_shared<CoinMetadata<SC_BTCE_ETH>>(test);
 
-      assert_lp_coin_integrity<BTC, ETH, SC_BTCE_ETH>(&metadata);
+      assert_lp_coin_integrity<BTC, ETH, SC_BTCE_ETH>(&metadata, true);
 
       test::return_shared(metadata);
     };

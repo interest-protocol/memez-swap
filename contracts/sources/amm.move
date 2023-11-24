@@ -86,16 +86,16 @@ module sc_dex::sui_coins_amm {
     volatile: bool,
     ctx: &mut TxContext    
   ): Coin<LpCoin> {
-    utils::assert_lp_coin_integrity<CoinX, CoinY, LpCoin>(lp_coin_metadata);
+    utils::assert_lp_coin_integrity<CoinX, CoinY, LpCoin>(lp_coin_metadata, volatile);
     
-    coin::update_name(&lp_coin_cap, lp_coin_metadata, utils::get_lp_coin_name(coin_x_metadata, coin_y_metadata));
-    coin::update_symbol(&lp_coin_cap, lp_coin_metadata, utils::get_lp_coin_symbol(coin_x_metadata, coin_y_metadata));
+    coin::update_name(&lp_coin_cap, lp_coin_metadata, utils::get_lp_coin_name(coin_x_metadata, coin_y_metadata, volatile));
+    coin::update_symbol(&lp_coin_cap, lp_coin_metadata, utils::get_lp_coin_symbol(coin_x_metadata, coin_y_metadata, volatile));
 
     let decimals_x = pow(10, coin::get_decimals(coin_x_metadata));
     let decimals_y = pow(10, coin::get_decimals(coin_y_metadata));
 
     if (volatile)
-      new_pool_internal<Volatile, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, coin::treasury_into_supply(lp_coin_cap), decimals_x, decimals_y,true, ctx)
+      new_pool_internal<Volatile, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, coin::treasury_into_supply(lp_coin_cap), decimals_x, decimals_y, true, ctx)
     else 
       new_pool_internal<Stable, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, coin::treasury_into_supply(lp_coin_cap), decimals_x, decimals_y, false, ctx)
   }
@@ -487,6 +487,10 @@ module sc_dex::sui_coins_amm {
 
   // === View Functions ===
 
+  public fun borrow_pools(registry: &Registry): &Table<TypeName, ID> {
+    &registry.pools
+  }
+
   public fun pool_id<Curve, CoinX, CoinY>(registry: &Registry): Option<ID> {
     let registry_key = type_name::get<RegistryKey<Curve, CoinX, CoinY>>();
 
@@ -523,6 +527,11 @@ module sc_dex::sui_coins_amm {
   public fun decimals_y<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
     let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
     pool_state.decimals_y
+  }
+
+  public fun stable<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): bool {
+    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
+    !pool_state.volatile
   }
 
   public fun volatile<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): bool {

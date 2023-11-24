@@ -9,9 +9,9 @@ module sc_dex::test_utils {
   use sc_dex::usdt::{Self, USDT};
   use sc_dex::eth::{Self, ETH};
   use sc_dex::usdc::{Self, USDC};
-  use sc_dex::sc_eth_usdc::{Self, SC_ETH_USDC};
+  use sc_dex::sc_v_eth_usdc::{Self, SC_V_ETH_USDC};
   use sc_dex::sui_coins_amm::{Self, Registry};
-  use sc_dex::sc_usdc_usdt::{Self, SC_USDC_USDT};
+  use sc_dex::sc_s_usdc_usdt::{Self, SC_S_USDC_USDT};
 
   public fun deploy_coins(test: &mut Scenario) {
     let (alice, _) = people();
@@ -32,16 +32,16 @@ module sc_dex::test_utils {
 
     next_tx(test, alice);
     {
-      sc_eth_usdc::init_for_testing(ctx(test));
+      sc_v_eth_usdc::init_for_testing(ctx(test));
     };
 
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let lp_coin_cap = test::take_from_sender<TreasuryCap<SC_ETH_USDC>>(test);
+      let lp_coin_cap = test::take_from_sender<TreasuryCap<SC_V_ETH_USDC>>(test);
       let eth_metadata = test::take_shared<CoinMetadata<ETH>>(test);
       let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(test);
-      let lp_coin_metadata = test::take_shared<CoinMetadata<SC_ETH_USDC>>(test);
+      let lp_coin_metadata = test::take_shared<CoinMetadata<SC_V_ETH_USDC>>(test);
       
       let lp_coin = sui_coins_amm::new_pool(
         &mut registry,
@@ -71,16 +71,16 @@ module sc_dex::test_utils {
 
     next_tx(test, alice);
     {
-      sc_usdc_usdt::init_for_testing(ctx(test));
+      sc_s_usdc_usdt::init_for_testing(ctx(test));
     };
 
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let lp_coin_cap = test::take_from_sender<TreasuryCap<SC_USDC_USDT>>(test);
+      let lp_coin_cap = test::take_from_sender<TreasuryCap<SC_S_USDC_USDT>>(test);
       let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(test);
       let usdt_metadata = test::take_shared<CoinMetadata<USDT>>(test);
-      let lp_coin_metadata = test::take_shared<CoinMetadata<SC_USDC_USDT>>(test);
+      let lp_coin_metadata = test::take_shared<CoinMetadata<SC_S_USDC_USDT>>(test);
       
       let lp_coin = sui_coins_amm::new_pool(
         &mut registry,

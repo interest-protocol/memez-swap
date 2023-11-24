@@ -126,18 +126,18 @@ module sc_dex::usdt {
 }
 
 #[test_only]
-module sc_dex::sc_btc_eth {
+module sc_dex::sc_v_btc_eth {
   use std::option;
 
   use sui::transfer;
   use sui::coin;
   use sui::tx_context::{Self, TxContext};
 
-  struct SC_BTC_ETH has drop {}
+  struct SC_V_BTC_ETH has drop {}
 
 
-  fun init(witness: SC_BTC_ETH, ctx: &mut TxContext) {
-      let (treasury_cap, metadata) = coin::create_currency<SC_BTC_ETH>(
+  fun init(witness: SC_V_BTC_ETH, ctx: &mut TxContext) {
+      let (treasury_cap, metadata) = coin::create_currency<SC_V_BTC_ETH>(
             witness, 
             9, 
             b"",
@@ -153,23 +153,23 @@ module sc_dex::sc_btc_eth {
 
   #[test_only]
   public fun init_for_testing(ctx: &mut TxContext) {
-    init(SC_BTC_ETH {}, ctx);
+    init(SC_V_BTC_ETH {}, ctx);
   }  
 }
 
 #[test_only]
-module sc_dex::sc_eth_usdc {
+module sc_dex::sc_v_eth_usdc {
   use std::option;
 
   use sui::transfer;
   use sui::coin;
   use sui::tx_context::{Self, TxContext};
 
-  struct SC_ETH_USDC has drop {}
+  struct SC_V_ETH_USDC has drop {}
 
 
-  fun init(witness: SC_ETH_USDC, ctx: &mut TxContext) {
-      let (treasury_cap, metadata) = coin::create_currency<SC_ETH_USDC>(
+  fun init(witness: SC_V_ETH_USDC, ctx: &mut TxContext) {
+      let (treasury_cap, metadata) = coin::create_currency<SC_V_ETH_USDC>(
             witness, 
             9, 
             b"",
@@ -185,22 +185,22 @@ module sc_dex::sc_eth_usdc {
 
   #[test_only]
   public fun init_for_testing(ctx: &mut TxContext) {
-    init(SC_ETH_USDC {}, ctx);
+    init(SC_V_ETH_USDC {}, ctx);
   }  
 }
 
 #[test_only]
-module sc_dex::sc_usdc_usdt {
+module sc_dex::sc_s_usdc_usdt {
   use std::option;
 
   use sui::transfer;
   use sui::coin;
   use sui::tx_context::{Self, TxContext};
 
-  struct SC_USDC_USDT has drop {}
+  struct SC_S_USDC_USDT has drop {}
 
-  fun init(witness: SC_USDC_USDT, ctx: &mut TxContext) {
-      let (treasury_cap, metadata) = coin::create_currency<SC_USDC_USDT>(
+  fun init(witness: SC_S_USDC_USDT, ctx: &mut TxContext) {
+      let (treasury_cap, metadata) = coin::create_currency<SC_S_USDC_USDT>(
             witness, 
             9, 
             b"",
@@ -216,6 +216,6 @@ module sc_dex::sc_usdc_usdt {
 
   #[test_only]
   public fun init_for_testing(ctx: &mut TxContext) {
-    init(SC_USDC_USDT {}, ctx);
+    init(SC_S_USDC_USDT {}, ctx);
   }  
 }
