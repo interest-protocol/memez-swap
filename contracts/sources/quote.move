@@ -38,7 +38,7 @@ module sc_dex::quote {
       else 
         fees::get_fee_in_initial_amount(&fees, stable::get_amount_in(k, amount_out, balance_x, balance_y, decimals_x, decimals_y, true))
     } else {
-      let (balance_x, balance_y, decimals_x, decimals_y, k, volatile, fees) = get_pool_data<CoinIn, CoinOut, LpCoin>(pool);
+      let (balance_x, balance_y, decimals_x, decimals_y, k, volatile, fees) = get_pool_data<CoinOut, CoinIn, LpCoin>(pool);
       let amount_out = fees::get_fee_out_initial_amount(&fees, amount_out);
 
       if (volatile) 

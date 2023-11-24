@@ -135,6 +135,61 @@ module sc_dex::quote_tests {
     test::end(scenario);
   }
 
+  #[test]
+  fun test_volatile_quote_amount_in() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    set_up_test(test);
+    deploy_eth_usdc_pool(test, 15 * ETH_DECIMAL_SCALAR, 37500 * USDC_DECIMAL_SCALAR);
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_fees = sui_coins_amm::fees<ETH, USDC, SC_ETH_USDC>(&pool);     
+
+      let amount_out = 6 * ETH_DECIMAL_SCALAR;
+      let amount_out_before_fee = fees::get_fee_out_initial_amount(&pool_fees, amount_out);
+
+      let expected_amount_in = fees::get_fee_in_initial_amount(
+        &pool_fees, 
+        volatile::get_amount_in(amount_out_before_fee, 15 * ETH_DECIMAL_SCALAR, 37500 * USDC_DECIMAL_SCALAR)
+      );
+
+      assert_eq(quote::quote_amount_in<ETH, USDC, SC_ETH_USDC>(&pool, amount_out), expected_amount_in);
+
+      test::return_shared(registry);
+      test::return_shared(pool);
+    };
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_fees = sui_coins_amm::fees<ETH, USDC, SC_ETH_USDC>(&pool);     
+
+      let amount_out = 2999 * USDC_DECIMAL_SCALAR;
+      let amount_out_before_fee = fees::get_fee_out_initial_amount(&pool_fees, amount_out);
+
+      let expected_amount_in = fees::get_fee_in_initial_amount(
+        &pool_fees, 
+        volatile::get_amount_in(amount_out_before_fee, 37500 * USDC_DECIMAL_SCALAR, 15 * ETH_DECIMAL_SCALAR)
+      );
+
+      assert_eq(quote::quote_amount_in<USDC, ETH, SC_ETH_USDC>(&pool, amount_out), expected_amount_in);
+
+      test::return_shared(registry);
+      test::return_shared(pool);
+    };
+
+    test::end(scenario);
+  }
+
   fun set_up_test(test: &mut Scenario) {
     let (alice, _) = people();
 

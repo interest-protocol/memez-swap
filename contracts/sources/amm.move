@@ -496,7 +496,7 @@ module sc_dex::sui_coins_amm {
       option::none()
   }
 
-  public fun pool_exists<Curve, CoinX, CoinY>(registry: &Registry): bool {
+  public fun exists_<Curve, CoinX, CoinY>(registry: &Registry): bool {
     table::contains(&registry.pools, type_name::get<RegistryKey<Curve, CoinX, CoinY>>())   
   }
 
