@@ -7,7 +7,9 @@ module sc_dex::quote_tests {
   
   use sc_dex::fees;
   use sc_dex::quote;
+  use sc_dex::utils;
   use sc_dex::stable;
+  use sc_dex::math64;
   use sc_dex::volatile;
   use sc_dex::eth::ETH;
   use sc_dex::usdc::USDC;
@@ -258,6 +260,82 @@ module sc_dex::quote_tests {
       test::return_shared(pool);   
     };
 
+    test::end(scenario);
+  }
+
+  #[test]
+  fun test_quote_add_liquidity() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    set_up_test(test);
+    deploy_eth_usdc_pool(test, 15 * ETH_DECIMAL_SCALAR, 37500 * USDC_DECIMAL_SCALAR);
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+
+      let balance_x = sui_coins_amm::balance_x<ETH, USDC, SC_ETH_USDC>(&pool);
+      let balance_y = sui_coins_amm::balance_y<ETH, USDC, SC_ETH_USDC>(&pool);
+      let lp_coin_supply = sui_coins_amm::lp_coin_supply<ETH, USDC, SC_ETH_USDC>(&pool);
+
+      let eth_amount = 3 * ETH_DECIMAL_SCALAR;
+      let usdc_amount = 15000 * USDC_DECIMAL_SCALAR;
+      
+      let (shares, optimal_x_amount, optimal_y_amount) = quote::quote_add_liquidity<ETH, USDC, SC_ETH_USDC>(&pool, 3 * ETH_DECIMAL_SCALAR, 15000 * USDC_DECIMAL_SCALAR);
+
+      let (expected_x_amount, expected_y_amount) = utils::get_optimal_add_liquidity(eth_amount, usdc_amount, balance_x, balance_y);
+
+      assert_eq(expected_x_amount, optimal_x_amount);
+      assert_eq(expected_y_amount, optimal_y_amount);
+      assert_eq(math64::min(
+        math64::mul_div_down(optimal_x_amount, lp_coin_supply, balance_x),
+        math64::mul_div_down(optimal_y_amount, lp_coin_supply, balance_y),
+      ), shares);
+
+      test::return_shared(registry);
+      test::return_shared(pool); 
+    };
+    test::end(scenario);
+  }
+
+  #[test]
+  fun test_remove_liquidity() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    set_up_test(test);
+    deploy_eth_usdc_pool(test, 15 * ETH_DECIMAL_SCALAR, 37500 * USDC_DECIMAL_SCALAR);
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+
+      let balance_x = sui_coins_amm::balance_x<ETH, USDC, SC_ETH_USDC>(&pool);
+      let balance_y = sui_coins_amm::balance_y<ETH, USDC, SC_ETH_USDC>(&pool);
+      let lp_coin_supply = sui_coins_amm::lp_coin_supply<ETH, USDC, SC_ETH_USDC>(&pool);
+
+      let amount = lp_coin_supply / 3;
+
+      let expected_eth_amount = math64::mul_div_down(amount, balance_x, lp_coin_supply);
+      let expected_usdc_amount = math64::mul_div_down(amount, balance_y, lp_coin_supply);
+
+      let (eth_amount, usdc_amount) = quote::quote_remove_liquidity<ETH, USDC, SC_ETH_USDC>(&pool, amount);
+
+      assert_eq(eth_amount, expected_eth_amount);
+      assert_eq(usdc_amount, expected_usdc_amount);
+
+      test::return_shared(registry);
+      test::return_shared(pool);     
+    };
     test::end(scenario);
   }
 

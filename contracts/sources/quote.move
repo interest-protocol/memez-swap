@@ -65,8 +65,8 @@ module sc_dex::quote {
     );
 
     let share_to_mint = min(
-      mul_div_down(amount_x, supply, balance_x),
-      mul_div_down(amount_y, supply, balance_y)
+      mul_div_down(optimal_x_amount, supply, balance_x),
+      mul_div_down(optimal_y_amount, supply, balance_y)
     );
 
     (share_to_mint, optimal_x_amount, optimal_y_amount)
