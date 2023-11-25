@@ -1,4 +1,6 @@
 module sc_dex::sui_coins_amm {
+  use std::ascii;
+  use std::string;
   use std::option::{Self, Option};
   use std::type_name::{Self, TypeName};
 
@@ -8,7 +10,7 @@ module sc_dex::sui_coins_amm {
   use sui::tx_context::TxContext;
   use sui::transfer::share_object;
   use sui::object::{Self, UID, ID};
-  use sui::balance::{Self, Supply, Balance};
+  use sui::balance::{Self, Balance};
   use sui::coin::{Self, Coin, CoinMetadata, TreasuryCap};
 
   use sc_dex::utils;
@@ -43,7 +45,7 @@ module sc_dex::sui_coins_amm {
   struct PoolStateKey has drop, copy, store {}
 
   struct PoolState<phantom CoinX, phantom CoinY, phantom LpCoin> has store {
-    lp_coin_supply: Supply<LpCoin>,
+    lp_coin_cap: TreasuryCap<LpCoin>,
     balance_x: Balance<CoinX>,
     balance_y: Balance<CoinY>,
     decimals_x: u64,
@@ -95,9 +97,9 @@ module sc_dex::sui_coins_amm {
     let decimals_y = pow(10, coin::get_decimals(coin_y_metadata));
 
     if (volatile)
-      new_pool_internal<Volatile, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, coin::treasury_into_supply(lp_coin_cap), decimals_x, decimals_y, true, ctx)
+      new_pool_internal<Volatile, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, lp_coin_cap, decimals_x, decimals_y, true, ctx)
     else 
-      new_pool_internal<Stable, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, coin::treasury_into_supply(lp_coin_cap), decimals_x, decimals_y, false, ctx)
+      new_pool_internal<Stable, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, lp_coin_cap, decimals_x, decimals_y, false, ctx)
   }
 
   public fun swap<CoinIn, CoinOut, LpCoin>(
@@ -155,7 +157,7 @@ module sc_dex::sui_coins_amm {
 
     events::add_liquidity<CoinX, CoinY>(pool_id, optimal_x_amount, optimal_y_amount, shares_to_mint);
 
-    (coin::from_balance(balance::increase_supply(&mut pool_state.lp_coin_supply, shares_to_mint), ctx), extra_x, extra_y)
+    (coin::from_balance(balance::increase_supply(coin::supply_mut(&mut pool_state.lp_coin_cap), shares_to_mint), ctx), extra_x, extra_y)
   }
 
   public fun remove_liquidity<CoinX, CoinY, LpCoin>(
@@ -181,7 +183,7 @@ module sc_dex::sui_coins_amm {
     assert!(coin_x_removed >= coin_x_min_amount, errors::slippage());
     assert!(coin_y_removed >= coin_y_min_amount, errors::slippage());
 
-    balance::decrease_supply(&mut pool_state.lp_coin_supply, coin::into_balance(lp_coin));
+    balance::decrease_supply(coin::supply_mut(&mut pool_state.lp_coin_cap), coin::into_balance(lp_coin));
 
     events::remove_liquidity<CoinX, CoinY>(pool_id, coin_x_removed, coin_y_removed, lp_coin_value);
 
@@ -197,13 +199,16 @@ module sc_dex::sui_coins_amm {
     registry: &mut Registry,
     coin_x: Coin<CoinX>,
     coin_y: Coin<CoinY>,
-    lp_coin_supply: Supply<LpCoin>,
+    lp_coin_cap: TreasuryCap<LpCoin>,
     decimals_x: u64,
     decimals_y: u64,
     volatile: bool,
     ctx: &mut TxContext
   ): Coin<LpCoin> {
-    assert!(balance::supply_value(&lp_coin_supply) == 0, errors::supply_must_have_zero_value());
+    assert!(
+      balance::supply_value(coin::supply_immut(&lp_coin_cap)) == 0, 
+      errors::supply_must_have_zero_value()
+    );
 
     let coin_x_value = coin::value(&coin_x);
     let coin_y_value = coin::value(&coin_y);
@@ -216,11 +221,14 @@ module sc_dex::sui_coins_amm {
 
     let shares = (sqrt_down(((coin_x_value as u256) * (coin_y_value as u256))) as u64);
 
-    let seed_liquidity = balance::increase_supply(&mut lp_coin_supply, MINIMUM_LIQUIDITY);
-    let sender_balance = balance::increase_supply(&mut lp_coin_supply, shares);
+    let seed_liquidity = balance::increase_supply(
+      coin::supply_mut(&mut lp_coin_cap), 
+      MINIMUM_LIQUIDITY
+    );
+    let sender_balance = coin::mint(&mut lp_coin_cap, shares, ctx);
 
     let pool_state = PoolState {
-      lp_coin_supply,
+      lp_coin_cap,
       balance_x: coin::into_balance(coin_x),
       balance_y: coin::into_balance(coin_y),
       decimals_x,
@@ -245,7 +253,7 @@ module sc_dex::sui_coins_amm {
 
     share_object(pool);
 
-    coin::from_balance(sender_balance, ctx)
+    sender_balance
   }
 
   fun swap_coin_x<CoinX, CoinY, LpCoin>(
@@ -317,7 +325,7 @@ module sc_dex::sui_coins_amm {
     ( 
       balance::value(&state.balance_x), 
       balance::value(&state.balance_y),
-      balance::supply_value(&state.lp_coin_supply)
+      balance::supply_value(coin::supply_immut(&state.lp_coin_cap))
     )
   }
 
@@ -420,6 +428,46 @@ module sc_dex::sui_coins_amm {
     )
   }
 
+  public fun update_name<CoinX, CoinY, LpCoin>(
+    _: &Admin,
+    pool: &mut SuiCoinsPool, 
+    metadata: &mut CoinMetadata<LpCoin>, 
+    name: string::String
+  ) {
+    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
+    coin::update_name(&pool_state.lp_coin_cap, metadata, name);  
+  }
+
+  public fun update_symbol<CoinX, CoinY, LpCoin>(
+    _: &Admin,
+    pool: &mut SuiCoinsPool, 
+    metadata: &mut CoinMetadata<LpCoin>, 
+    symbol: ascii::String
+  ) {
+    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
+    coin::update_symbol(&pool_state.lp_coin_cap, metadata, symbol);
+  }
+
+  public fun update_description<CoinX, CoinY, LpCoin>(
+    _: &Admin,
+    pool: &mut SuiCoinsPool, 
+    metadata: &mut CoinMetadata<LpCoin>, 
+    description: string::String
+  ) {
+    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
+    coin::update_description(&pool_state.lp_coin_cap, metadata, description);
+  }
+
+  public fun update_icon_url<CoinX, CoinY, LpCoin>(
+    _: &Admin,
+    pool: &mut SuiCoinsPool, 
+    metadata: &mut CoinMetadata<LpCoin>, 
+    url: ascii::String
+  ) {
+    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
+    coin::update_icon_url(&pool_state.lp_coin_cap, metadata, url);
+  }
+
   // === Flash Loan ===
 
   public fun flash_loan<CoinX, CoinY, LpCoin>(
@@ -506,7 +554,7 @@ module sc_dex::sui_coins_amm {
 
   public fun lp_coin_supply<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
     let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
-    balance::supply_value(&pool_state.lp_coin_supply)
+    balance::supply_value(coin::supply_immut(&pool_state.lp_coin_cap))  
   }
 
   public fun balance_x<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
