@@ -75,6 +75,92 @@ module sc_dex::sui_coins_amm {
     );
   }  
 
+  // === View Functions ===
+
+  public fun borrow_pools(registry: &Registry): &Table<TypeName, ID> {
+    &registry.pools
+  }
+
+  public fun pool_id<Curve, CoinX, CoinY>(registry: &Registry): Option<ID> {
+    let registry_key = type_name::get<RegistryKey<Curve, CoinX, CoinY>>();
+
+    if (table::contains(&registry.pools, registry_key))
+      option::some(*table::borrow(&registry.pools, registry_key))
+    else
+      option::none()
+  }
+
+  public fun exists_<Curve, CoinX, CoinY>(registry: &Registry): bool {
+    table::contains(&registry.pools, type_name::get<RegistryKey<Curve, CoinX, CoinY>>())   
+  }
+
+  public fun lp_coin_supply<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
+    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
+    balance::supply_value(coin::supply_immut(&pool_state.lp_coin_cap))  
+  }
+
+  public fun balance_x<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
+    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
+    balance::value(&pool_state.balance_x)
+  }
+
+  public fun balance_y<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
+    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
+    balance::value(&pool_state.balance_y)
+  }
+
+  public fun decimals_x<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
+    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
+    pool_state.decimals_x
+  }
+
+  public fun decimals_y<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
+    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
+    pool_state.decimals_y
+  }
+
+  public fun stable<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): bool {
+    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
+    !pool_state.volatile
+  }
+
+  public fun volatile<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): bool {
+    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
+    pool_state.volatile
+  }
+
+  public fun fees<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): Fees {
+    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
+    pool_state.fees
+  }
+
+  public fun locked<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): bool {
+    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
+    pool_state.locked
+  }
+
+  public fun admin_balance_x<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
+    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
+    balance::value(&pool_state.admin_balance_x)
+  }
+
+  public fun admin_balance_y<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
+    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
+    balance::value(&pool_state.admin_balance_y)
+  }
+
+  public fun repay_amount_x(receipt: &Receipt): u64 {
+    receipt.repay_amount_x
+  }
+
+  public fun repay_amount_y(receipt: &Receipt): u64 {
+    receipt.repay_amount_y
+  }
+
+  public fun previous_k(receipt: &Receipt): u256 {
+    receipt.prev_k
+  }  
+
   // === Mutative Functions ===  
 
   public fun new_pool<CoinX, CoinY, LpCoin>(
@@ -191,6 +277,71 @@ module sc_dex::sui_coins_amm {
       coin::take(&mut pool_state.balance_x, coin_x_removed, ctx),
       coin::take(&mut pool_state.balance_y, coin_y_removed, ctx)
     )
+  }  
+
+  // === Flash Loan ===
+
+  public fun flash_loan<CoinX, CoinY, LpCoin>(
+    pool: &mut SuiCoinsPool,
+    amount_x: u64,
+    amount_y: u64,
+    ctx: &mut TxContext
+  ): (Receipt, Coin<CoinX>, Coin<CoinY>) {
+    let pool_state = borrow_mut_pool_state<CoinX, CoinY, LpCoin>(pool);
+    
+    assert!(!pool_state.locked, errors::pool_is_locked());
+    
+    pool_state.locked = true;
+
+    let (balance_x, balance_y, _) = get_amounts(pool_state);
+
+    let prev_k = if (pool_state.volatile) 
+      volatile::invariant_(balance_x, balance_y) 
+    else 
+      stable::invariant_(balance_x, balance_y, pool_state.decimals_x, pool_state.decimals_y);
+
+    assert!(balance_x >= amount_x && balance_y >= amount_y, errors::not_enough_funds_to_lend());
+
+    let coin_x = coin::take(&mut pool_state.balance_x, amount_x, ctx);
+    let coin_y = coin::take(&mut pool_state.balance_y, amount_y, ctx);
+
+    let receipt = Receipt { 
+      pool_id: object::id(pool),  
+      repay_amount_x: amount_x + (mul_div_up((amount_x as u256), FLASH_LOAN_FEE_PERCENT, PRECISION) as u64),
+      repay_amount_y: amount_y + (mul_div_up((amount_y as u256), FLASH_LOAN_FEE_PERCENT, PRECISION) as u64),
+      prev_k
+    };
+    
+    (receipt, coin_x, coin_y)
+  }  
+
+  public fun repay_flash_loan<CoinX, CoinY, LpCoin>(
+    pool: &mut SuiCoinsPool,
+    receipt: Receipt,
+    coin_x: Coin<CoinX>,
+    coin_y: Coin<CoinY>
+  ) {
+   let Receipt { pool_id, repay_amount_x, repay_amount_y, prev_k } = receipt;
+   
+   assert!(object::id(pool) == pool_id, errors::wrong_pool());
+   assert!(coin::value(&coin_x) >= repay_amount_x, errors::wrong_repay_amount());
+   assert!(coin::value(&coin_y) >= repay_amount_y, errors::wrong_repay_amount());
+   
+   let pool_state = borrow_mut_pool_state<CoinX, CoinY, LpCoin>(pool);
+
+   coin::put(&mut pool_state.balance_x, coin_x);
+   coin::put(&mut pool_state.balance_y, coin_y);
+
+   let (balance_x, balance_y, _) = get_amounts(pool_state);
+
+   let k = if (pool_state.volatile) 
+      volatile::invariant_(balance_x, balance_y) 
+    else 
+      stable::invariant_(balance_x, balance_y, pool_state.decimals_x, pool_state.decimals_y);
+
+   assert!(k > prev_k, errors::invalid_invariant());
+    
+   pool_state.locked = false;
   }  
 
   // === Private Functions ===    
@@ -466,157 +617,6 @@ module sc_dex::sui_coins_amm {
   ) {
     let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
     coin::update_icon_url(&pool_state.lp_coin_cap, metadata, url);
-  }
-
-  // === Flash Loan ===
-
-  public fun flash_loan<CoinX, CoinY, LpCoin>(
-    pool: &mut SuiCoinsPool,
-    amount_x: u64,
-    amount_y: u64,
-    ctx: &mut TxContext
-  ): (Receipt, Coin<CoinX>, Coin<CoinY>) {
-    let pool_state = borrow_mut_pool_state<CoinX, CoinY, LpCoin>(pool);
-    
-    assert!(!pool_state.locked, errors::pool_is_locked());
-    
-    pool_state.locked = true;
-
-    let (balance_x, balance_y, _) = get_amounts(pool_state);
-
-    let prev_k = if (pool_state.volatile) 
-      volatile::invariant_(balance_x, balance_y) 
-    else 
-      stable::invariant_(balance_x, balance_y, pool_state.decimals_x, pool_state.decimals_y);
-
-    assert!(balance_x >= amount_x && balance_y >= amount_y, errors::not_enough_funds_to_lend());
-
-    let coin_x = coin::take(&mut pool_state.balance_x, amount_x, ctx);
-    let coin_y = coin::take(&mut pool_state.balance_y, amount_y, ctx);
-
-    let receipt = Receipt { 
-      pool_id: object::id(pool),  
-      repay_amount_x: amount_x + (mul_div_up((amount_x as u256), FLASH_LOAN_FEE_PERCENT, PRECISION) as u64),
-      repay_amount_y: amount_y + (mul_div_up((amount_y as u256), FLASH_LOAN_FEE_PERCENT, PRECISION) as u64),
-      prev_k
-    };
-    
-    (receipt, coin_x, coin_y)
-  }  
-
-  public fun repay_flash_loan<CoinX, CoinY, LpCoin>(
-    pool: &mut SuiCoinsPool,
-    receipt: Receipt,
-    coin_x: Coin<CoinX>,
-    coin_y: Coin<CoinY>
-  ) {
-   let Receipt { pool_id, repay_amount_x, repay_amount_y, prev_k } = receipt;
-   
-   assert!(object::id(pool) == pool_id, errors::wrong_pool());
-   assert!(coin::value(&coin_x) >= repay_amount_x, errors::wrong_repay_amount());
-   assert!(coin::value(&coin_y) >= repay_amount_y, errors::wrong_repay_amount());
-   
-   let pool_state = borrow_mut_pool_state<CoinX, CoinY, LpCoin>(pool);
-
-   coin::put(&mut pool_state.balance_x, coin_x);
-   coin::put(&mut pool_state.balance_y, coin_y);
-
-   let (balance_x, balance_y, _) = get_amounts(pool_state);
-
-   let k = if (pool_state.volatile) 
-      volatile::invariant_(balance_x, balance_y) 
-    else 
-      stable::invariant_(balance_x, balance_y, pool_state.decimals_x, pool_state.decimals_y);
-
-   assert!(k > prev_k, errors::invalid_invariant());
-    
-   pool_state.locked = false;
-  }
-
-  // === View Functions ===
-
-  public fun borrow_pools(registry: &Registry): &Table<TypeName, ID> {
-    &registry.pools
-  }
-
-  public fun pool_id<Curve, CoinX, CoinY>(registry: &Registry): Option<ID> {
-    let registry_key = type_name::get<RegistryKey<Curve, CoinX, CoinY>>();
-
-    if (table::contains(&registry.pools, registry_key))
-      option::some(*table::borrow(&registry.pools, registry_key))
-    else
-      option::none()
-  }
-
-  public fun exists_<Curve, CoinX, CoinY>(registry: &Registry): bool {
-    table::contains(&registry.pools, type_name::get<RegistryKey<Curve, CoinX, CoinY>>())   
-  }
-
-  public fun lp_coin_supply<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
-    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
-    balance::supply_value(coin::supply_immut(&pool_state.lp_coin_cap))  
-  }
-
-  public fun balance_x<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
-    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
-    balance::value(&pool_state.balance_x)
-  }
-
-  public fun balance_y<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
-    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
-    balance::value(&pool_state.balance_y)
-  }
-
-  public fun decimals_x<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
-    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
-    pool_state.decimals_x
-  }
-
-  public fun decimals_y<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
-    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
-    pool_state.decimals_y
-  }
-
-  public fun stable<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): bool {
-    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
-    !pool_state.volatile
-  }
-
-  public fun volatile<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): bool {
-    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
-    pool_state.volatile
-  }
-
-  public fun fees<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): Fees {
-    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
-    pool_state.fees
-  }
-
-  public fun locked<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): bool {
-    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
-    pool_state.locked
-  }
-
-  public fun admin_balance_x<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
-    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
-    balance::value(&pool_state.admin_balance_x)
-  }
-
-  public fun admin_balance_y<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): u64 {
-    let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
-    balance::value(&pool_state.admin_balance_y)
-  }
-
-  public fun repay_amount_x(receipt: &Receipt): u64 {
-    receipt.repay_amount_x
-  }
-
-  public fun repay_amount_y(receipt: &Receipt): u64 {
-    receipt.repay_amount_y
-  }
-
-  public fun previous_k(receipt: &Receipt): u256 {
-    receipt.prev_k
   }
 
   // === Test Only Functions ===
