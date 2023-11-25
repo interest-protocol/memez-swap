@@ -148,6 +148,34 @@ module sc_dex::sui_coins_amm_tests {
       test::return_shared(lp_coin_metadata);
       test::return_shared(registry);
     };
+
+    next_tx(test, alice);
+    {      
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Stable, USDC, USDT>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+
+      assert_eq(sui_coins_amm::lp_coin_supply<USDC, USDT, SC_S_USDC_USDT>(&pool), expected_shares + MINIMUM_LIQUIDITY);
+      assert_eq(sui_coins_amm::balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), usdc_amount);
+      assert_eq(sui_coins_amm::balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), usdt_amount);
+      assert_eq(sui_coins_amm::decimals_x<USDC, USDT, SC_S_USDC_USDT>(&pool), USDC_DECIMAL_SCALAR);
+      assert_eq(sui_coins_amm::decimals_y<USDC, USDT, SC_S_USDC_USDT>(&pool), USDT_DECIMAL_SCALAR);
+      assert_eq(sui_coins_amm::volatile<USDC, USDT, SC_S_USDC_USDT>(&pool), false);
+      assert_eq(sui_coins_amm::stable<USDC, USDT, SC_S_USDC_USDT>(&pool), true);
+      assert_eq(sui_coins_amm::seed_liquidity<USDC, USDT, SC_S_USDC_USDT>(&pool), MINIMUM_LIQUIDITY);
+      assert_eq(sui_coins_amm::locked<USDC, USDT, SC_S_USDC_USDT>(&pool), false);
+      assert_eq(sui_coins_amm::admin_balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), 0);
+      assert_eq(sui_coins_amm::admin_balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), 0); 
+
+      let fees = sui_coins_amm::fees<USDC, USDT, SC_S_USDC_USDT>(&pool);
+
+      assert_eq(fees::fee_in_percent(&fees), INITIAL_STABLE_FEE_PERCENT);
+      assert_eq(fees::fee_out_percent(&fees), INITIAL_STABLE_FEE_PERCENT);
+      assert_eq(fees::admin_fee_percent(&fees), INITIAL_ADMIN_FEE);
+
+      test::return_shared(registry);
+      test::return_shared(pool);
+    };
     
     test::end(scenario);
   }
