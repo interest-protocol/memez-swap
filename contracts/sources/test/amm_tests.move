@@ -273,100 +273,6 @@ module sc_dex::sui_coins_amm_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 9)]  
-  fun test_volatile_swap_zero_coin() {
-    let scenario = scenario();
-    let (alice, _) = people();
-
-    let test = &mut scenario;
-
-    next_tx(test, alice);
-    {
-      admin::init_for_testing(ctx(test));
-      sui_coins_amm::init_for_testing(ctx(test));
-    };
-
-    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
-    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
-    
-    deploy_eth_usdc_pool(test, eth_amount, usdc_amount);
-
-    next_tx(test, alice);
-    {
-      let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
-
-      let eth_coin = sui_coins_amm::swap<USDC, ETH, SC_V_ETH_USDC>(
-        &mut pool,
-        coin::zero(ctx(test)),
-        0,
-        ctx(test)
-      );
-
-      burn_for_testing(eth_coin);
-
-      test::return_shared(registry);
-      test::return_shared(pool);   
-    };    
-    test::end(scenario);
-  }
-
-  #[test]
-  #[expected_failure(abort_code = 11)]  
-  fun test_volatile_swap_locked_pool() {
-    let scenario = scenario();
-    let (alice, _) = people();
-
-    let test = &mut scenario;
-
-    next_tx(test, alice);
-    {
-      admin::init_for_testing(ctx(test));
-      sui_coins_amm::init_for_testing(ctx(test));
-    };
-
-    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
-    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
-    
-    deploy_eth_usdc_pool(test, eth_amount, usdc_amount);
-
-    next_tx(test, alice);
-    {
-      let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
-
-      let (receipt, coin_x, coin_y) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
-        &mut pool,
-        1,
-        2,
-        ctx(test)
-      );
-
-      let eth_coin = sui_coins_amm::swap<USDC, ETH, SC_V_ETH_USDC>(
-        &mut pool,
-        mint_for_testing(1, ctx(test)),
-        0,
-        ctx(test)
-      );
-
-      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
-        &mut pool,
-        receipt,
-        coin_x,
-        coin_y
-      );
-
-      burn_for_testing(eth_coin);
-
-      test::return_shared(registry);
-      test::return_shared(pool);   
-    };    
-    test::end(scenario);
-  }
-
-  #[test]
   #[expected_failure(abort_code = 13)]  
   fun test_new_pool_wrong_lp_coin_metadata() {
     let scenario = scenario();
@@ -436,7 +342,7 @@ module sc_dex::sui_coins_amm_tests {
 
       burn_for_testing(coin::mint(&mut lp_coin_cap, 100, ctx(test)));
       
-      let lp_coin =sui_coins_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
+      let lp_coin = sui_coins_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
         &mut registry,
         mint_for_testing(100, ctx(test)),
         mint_for_testing(10, ctx(test)),
@@ -626,8 +532,245 @@ module sc_dex::sui_coins_amm_tests {
 
     test::end(scenario);
   }
-  
 
+  #[test]
+  #[expected_failure(abort_code = 9)]  
+  fun test_volatile_swap_zero_coin() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    next_tx(test, alice);
+    {
+      admin::init_for_testing(ctx(test));
+      sui_coins_amm::init_for_testing(ctx(test));
+    };
+
+    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
+    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
+    
+    deploy_eth_usdc_pool(test, eth_amount, usdc_amount);
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+
+      let eth_coin = sui_coins_amm::swap<USDC, ETH, SC_V_ETH_USDC>(
+        &mut pool,
+        coin::zero(ctx(test)),
+        0,
+        ctx(test)
+      );
+
+      burn_for_testing(eth_coin);
+
+      test::return_shared(registry);
+      test::return_shared(pool);   
+    };    
+    test::end(scenario);
+  }
+
+  #[test]
+  #[expected_failure(abort_code = 11)]  
+  fun test_swap_x_locked_pool() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    next_tx(test, alice);
+    {
+      admin::init_for_testing(ctx(test));
+      sui_coins_amm::init_for_testing(ctx(test));
+    };
+
+    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
+    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
+    
+    deploy_eth_usdc_pool(test, eth_amount, usdc_amount);
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+
+      let (receipt, coin_x, coin_y) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        1,
+        2,
+        ctx(test)
+      );
+
+      let eth_coin = sui_coins_amm::swap<USDC, ETH, SC_V_ETH_USDC>(
+        &mut pool,
+        mint_for_testing(1, ctx(test)),
+        0,
+        ctx(test)
+      );
+
+      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        receipt,
+        coin_x,
+        coin_y
+      );
+
+      burn_for_testing(eth_coin);
+
+      test::return_shared(registry);
+      test::return_shared(pool);   
+    };    
+    test::end(scenario);
+  }
+
+  #[test]
+  #[expected_failure(abort_code = 11)]  
+  fun test_swap_y_locked_pool() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    next_tx(test, alice);
+    {
+      admin::init_for_testing(ctx(test));
+      sui_coins_amm::init_for_testing(ctx(test));
+    };
+
+    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
+    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
+    
+    deploy_eth_usdc_pool(test, eth_amount, usdc_amount);
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+
+      let (receipt, coin_x, coin_y) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        1,
+        2,
+        ctx(test)
+      );
+
+      let usdc_coin = sui_coins_amm::swap<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        mint_for_testing(1, ctx(test)),
+        0,
+        ctx(test)
+      );
+
+      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        receipt,
+        coin_x,
+        coin_y
+      );
+
+      burn_for_testing(usdc_coin);
+
+      test::return_shared(registry);
+      test::return_shared(pool);   
+    };    
+    test::end(scenario);
+  }
+
+  #[test]
+  #[expected_failure(abort_code = 8)]  
+  fun test_swap_x_slippage() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
+    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
+    
+    set_up_test(test);
+    deploy_eth_usdc_pool(test, eth_amount, usdc_amount);
+    
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_fees = sui_coins_amm::fees<ETH, USDC, SC_V_ETH_USDC>(&pool);
+
+      let amount_in = 3 * ETH_DECIMAL_SCALAR;
+      let amount_in_fee = fees::get_fee_in_amount(&pool_fees, amount_in);
+      let expected_amount_out = volatile::get_amount_out(amount_in - amount_in_fee, eth_amount, usdc_amount);
+      let amount_out_fee = fees::get_fee_out_amount(&pool_fees, expected_amount_out);
+      let expected_amount_out = expected_amount_out - amount_out_fee; 
+
+      let usdc_coin = sui_coins_amm::swap<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        mint_for_testing(amount_in, ctx(test)),
+        expected_amount_out + 1,
+        ctx(test)
+      );
+
+      burn_for_testing(usdc_coin);
+
+      test::return_shared(registry);
+      test::return_shared(pool);   
+    };
+
+    test::end(scenario);
+  }  
+
+  #[test]
+  #[expected_failure(abort_code = 8)]  
+  fun test_swap_y_slippage() {
+
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
+    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
+    
+    set_up_test(test);
+    deploy_eth_usdc_pool(test, eth_amount, usdc_amount);
+    
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_fees = sui_coins_amm::fees<ETH, USDC, SC_V_ETH_USDC>(&pool);
+
+      let eth_amount = sui_coins_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool);
+      let usdc_amount = sui_coins_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool);
+
+      let amount_in = 7777 * USDC_DECIMAL_SCALAR;
+      let amount_in_fee = fees::get_fee_in_amount(&pool_fees, amount_in);
+      let expected_amount_out = volatile::get_amount_out(amount_in - amount_in_fee, usdc_amount, eth_amount);
+      let amount_out_fee = fees::get_fee_out_amount(&pool_fees, expected_amount_out);
+      let expected_amount_out = expected_amount_out - amount_out_fee;       
+
+      let eth_coin = sui_coins_amm::swap<USDC, ETH, SC_V_ETH_USDC>(
+        &mut pool,
+        mint_for_testing(amount_in, ctx(test)),
+        expected_amount_out + 1,
+        ctx(test)
+       );
+
+
+      burn_for_testing(eth_coin);
+
+      test::return_shared(registry);
+      test::return_shared(pool);      
+    };    
+    test::end(scenario);
+  }
+  
   fun set_up_test(test: &mut Scenario) {
     let (alice, _) = people();
 
