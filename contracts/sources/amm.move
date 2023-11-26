@@ -376,6 +376,7 @@ module sc_dex::sui_coins_amm {
       coin::supply_mut(&mut lp_coin_cap), 
       MINIMUM_LIQUIDITY
     );
+    
     let sender_balance = coin::mint(&mut lp_coin_cap, shares, ctx);
 
     let pool_state = PoolState {
@@ -581,7 +582,7 @@ module sc_dex::sui_coins_amm {
 
   public fun update_name<CoinX, CoinY, LpCoin>(
     _: &Admin,
-    pool: &mut SuiCoinsPool, 
+    pool: &SuiCoinsPool, 
     metadata: &mut CoinMetadata<LpCoin>, 
     name: string::String
   ) {
@@ -591,7 +592,7 @@ module sc_dex::sui_coins_amm {
 
   public fun update_symbol<CoinX, CoinY, LpCoin>(
     _: &Admin,
-    pool: &mut SuiCoinsPool, 
+    pool: &SuiCoinsPool, 
     metadata: &mut CoinMetadata<LpCoin>, 
     symbol: ascii::String
   ) {
@@ -601,7 +602,7 @@ module sc_dex::sui_coins_amm {
 
   public fun update_description<CoinX, CoinY, LpCoin>(
     _: &Admin,
-    pool: &mut SuiCoinsPool, 
+    pool: &SuiCoinsPool, 
     metadata: &mut CoinMetadata<LpCoin>, 
     description: string::String
   ) {
@@ -611,7 +612,7 @@ module sc_dex::sui_coins_amm {
 
   public fun update_icon_url<CoinX, CoinY, LpCoin>(
     _: &Admin,
-    pool: &mut SuiCoinsPool, 
+    pool: &SuiCoinsPool, 
     metadata: &mut CoinMetadata<LpCoin>, 
     url: ascii::String
   ) {
