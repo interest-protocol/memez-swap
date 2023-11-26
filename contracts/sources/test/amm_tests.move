@@ -13,6 +13,7 @@ module sc_dex::sui_coins_amm_tests {
   use sc_dex::math256;
   use sc_dex::btc::BTC;
   use sc_dex::eth::ETH;
+  use sc_dex::volatile;
   use sc_dex::usdc::USDC;
   use sc_dex::usdt::USDT;
   use sc_dex::curves::{Volatile, Stable};
@@ -178,6 +179,96 @@ module sc_dex::sui_coins_amm_tests {
       test::return_shared(pool);
     };
     
+    test::end(scenario);
+  }
+
+  #[test]
+  fun test_volatile_swap() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    next_tx(test, alice);
+    {
+      admin::init_for_testing(ctx(test));
+      sui_coins_amm::init_for_testing(ctx(test));
+    };
+
+    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
+    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
+    
+    deploy_eth_usdc_pool(test, eth_amount, usdc_amount);
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_fees = sui_coins_amm::fees<ETH, USDC, SC_V_ETH_USDC>(&pool);
+
+      let amount_in = 3 * ETH_DECIMAL_SCALAR;
+      let amount_in_fee = fees::get_fee_in_amount(&pool_fees, amount_in);
+      let admin_in_fee = fees::get_admin_amount(&pool_fees, amount_in_fee);
+      let expected_amount_out = volatile::get_amount_out(amount_in - amount_in_fee, eth_amount, usdc_amount);
+      let amount_out_fee = fees::get_fee_out_amount(&pool_fees, expected_amount_out);
+      let admin_out_fee = fees::get_admin_amount(&pool_fees, amount_out_fee);
+      let expected_amount_out = expected_amount_out - amount_out_fee; 
+
+      let usdc_coin = sui_coins_amm::swap<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        mint_for_testing(amount_in, ctx(test)),
+        expected_amount_out,
+        ctx(test)
+      );
+
+      assert_eq(burn_for_testing(usdc_coin), expected_amount_out);
+      assert_eq(sui_coins_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), eth_amount + amount_in - admin_in_fee);
+      assert_eq(sui_coins_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), usdc_amount - (expected_amount_out + admin_out_fee));
+      assert_eq(sui_coins_amm::admin_balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), admin_in_fee);
+      assert_eq(sui_coins_amm::admin_balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), admin_out_fee);
+
+      test::return_shared(registry);
+      test::return_shared(pool);      
+    };
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_fees = sui_coins_amm::fees<ETH, USDC, SC_V_ETH_USDC>(&pool);
+
+      let eth_amount = sui_coins_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool);
+      let usdc_amount = sui_coins_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool);
+      let initial_admin_balance_x = sui_coins_amm::admin_balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool);
+      let initial_admin_balance_y = sui_coins_amm::admin_balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool);
+
+      let amount_in = 7777 * USDC_DECIMAL_SCALAR;
+      let amount_in_fee = fees::get_fee_in_amount(&pool_fees, amount_in);
+      let admin_in_fee = fees::get_admin_amount(&pool_fees, amount_in_fee);
+      let expected_amount_out = volatile::get_amount_out(amount_in - amount_in_fee, usdc_amount, eth_amount);
+      let amount_out_fee = fees::get_fee_out_amount(&pool_fees, expected_amount_out);
+      let admin_out_fee = fees::get_admin_amount(&pool_fees, amount_out_fee);
+      let expected_amount_out = expected_amount_out - amount_out_fee;       
+
+     let eth_coin = sui_coins_amm::swap<USDC, ETH, SC_V_ETH_USDC>(
+        &mut pool,
+        mint_for_testing(amount_in, ctx(test)),
+        expected_amount_out,
+        ctx(test)
+      );
+
+      assert_eq(burn_for_testing(eth_coin), expected_amount_out);
+      assert_eq(sui_coins_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), eth_amount - (expected_amount_out + admin_out_fee));
+      assert_eq(sui_coins_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), usdc_amount + amount_in - admin_in_fee);
+      assert_eq(sui_coins_amm::admin_balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), admin_out_fee + initial_admin_balance_x);
+      assert_eq(sui_coins_amm::admin_balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), admin_in_fee + initial_admin_balance_y);
+
+      test::return_shared(registry);
+      test::return_shared(pool);
+    };
+
     test::end(scenario);
   }
 
