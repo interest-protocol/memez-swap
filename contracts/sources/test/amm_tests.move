@@ -11,10 +11,12 @@ module sc_dex::sui_coins_amm_tests {
   use sc_dex::fees;
   use sc_dex::admin;
   use sc_dex::math256;
+  use sc_dex::btc::BTC;
   use sc_dex::eth::ETH;
   use sc_dex::usdc::USDC;
   use sc_dex::usdt::USDT;
   use sc_dex::curves::{Volatile, Stable};
+  use sc_dex::sc_btce_eth::{Self, SC_BTCE_ETH};
   use sc_dex::sc_v_eth_usdc::{Self, SC_V_ETH_USDC};
   use sc_dex::sc_s_usdc_usdt::{Self, SC_S_USDC_USDT};
   use sc_dex::sui_coins_amm::{Self, Registry, SuiCoinsPool};
@@ -35,7 +37,6 @@ module sc_dex::sui_coins_amm_tests {
 
     let test = &mut scenario;
 
-    deploy_coins(test);
     set_up_test(test);  
     
     next_tx(test, alice);
@@ -180,9 +181,272 @@ module sc_dex::sui_coins_amm_tests {
     test::end(scenario);
   }
 
+  #[test]
+  #[expected_failure(abort_code = 13)]  
+  fun test_new_pool_wrong_lp_coin_metadata() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    set_up_test(test);
+
+    next_tx(test, alice);
+    {
+      sc_btce_eth::init_for_testing(ctx(test));
+    };
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let lp_coin_cap = test::take_from_sender<TreasuryCap<SC_BTCE_ETH>>(test);
+      let btc_metadata = test::take_shared<CoinMetadata<BTC>>(test);
+      let eth_metadata = test::take_shared<CoinMetadata<ETH>>(test);
+      let lp_coin_metadata = test::take_shared<CoinMetadata<SC_BTCE_ETH>>(test);
+      
+      let lp_coin =sui_coins_amm::new_pool<BTC, ETH, SC_BTCE_ETH>(
+        &mut registry,
+        mint_for_testing(100, ctx(test)),
+        mint_for_testing(10, ctx(test)),
+        lp_coin_cap,
+        &btc_metadata,
+        &eth_metadata,
+        &mut lp_coin_metadata,
+        true,
+        ctx(test)
+      );
+
+      burn_for_testing(lp_coin);
+
+      test::return_shared(eth_metadata);
+      test::return_shared(btc_metadata);
+      test::return_shared(lp_coin_metadata);
+      test::return_shared(registry);
+    };    
+    test::end(scenario);
+  }
+
+  #[test]
+  #[expected_failure(abort_code = 6)]  
+  fun test_new_pool_wrong_lp_coin_supply() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    set_up_test(test);
+
+    next_tx(test, alice);
+    {
+      sc_v_eth_usdc::init_for_testing(ctx(test));
+    };
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let lp_coin_cap = test::take_from_sender<TreasuryCap<SC_V_ETH_USDC>>(test);
+      let eth_metadata = test::take_shared<CoinMetadata<ETH>>(test);
+      let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(test);
+      let lp_coin_metadata = test::take_shared<CoinMetadata<SC_V_ETH_USDC>>(test);
+
+      burn_for_testing(coin::mint(&mut lp_coin_cap, 100, ctx(test)));
+      
+      let lp_coin =sui_coins_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
+        &mut registry,
+        mint_for_testing(100, ctx(test)),
+        mint_for_testing(10, ctx(test)),
+        lp_coin_cap,
+        &eth_metadata,
+        &usdc_metadata,
+        &mut lp_coin_metadata,
+        true,
+        ctx(test)
+      );
+
+      burn_for_testing(lp_coin);
+
+      test::return_shared(eth_metadata);
+      test::return_shared(usdc_metadata);
+      test::return_shared(lp_coin_metadata);
+      test::return_shared(registry);
+    };    
+    test::end(scenario);
+  }
+
+  #[test]
+  #[expected_failure(abort_code = 3)]  
+  fun test_new_pool_zero_coin_x() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    set_up_test(test);
+
+    next_tx(test, alice);
+    {
+      sc_v_eth_usdc::init_for_testing(ctx(test));
+    };
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let lp_coin_cap = test::take_from_sender<TreasuryCap<SC_V_ETH_USDC>>(test);
+      let eth_metadata = test::take_shared<CoinMetadata<ETH>>(test);
+      let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(test);
+      let lp_coin_metadata = test::take_shared<CoinMetadata<SC_V_ETH_USDC>>(test);
+      
+      let lp_coin =sui_coins_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
+        &mut registry,
+        coin::zero(ctx(test)),
+        mint_for_testing(10, ctx(test)),
+        lp_coin_cap,
+        &eth_metadata,
+        &usdc_metadata,
+        &mut lp_coin_metadata,
+        true,
+        ctx(test)
+      );
+
+      burn_for_testing(lp_coin);
+
+      test::return_shared(eth_metadata);
+      test::return_shared(usdc_metadata);
+      test::return_shared(lp_coin_metadata);
+      test::return_shared(registry);
+    };    
+    test::end(scenario);
+  }
+
+  #[test]
+  #[expected_failure(abort_code = 3)]  
+  fun test_new_pool_zero_coin_y() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    set_up_test(test);
+
+    next_tx(test, alice);
+    {
+      sc_v_eth_usdc::init_for_testing(ctx(test));
+    };
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let lp_coin_cap = test::take_from_sender<TreasuryCap<SC_V_ETH_USDC>>(test);
+      let eth_metadata = test::take_shared<CoinMetadata<ETH>>(test);
+      let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(test);
+      let lp_coin_metadata = test::take_shared<CoinMetadata<SC_V_ETH_USDC>>(test);
+      
+      let lp_coin =sui_coins_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
+        &mut registry,
+        mint_for_testing(10, ctx(test)),
+        coin::zero(ctx(test)),
+        lp_coin_cap,
+        &eth_metadata,
+        &usdc_metadata,
+        &mut lp_coin_metadata,
+        true,
+        ctx(test)
+      );
+
+      burn_for_testing(lp_coin);
+
+      test::return_shared(eth_metadata);
+      test::return_shared(usdc_metadata);
+      test::return_shared(lp_coin_metadata);
+      test::return_shared(registry);
+    };    
+    test::end(scenario);
+  }
+
+  #[test]
+  #[expected_failure(abort_code = 5)]  
+  fun test_new_pool_deploy_same_pool() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    set_up_test(test);
+
+    next_tx(test, alice);
+    {
+      sc_v_eth_usdc::init_for_testing(ctx(test));
+    };
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let lp_coin_cap = test::take_from_sender<TreasuryCap<SC_V_ETH_USDC>>(test);
+      let eth_metadata = test::take_shared<CoinMetadata<ETH>>(test);
+      let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(test);
+      let lp_coin_metadata = test::take_shared<CoinMetadata<SC_V_ETH_USDC>>(test);
+      
+      let lp_coin =sui_coins_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
+        &mut registry,
+        mint_for_testing(10, ctx(test)),
+        mint_for_testing(10, ctx(test)),
+        lp_coin_cap,
+        &eth_metadata,
+        &usdc_metadata,
+        &mut lp_coin_metadata,
+        true,
+        ctx(test)
+      );
+
+      burn_for_testing(lp_coin);
+
+      test::return_shared(eth_metadata);
+      test::return_shared(usdc_metadata);
+      test::return_shared(lp_coin_metadata);
+      test::return_shared(registry);
+    };  
+
+    next_tx(test, alice);
+    {
+      sc_v_eth_usdc::init_for_testing(ctx(test));
+    };
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let lp_coin_cap = test::take_from_sender<TreasuryCap<SC_V_ETH_USDC>>(test);
+      let eth_metadata = test::take_shared<CoinMetadata<ETH>>(test);
+      let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(test);
+      let lp_coin_metadata = test::take_shared<CoinMetadata<SC_V_ETH_USDC>>(test);
+      
+      let lp_coin =sui_coins_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
+        &mut registry,
+        mint_for_testing(10, ctx(test)),
+        mint_for_testing(10, ctx(test)),
+        lp_coin_cap,
+        &eth_metadata,
+        &usdc_metadata,
+        &mut lp_coin_metadata,
+        true,
+        ctx(test)
+      );
+
+      burn_for_testing(lp_coin);
+
+      test::return_shared(eth_metadata);
+      test::return_shared(usdc_metadata);
+      test::return_shared(lp_coin_metadata);
+      test::return_shared(registry);
+    };  
+
+    test::end(scenario);
+  }
+  
 
   fun set_up_test(test: &mut Scenario) {
     let (alice, _) = people();
+
+    deploy_coins(test);
 
     next_tx(test, alice);
     {
