@@ -796,7 +796,7 @@ module sc_dex::sui_coins_amm_tests {
       let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
       let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
 
-      let (receipt, coin_x, coin_y) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      let (invoice, coin_x, coin_y) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         1,
         2,
@@ -812,7 +812,7 @@ module sc_dex::sui_coins_amm_tests {
 
       sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
-        receipt,
+        invoice,
         coin_x,
         coin_y
       );
@@ -850,7 +850,7 @@ module sc_dex::sui_coins_amm_tests {
       let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
       let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
 
-      let (receipt, coin_x, coin_y) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      let (invoice, coin_x, coin_y) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         1,
         2,
@@ -866,7 +866,7 @@ module sc_dex::sui_coins_amm_tests {
 
       sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
-        receipt,
+        invoice,
         coin_x,
         coin_y
       );
@@ -1037,7 +1037,7 @@ module sc_dex::sui_coins_amm_tests {
       let amount_x = 20 * ETH_DECIMAL_SCALAR;
       let amount_y = 27000 * USDC_DECIMAL_SCALAR;
 
-      let (receipt, coin_x, coin_y) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      let (invoice, coin_x, coin_y) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         1,
         2,
@@ -1054,7 +1054,7 @@ module sc_dex::sui_coins_amm_tests {
 
       sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
-        receipt,
+        invoice,
         coin_x,
         coin_y
       );
@@ -1245,7 +1245,7 @@ module sc_dex::sui_coins_amm_tests {
       let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
       let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
 
-      let (receipt, coin_x, coin_y) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      let (invoice, coin_x, coin_y) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         1,
         2,
@@ -1265,7 +1265,7 @@ module sc_dex::sui_coins_amm_tests {
 
       sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
-        receipt,
+        invoice,
         coin_x,
         coin_y
       );

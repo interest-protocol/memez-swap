@@ -58,7 +58,7 @@ module sc_dex::sui_coins_amm {
     locked: bool     
   } 
 
-  struct Receipt {
+  struct Invoice {
     pool_id: ID,
     repay_amount_x: u64,
     repay_amount_y: u64,
@@ -149,16 +149,16 @@ module sc_dex::sui_coins_amm {
     balance::value(&pool_state.admin_balance_y)
   }
 
-  public fun repay_amount_x(receipt: &Receipt): u64 {
-    receipt.repay_amount_x
+  public fun repay_amount_x(invoice: &Invoice): u64 {
+    invoice.repay_amount_x
   }
 
-  public fun repay_amount_y(receipt: &Receipt): u64 {
-    receipt.repay_amount_y
+  public fun repay_amount_y(invoice: &Invoice): u64 {
+    invoice.repay_amount_y
   }
 
-  public fun previous_k(receipt: &Receipt): u256 {
-    receipt.prev_k
+  public fun previous_k(invoice: &Invoice): u256 {
+    invoice.prev_k
   }  
 
   // === Mutative Functions ===  
@@ -286,7 +286,7 @@ module sc_dex::sui_coins_amm {
     amount_x: u64,
     amount_y: u64,
     ctx: &mut TxContext
-  ): (Receipt, Coin<CoinX>, Coin<CoinY>) {
+  ): (Invoice, Coin<CoinX>, Coin<CoinY>) {
     let pool_state = borrow_mut_pool_state<CoinX, CoinY, LpCoin>(pool);
     
     assert!(!pool_state.locked, errors::pool_is_locked());
@@ -305,23 +305,23 @@ module sc_dex::sui_coins_amm {
     let coin_x = coin::take(&mut pool_state.balance_x, amount_x, ctx);
     let coin_y = coin::take(&mut pool_state.balance_y, amount_y, ctx);
 
-    let receipt = Receipt { 
+    let invoice = Invoice { 
       pool_id: object::id(pool),  
       repay_amount_x: amount_x + (mul_div_up((amount_x as u256), FLASH_LOAN_FEE_PERCENT, PRECISION) as u64),
       repay_amount_y: amount_y + (mul_div_up((amount_y as u256), FLASH_LOAN_FEE_PERCENT, PRECISION) as u64),
       prev_k
     };
     
-    (receipt, coin_x, coin_y)
+    (invoice, coin_x, coin_y)
   }  
 
   public fun repay_flash_loan<CoinX, CoinY, LpCoin>(
     pool: &mut SuiCoinsPool,
-    receipt: Receipt,
+    invoice: Invoice,
     coin_x: Coin<CoinX>,
     coin_y: Coin<CoinY>
   ) {
-   let Receipt { pool_id, repay_amount_x, repay_amount_y, prev_k } = receipt;
+   let Invoice { pool_id, repay_amount_x, repay_amount_y, prev_k } = invoice;
    
    assert!(object::id(pool) == pool_id, errors::wrong_pool());
    assert!(coin::value(&coin_x) >= repay_amount_x, errors::wrong_repay_amount());
