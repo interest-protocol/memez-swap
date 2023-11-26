@@ -2,7 +2,5 @@
 
 ## TODO
 
-- quote
-- events
-- router
-- tests
+- test flash loan
+- Formal Verification
