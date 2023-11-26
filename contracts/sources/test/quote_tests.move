@@ -46,7 +46,7 @@ module sc_dex::quote_tests {
       let expected_amount_out = volatile::get_amount_out(amount_in - amount_in_fee, 15 * ETH_DECIMAL_SCALAR, 37500 * USDC_DECIMAL_SCALAR);
       let expected_amount_out = expected_amount_out - fees::get_fee_out_amount(&pool_fees, expected_amount_out); 
 
-      assert_eq(quote::quote_amount_out<ETH, USDC, SC_V_ETH_USDC>(&pool, amount_in), expected_amount_out);
+      assert_eq(quote::amount_out<ETH, USDC, SC_V_ETH_USDC>(&pool, amount_in), expected_amount_out);
 
       test::return_shared(registry);
       test::return_shared(pool);
@@ -64,7 +64,7 @@ module sc_dex::quote_tests {
       let expected_amount_out = volatile::get_amount_out(amount_in - amount_in_fee, 37500 * USDC_DECIMAL_SCALAR, 15 * ETH_DECIMAL_SCALAR);
       let expected_amount_out = expected_amount_out - fees::get_fee_out_amount(&pool_fees, expected_amount_out); 
 
-      assert_eq(quote::quote_amount_out<USDC, ETH, SC_V_ETH_USDC>(&pool, amount_in), expected_amount_out);
+      assert_eq(quote::amount_out<USDC, ETH, SC_V_ETH_USDC>(&pool, amount_in), expected_amount_out);
 
       test::return_shared(registry);
       test::return_shared(pool);
@@ -102,7 +102,7 @@ module sc_dex::quote_tests {
       );
       let expected_amount_out = expected_amount_out - fees::get_fee_out_amount(&pool_fees, expected_amount_out); 
 
-      assert_eq(quote::quote_amount_out<USDC, USDT, SC_S_USDC_USDT>(&pool, amount_in), expected_amount_out);
+      assert_eq(quote::amount_out<USDC, USDT, SC_S_USDC_USDT>(&pool, amount_in), expected_amount_out);
 
       test::return_shared(registry);
       test::return_shared(pool);
@@ -128,7 +128,7 @@ module sc_dex::quote_tests {
       );
       let expected_amount_out = expected_amount_out - fees::get_fee_out_amount(&pool_fees, expected_amount_out); 
 
-      assert_eq(quote::quote_amount_out<USDT, USDC, SC_S_USDC_USDT>(&pool, amount_in), expected_amount_out);
+      assert_eq(quote::amount_out<USDT, USDC, SC_S_USDC_USDT>(&pool, amount_in), expected_amount_out);
 
       test::return_shared(registry);
       test::return_shared(pool);
@@ -162,7 +162,7 @@ module sc_dex::quote_tests {
         volatile::get_amount_in(amount_out_before_fee, 15 * ETH_DECIMAL_SCALAR, 37500 * USDC_DECIMAL_SCALAR)
       );
 
-      assert_eq(quote::quote_amount_in<ETH, USDC, SC_V_ETH_USDC>(&pool, amount_out), expected_amount_in);
+      assert_eq(quote::amount_in<ETH, USDC, SC_V_ETH_USDC>(&pool, amount_out), expected_amount_in);
 
       test::return_shared(registry);
       test::return_shared(pool);
@@ -183,7 +183,7 @@ module sc_dex::quote_tests {
         volatile::get_amount_in(amount_out_before_fee, 37500 * USDC_DECIMAL_SCALAR, 15 * ETH_DECIMAL_SCALAR)
       );
 
-      assert_eq(quote::quote_amount_in<USDC, ETH, SC_V_ETH_USDC>(&pool, amount_out), expected_amount_in);
+      assert_eq(quote::amount_in<USDC, ETH, SC_V_ETH_USDC>(&pool, amount_out), expected_amount_in);
 
       test::return_shared(registry);
       test::return_shared(pool);
@@ -225,7 +225,7 @@ module sc_dex::quote_tests {
         )
       );
 
-      assert_eq(quote::quote_amount_in<USDC, USDT, SC_S_USDC_USDT>(&pool, amount_out), expected_amount_in);
+      assert_eq(quote::amount_in<USDC, USDT, SC_S_USDC_USDT>(&pool, amount_out), expected_amount_in);
 
       test::return_shared(registry);
       test::return_shared(pool);   
@@ -254,7 +254,7 @@ module sc_dex::quote_tests {
         )
       );
 
-      assert_eq(quote::quote_amount_in<USDT, USDC, SC_S_USDC_USDT>(&pool, amount_out), expected_amount_in);
+      assert_eq(quote::amount_in<USDT, USDC, SC_S_USDC_USDT>(&pool, amount_out), expected_amount_in);
 
       test::return_shared(registry);
       test::return_shared(pool);   
@@ -286,7 +286,7 @@ module sc_dex::quote_tests {
       let eth_amount = 3 * ETH_DECIMAL_SCALAR;
       let usdc_amount = 15000 * USDC_DECIMAL_SCALAR;
       
-      let (shares, optimal_x_amount, optimal_y_amount) = quote::quote_add_liquidity<ETH, USDC, SC_V_ETH_USDC>(&pool, 3 * ETH_DECIMAL_SCALAR, 15000 * USDC_DECIMAL_SCALAR);
+      let (shares, optimal_x_amount, optimal_y_amount) = quote::add_liquidity<ETH, USDC, SC_V_ETH_USDC>(&pool, 3 * ETH_DECIMAL_SCALAR, 15000 * USDC_DECIMAL_SCALAR);
 
       let (expected_x_amount, expected_y_amount) = utils::get_optimal_add_liquidity(eth_amount, usdc_amount, balance_x, balance_y);
 
@@ -328,7 +328,7 @@ module sc_dex::quote_tests {
       let expected_eth_amount = math64::mul_div_down(amount, balance_x, lp_coin_supply);
       let expected_usdc_amount = math64::mul_div_down(amount, balance_y, lp_coin_supply);
 
-      let (eth_amount, usdc_amount) = quote::quote_remove_liquidity<ETH, USDC, SC_V_ETH_USDC>(&pool, amount);
+      let (eth_amount, usdc_amount) = quote::remove_liquidity<ETH, USDC, SC_V_ETH_USDC>(&pool, amount);
 
       assert_eq(eth_amount, expected_eth_amount);
       assert_eq(usdc_amount, expected_usdc_amount);

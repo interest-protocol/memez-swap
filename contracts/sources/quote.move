@@ -6,7 +6,7 @@ module sc_dex::quote {
   use sc_dex::sui_coins_amm::{Self, SuiCoinsPool};
   use sc_dex::utils::{get_optimal_add_liquidity, is_coin_x};
 
-  public fun quote_amount_out<CoinIn, CoinOut, LpCoin>(pool: &SuiCoinsPool, amount_in: u64): u64 { 
+  public fun amount_out<CoinIn, CoinOut, LpCoin>(pool: &SuiCoinsPool, amount_in: u64): u64 { 
 
     if (is_coin_x<CoinIn, CoinOut>()) {
       let (balance_x, balance_y, decimals_x, decimals_y, k, volatile, fees) = get_pool_data<CoinIn, CoinOut, LpCoin>(pool);
@@ -27,7 +27,7 @@ module sc_dex::quote {
     }
   }
 
-  public fun quote_amount_in<CoinIn, CoinOut, LpCoin>(pool: &SuiCoinsPool, amount_out: u64): u64 {
+  public fun amount_in<CoinIn, CoinOut, LpCoin>(pool: &SuiCoinsPool, amount_out: u64): u64 {
 
     if (is_coin_x<CoinIn, CoinOut>()) {
       let (balance_x, balance_y, decimals_x, decimals_y, k, volatile, fees) = get_pool_data<CoinIn, CoinOut, LpCoin>(pool);
@@ -48,7 +48,7 @@ module sc_dex::quote {
     }
   }
 
-  public fun quote_add_liquidity<CoinX, CoinY, LpCoin>(
+  public fun add_liquidity<CoinX, CoinY, LpCoin>(
     pool: &SuiCoinsPool,
     amount_x: u64,
     amount_y: u64
@@ -72,7 +72,7 @@ module sc_dex::quote {
     (share_to_mint, optimal_x_amount, optimal_y_amount)
   }
 
-  public fun quote_remove_liquidity<CoinX, CoinY, LpCoin>(
+  public fun remove_liquidity<CoinX, CoinY, LpCoin>(
     pool: &SuiCoinsPool,
     amount: u64
   ): (u64, u64) {
