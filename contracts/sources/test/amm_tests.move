@@ -520,6 +520,10 @@ module sc_dex::sui_coins_amm_tests {
         mint_for_testing(invoice_repay_amount_y, ctx(test))
       );
 
+      assert_eq(sui_coins_amm::locked<ETH, USDC, SC_V_ETH_USDC>(&pool), false);
+      assert_eq(sui_coins_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), eth_amount + invoice_repay_amount_x - eth_coin_amount);
+      assert_eq(sui_coins_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), usdc_amount + invoice_repay_amount_y - usdc_coin_amount);
+
       test::return_shared(registry);
       test::return_shared(pool);     
     };    
