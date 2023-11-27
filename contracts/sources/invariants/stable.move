@@ -27,6 +27,7 @@ module sc_dex::stable {
     is_x: bool
   ): u64 {
     assert!(coin_amount != 0, errors::no_zero_coin());
+    assert!(k != 0, errors::insufficient_liquidity());
     assert!(balance_x != 0 && balance_y != 0, errors::insufficient_liquidity());
     let (coin_amount, balance_x, balance_y, decimals_x, decimals_y) =
       (
@@ -60,6 +61,7 @@ module sc_dex::stable {
     is_x: bool
   ): u64 {
     assert!(coin_amount != 0, errors::no_zero_coin());
+    assert!(k != 0, errors::insufficient_liquidity());
     assert!(balance_x != 0 && balance_y != 0, errors::insufficient_liquidity());
 
     let (coin_amount, balance_x, balance_y, decimals_x, decimals_y) =
