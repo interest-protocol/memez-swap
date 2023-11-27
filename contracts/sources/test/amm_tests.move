@@ -733,7 +733,7 @@ module sc_dex::sui_coins_amm_tests {
 
   #[test]
   #[expected_failure(abort_code = 9)]  
-  fun test_volatile_swap_zero_coin() {
+  fun test_swap_zero_coin() {
     let scenario = scenario();
     let (alice, _) = people();
 
