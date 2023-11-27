@@ -532,6 +532,143 @@ module sc_dex::sui_coins_amm_tests {
   }
 
   #[test]
+  #[expected_failure(abort_code = 0)]  
+  fun test_flash_loan_not_enough_balance_x() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    set_up_test(test);
+
+    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
+    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
+    
+    deploy_eth_usdc_pool(test, eth_amount, usdc_amount);
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+
+      let (invoice, eth_coin, usdc_coin) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        eth_amount + 1,
+        usdc_amount,
+        ctx(test)
+      );
+
+      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        invoice,
+        eth_coin,
+        usdc_coin
+      );
+
+      test::return_shared(registry);
+      test::return_shared(pool);    
+    };    
+    test::end(scenario); 
+  }
+
+  #[test]
+  #[expected_failure(abort_code = 0)]  
+  fun test_flash_loan_not_enough_balance_y() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    set_up_test(test);
+
+    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
+    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
+    
+    deploy_eth_usdc_pool(test, eth_amount, usdc_amount);
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+
+      let (invoice, eth_coin, usdc_coin) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        eth_amount,
+        usdc_amount + 1,
+        ctx(test)
+      );
+
+      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        invoice,
+        eth_coin,
+        usdc_coin
+      );
+
+      test::return_shared(registry);
+      test::return_shared(pool);    
+    };    
+    test::end(scenario); 
+  }  
+
+  #[test]
+  #[expected_failure(abort_code = 11)]  
+  fun test_flash_loan_locked() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    set_up_test(test);
+
+    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
+    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
+    
+    deploy_eth_usdc_pool(test, eth_amount, usdc_amount);
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+
+      let (invoice, eth_coin, usdc_coin) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        1,
+        2,
+        ctx(test)
+      );
+
+      let (invoice2, eth_coin2, usdc_coin2) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        3,
+        4,
+        ctx(test)
+      );
+
+      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        invoice,
+        eth_coin,
+        usdc_coin
+      );
+
+      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        invoice2,
+        eth_coin2,
+        usdc_coin2
+      );
+
+      test::return_shared(registry);
+      test::return_shared(pool);    
+    };    
+    test::end(scenario); 
+  }    
+
+  #[test]
   #[expected_failure(abort_code = 13)]  
   fun test_new_pool_wrong_lp_coin_metadata() {
     let scenario = scenario();
@@ -554,7 +691,7 @@ module sc_dex::sui_coins_amm_tests {
       let eth_metadata = test::take_shared<CoinMetadata<ETH>>(test);
       let lp_coin_metadata = test::take_shared<CoinMetadata<SC_BTCE_ETH>>(test);
       
-      let lp_coin =sui_coins_amm::new_pool<BTC, ETH, SC_BTCE_ETH>(
+      let lp_coin = sui_coins_amm::new_pool<BTC, ETH, SC_BTCE_ETH>(
         &mut registry,
         mint_for_testing(100, ctx(test)),
         mint_for_testing(10, ctx(test)),
