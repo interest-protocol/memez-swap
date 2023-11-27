@@ -25,6 +25,7 @@ module sc_dex::sui_coins_amm_tests {
   use sc_dex::sui_coins_amm::{Self, Registry, SuiCoinsPool};
   use sc_dex::test_utils::{people, scenario, deploy_coins, deploy_eth_usdc_pool, deploy_usdc_usdt_pool};
 
+  const PRECISION: u256 = 1_000_000_000_000_000_000;
   const MINIMUM_LIQUIDITY: u64 = 100;
   const USDC_DECIMAL_SCALAR: u64 = 1_000_000;
   const ETH_DECIMAL_SCALAR: u64 = 1_000_000_000;
@@ -32,6 +33,7 @@ module sc_dex::sui_coins_amm_tests {
   const INITIAL_STABLE_FEE_PERCENT: u256 = 250_000_000_000_000; // 0.025%
   const INITIAL_VOLATILE_FEE_PERCENT: u256 = 3_000_000_000_000_000; // 0.3%
   const INITIAL_ADMIN_FEE: u256 = 200_000_000_000_000_000; // 20%
+  const FLASH_LOAN_FEE_PERCENT: u256 = 5_000_000_000_000_000; //0.5% 
 
   #[test]
   fun test_new_pool() {
@@ -467,6 +469,61 @@ module sc_dex::sui_coins_amm_tests {
       test::return_shared(registry);
       test::return_shared(pool);
     };    
+    test::end(scenario); 
+  }
+
+  #[test]
+  fun test_flash_loan() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    set_up_test(test);
+
+    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
+    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
+    
+    deploy_eth_usdc_pool(test, eth_amount, usdc_amount);
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+
+      let eth_coin_amount = 5 * ETH_DECIMAL_SCALAR;
+      let usdc_coin_amount = 1500 * USDC_DECIMAL_SCALAR;
+
+      let (invoice, eth_coin, usdc_coin) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        eth_coin_amount,
+        usdc_coin_amount,
+        ctx(test)
+      );
+
+      let invoice_repay_amount_x = sui_coins_amm::repay_amount_x(&invoice);
+      let invoice_repay_amount_y = sui_coins_amm::repay_amount_y(&invoice);
+
+      assert_eq(burn_for_testing(eth_coin), eth_coin_amount);
+      assert_eq(burn_for_testing(usdc_coin), usdc_coin_amount);
+      assert_eq(sui_coins_amm::locked<ETH, USDC, SC_V_ETH_USDC>(&pool), true);
+      assert_eq(sui_coins_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), eth_amount - eth_coin_amount);
+      assert_eq(sui_coins_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), usdc_amount - usdc_coin_amount);
+      assert_eq(invoice_repay_amount_x, eth_coin_amount + (math256::mul_div_up((eth_coin_amount as u256), FLASH_LOAN_FEE_PERCENT, PRECISION) as u64));
+      assert_eq(invoice_repay_amount_y, usdc_coin_amount + (math256::mul_div_up((usdc_coin_amount as u256), FLASH_LOAN_FEE_PERCENT, PRECISION) as u64));
+
+      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        invoice,
+        mint_for_testing(invoice_repay_amount_x, ctx(test)),
+        mint_for_testing(invoice_repay_amount_y, ctx(test))
+      );
+
+      test::return_shared(registry);
+      test::return_shared(pool);     
+    };    
+
     test::end(scenario); 
   }
 
