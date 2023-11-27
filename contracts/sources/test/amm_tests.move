@@ -666,7 +666,144 @@ module sc_dex::sui_coins_amm_tests {
       test::return_shared(pool);    
     };    
     test::end(scenario); 
-  }    
+  }
+
+  #[test]
+  #[expected_failure(abort_code = 15)]    
+  fun test_repay_wrong_pool() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    set_up_test(test);
+
+    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
+    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
+    
+    deploy_eth_usdc_pool(test, eth_amount, usdc_amount);
+    deploy_usdc_usdt_pool(test, 100 * USDC_DECIMAL_SCALAR, 100 * USDT_DECIMAL_SCALAR);
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool1 = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = sui_coins_amm::pool_id<Stable, USDC, USDT>(&registry);
+      let pool2 = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+
+      let (invoice, eth_coin, usdc_coin) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool1,
+        1,
+        2,
+        ctx(test)
+      );
+
+      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool2,
+        invoice,
+        eth_coin,
+        usdc_coin
+      );
+
+      test::return_shared(registry);
+      test::return_shared(pool1);
+      test::return_shared(pool2);    
+    };
+    test::end(scenario); 
+  } 
+
+  #[test]
+  #[expected_failure(abort_code = 12)]    
+  fun test_repay_wrong_repay_amount_x() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    set_up_test(test);
+
+    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
+    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
+    
+    deploy_eth_usdc_pool(test, eth_amount, usdc_amount);
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+
+      let (invoice, eth_coin, usdc_coin) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        eth_amount,
+        usdc_amount,
+        ctx(test)
+      );
+
+      burn_for_testing(eth_coin);
+      burn_for_testing(usdc_coin);
+
+      let invoice_repay_amount_x = sui_coins_amm::repay_amount_x(&invoice);
+      let invoice_repay_amount_y = sui_coins_amm::repay_amount_y(&invoice);      
+
+      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        invoice,
+        mint_for_testing(invoice_repay_amount_x - 1, ctx(test)),
+        mint_for_testing(invoice_repay_amount_y, ctx(test))
+      );
+
+      test::return_shared(registry);
+      test::return_shared(pool);   
+    };
+    test::end(scenario); 
+  }   
+
+  #[test]
+  #[expected_failure(abort_code = 12)]    
+  fun test_repay_wrong_repay_amount_y() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    set_up_test(test);
+
+    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
+    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
+    
+    deploy_eth_usdc_pool(test, eth_amount, usdc_amount);
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+
+      let (invoice, eth_coin, usdc_coin) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        eth_amount,
+        usdc_amount,
+        ctx(test)
+      );
+
+      burn_for_testing(eth_coin);
+      burn_for_testing(usdc_coin);
+
+      let invoice_repay_amount_x = sui_coins_amm::repay_amount_x(&invoice);
+      let invoice_repay_amount_y = sui_coins_amm::repay_amount_y(&invoice);      
+
+      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+        &mut pool,
+        invoice,
+        mint_for_testing(invoice_repay_amount_x, ctx(test)),
+        mint_for_testing(invoice_repay_amount_y - 1, ctx(test))
+      );
+
+      test::return_shared(registry);
+      test::return_shared(pool);   
+    };
+    test::end(scenario); 
+  }        
 
   #[test]
   #[expected_failure(abort_code = 13)]  

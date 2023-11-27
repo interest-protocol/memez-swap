@@ -48,10 +48,6 @@ module sc_dex::errors {
     11
   }
 
-  public fun wrong_pool(): u64 {
-    12
-  }
-
   public fun wrong_repay_amount(): u64 {
     12
   }
@@ -62,5 +58,9 @@ module sc_dex::errors {
 
   public fun insufficient_liquidity(): u64 {
     14
+  }
+
+  public fun wrong_pool(): u64 {
+    15
   }
 }
