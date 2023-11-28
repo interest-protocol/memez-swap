@@ -1,2 +1,4 @@
 build
 output.bpl
+.coverage_map.*
+.trace

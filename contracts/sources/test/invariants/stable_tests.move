@@ -22,25 +22,23 @@ module sc_dex::stable_tests {
 
   #[test]
   fun calculate_amounts() {
-    let k = stable::invariant_(25582858050757, 2558285805075712, 1000000, 100000000);
     assert_eq(
-      stable::get_amount_out(k, 2513058000,  25582858050757, 2558285805075712, 1000000, 100000000, true),
+      stable::get_amount_out(2513058000,  25582858050757, 2558285805075712, 1000000, 100000000, true),
       251305799999
     );
 
     assert_eq(
-      stable::get_amount_out(k, 2513058000,  25582858050757, 2558285805075712, 1000000, 100000000, false),
+      stable::get_amount_out(2513058000,  25582858050757, 2558285805075712, 1000000, 100000000, false),
       25130579
     );
 
-    let k = stable::invariant_(2558285805075701, 25582858050757, 100000000, 1000000);
     assert_eq(
-      stable::get_amount_in(k, 251305800000,  2558285805075701, 25582858050757, 100000000, 1000000, true),
+      stable::get_amount_in(251305800000,  2558285805075701, 25582858050757, 100000000, 1000000, true),
       2513058001
     );
 
     assert_eq(
-      stable::get_amount_in(k, 2513058000,  2558285805075701, 25582858050757, 100000000, 1000000, false),
+      stable::get_amount_in(2513058000,  2558285805075701, 25582858050757, 100000000, 1000000, false),
       251305800001
     );
   }
@@ -82,49 +80,37 @@ module sc_dex::stable_tests {
   #[test]
   #[expected_failure(abort_code = 9)]  
   fun get_amount_in_zero_coin() {
-    stable::get_amount_in(1, 0,  2558285805075701, 25582858050757, 100000000, 1000000, true);
-  }
-
-  #[test]
-  #[expected_failure(abort_code = 14)]  
-  fun get_amount_in_zero_k() {
-    stable::get_amount_in(0, 1,  2558285805075701, 25582858050757, 100000000, 1000000, true);
+    stable::get_amount_in( 0,  2558285805075701, 25582858050757, 100000000, 1000000, true);
   }
 
   #[test]
   #[expected_failure(abort_code = 14)]  
   fun get_amount_in_zero_balance_x() {
-    stable::get_amount_in(1, 1,  0, 25582858050757, 100000000, 1000000, true);
+    stable::get_amount_in( 1,  0, 25582858050757, 100000000, 1000000, true);
   }
 
   #[test]
   #[expected_failure(abort_code = 14)]  
   fun get_amount_in_zero_balance_y() {
-    stable::get_amount_in(1, 1,  1, 0, 100000000, 1000000, true);
+    stable::get_amount_in( 1,  1, 0, 100000000, 1000000, true);
   }
 
   #[test]
   #[expected_failure(abort_code = 9)]  
   fun get_amount_out_zero_coin() {
-    stable::get_amount_out(1, 0,  2558285805075701, 25582858050757, 100000000, 1000000, true);
-  }
-
-  #[test]
-  #[expected_failure(abort_code = 14)]  
-  fun get_amount_out_zero_k() {
-    stable::get_amount_in(0, 1,  2558285805075701, 25582858050757, 100000000, 1000000, true);
+    stable::get_amount_out( 0,  2558285805075701, 25582858050757, 100000000, 1000000, true);
   }
 
   #[test]
   #[expected_failure(abort_code = 14)]  
   fun get_amount_out_zero_balance_x() {
-    stable::get_amount_in(1, 1,  0, 25582858050757, 100000000, 1000000, true);
+    stable::get_amount_in( 1,  0, 25582858050757, 100000000, 1000000, true);
   }
 
   #[test]
   #[expected_failure(abort_code = 14)]  
   fun get_amount_out_zero_balance_y() {
-    stable::get_amount_in(1, 1,  1, 0, 100000000, 1000000, true);
+    stable::get_amount_in( 1,  1, 0, 100000000, 1000000, true);
   }
 
   fun fmul(x: u256, y: u256): u256 {

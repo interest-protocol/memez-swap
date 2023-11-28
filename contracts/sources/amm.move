@@ -506,7 +506,6 @@ module sc_dex::sui_coins_amm {
         volatile::get_amount_out(coin_in_amount, balance_y, balance_x)
     } else {
         stable::get_amount_out(
-          prev_k, 
           coin_in_amount, 
           balance_x, 
           balance_y, 

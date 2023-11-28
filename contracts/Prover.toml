@@ -5,7 +5,7 @@ verbosity_level = "INFO"
 [prover]
 # Set auto-tracing level, which enhances the diagnosis the prover produces on verification errors.
 # Possible values: "Off", "VerifiedFunction", "AllFunctions"
-auto_trace_level = "Off"
+auto_trace_level = "VerifiedFunction"
 
 # Minimal severity level for diagnosis to be reported.
 # Possible values: "Error", "Warning", "Note"

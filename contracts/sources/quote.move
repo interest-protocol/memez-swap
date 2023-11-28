@@ -9,42 +9,42 @@ module sc_dex::quote {
   public fun amount_out<CoinIn, CoinOut, LpCoin>(pool: &SuiCoinsPool, amount_in: u64): u64 { 
 
     if (is_coin_x<CoinIn, CoinOut>()) {
-      let (balance_x, balance_y, decimals_x, decimals_y, k, volatile, fees) = get_pool_data<CoinIn, CoinOut, LpCoin>(pool);
+      let (balance_x, balance_y, decimals_x, decimals_y, volatile, fees) = get_pool_data<CoinIn, CoinOut, LpCoin>(pool);
       let amount_in = amount_in - fees::get_fee_in_amount(&fees, amount_in);
 
       if (volatile) 
         get_amount_out(fees, volatile::get_amount_out(amount_in, balance_x, balance_y))
       else 
-        get_amount_out(fees, stable::get_amount_out(k, amount_in, balance_x, balance_y, decimals_x, decimals_y, true))
+        get_amount_out(fees, stable::get_amount_out(amount_in, balance_x, balance_y, decimals_x, decimals_y, true))
     } else {
-      let (balance_x, balance_y, decimals_x, decimals_y, k, volatile, fees) = get_pool_data<CoinOut, CoinIn, LpCoin>(pool);
+      let (balance_x, balance_y, decimals_x, decimals_y, volatile, fees) = get_pool_data<CoinOut, CoinIn, LpCoin>(pool);
       let amount_in = amount_in - fees::get_fee_in_amount(&fees, amount_in);
 
       if (volatile)
         get_amount_out(fees, volatile::get_amount_out(amount_in, balance_y, balance_x))
       else
-        get_amount_out(fees, stable::get_amount_out(k, amount_in, balance_x, balance_y, decimals_x, decimals_y, false))
+        get_amount_out(fees, stable::get_amount_out( amount_in, balance_x, balance_y, decimals_x, decimals_y, false))
     }
   }
 
   public fun amount_in<CoinIn, CoinOut, LpCoin>(pool: &SuiCoinsPool, amount_out: u64): u64 {
 
     if (is_coin_x<CoinIn, CoinOut>()) {
-      let (balance_x, balance_y, decimals_x, decimals_y, k, volatile, fees) = get_pool_data<CoinIn, CoinOut, LpCoin>(pool);
+      let (balance_x, balance_y, decimals_x, decimals_y, volatile, fees) = get_pool_data<CoinIn, CoinOut, LpCoin>(pool);
       let amount_out = fees::get_fee_out_initial_amount(&fees, amount_out);
 
       if (volatile)
         fees::get_fee_in_initial_amount(&fees, volatile::get_amount_in(amount_out, balance_x, balance_y))
       else 
-        fees::get_fee_in_initial_amount(&fees, stable::get_amount_in(k, amount_out, balance_x, balance_y, decimals_x, decimals_y, true))
+        fees::get_fee_in_initial_amount(&fees, stable::get_amount_in( amount_out, balance_x, balance_y, decimals_x, decimals_y, true))
     } else {
-      let (balance_x, balance_y, decimals_x, decimals_y, k, volatile, fees) = get_pool_data<CoinOut, CoinIn, LpCoin>(pool);
+      let (balance_x, balance_y, decimals_x, decimals_y, volatile, fees) = get_pool_data<CoinOut, CoinIn, LpCoin>(pool);
       let amount_out = fees::get_fee_out_initial_amount(&fees, amount_out);
 
       if (volatile) 
         fees::get_fee_in_initial_amount(&fees, volatile::get_amount_in(amount_out, balance_y, balance_x))
       else 
-        fees::get_fee_in_initial_amount(&fees, stable::get_amount_in(k, amount_out, balance_x, balance_y, decimals_x, decimals_y, false))
+        fees::get_fee_in_initial_amount(&fees, stable::get_amount_in( amount_out, balance_x, balance_y, decimals_x, decimals_y, false))
     }
   }
 
@@ -91,14 +91,13 @@ module sc_dex::quote {
     amount_out - fee_amount
   }
 
-  fun get_pool_data<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): (u64, u64, u64, u64, u256, bool, Fees) {
+  fun get_pool_data<CoinX, CoinY, LpCoin>(pool: &SuiCoinsPool): (u64, u64, u64, u64, bool, Fees) {
     let fees = sui_coins_amm::fees<CoinX, CoinY, LpCoin>(pool);
     let balance_x = sui_coins_amm::balance_x<CoinX, CoinY, LpCoin>(pool);
     let balance_y = sui_coins_amm::balance_y<CoinX, CoinY, LpCoin>(pool);
     let is_volatile = sui_coins_amm::volatile<CoinX, CoinY, LpCoin>(pool);
     let decimals_x = sui_coins_amm::decimals_x<CoinX, CoinY, LpCoin>(pool);
     let decimals_y = sui_coins_amm::decimals_y<CoinX, CoinY, LpCoin>(pool);
-    let k = stable::invariant_(balance_x, balance_y, decimals_x, decimals_y);
-    (balance_x, balance_y, decimals_x, decimals_y, k, is_volatile, fees)
+    (balance_x, balance_y, decimals_x, decimals_y, is_volatile, fees)
   }
 }

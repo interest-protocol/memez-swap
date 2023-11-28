@@ -302,7 +302,6 @@ module sc_dex::sui_coins_amm_tests {
       let admin_in_fee = fees::get_admin_amount(&pool_fees, amount_in_fee);
 
       let expected_amount_out = stable::get_amount_out(
-        stable::invariant_(usdc_amount, usdt_amount, USDC_DECIMAL_SCALAR, USDT_DECIMAL_SCALAR),
         amount_in - amount_in_fee,
         usdc_amount,
         usdt_amount,
@@ -349,7 +348,6 @@ module sc_dex::sui_coins_amm_tests {
       let admin_in_fee = fees::get_admin_amount(&pool_fees, amount_in_fee);
       
       let expected_amount_out = stable::get_amount_out(
-        stable::invariant_(usdc_amount, usdt_amount, USDC_DECIMAL_SCALAR, USDT_DECIMAL_SCALAR),
         amount_in - amount_in_fee,
         usdc_amount,
         usdt_amount,

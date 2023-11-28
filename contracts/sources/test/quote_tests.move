@@ -92,7 +92,6 @@ module sc_dex::quote_tests {
       let amount_in = 599 * USDC_DECIMAL_SCALAR;
       let amount_in_fee = fees::get_fee_in_amount(&pool_fees, amount_in);
       let expected_amount_out = stable::get_amount_out(
-        stable::invariant_(25000 * USDC_DECIMAL_SCALAR, 25000 * USDT_DECIMAL_SCALAR, USDC_DECIMAL_SCALAR, USDT_DECIMAL_SCALAR),
         amount_in - amount_in_fee, 
         25000 * USDC_DECIMAL_SCALAR, 
         25000 * USDT_DECIMAL_SCALAR,
@@ -118,7 +117,6 @@ module sc_dex::quote_tests {
       let amount_in = 763 * USDT_DECIMAL_SCALAR;
       let amount_in_fee = fees::get_fee_in_amount(&pool_fees, amount_in);
       let expected_amount_out = stable::get_amount_out(
-        stable::invariant_(25000 * USDC_DECIMAL_SCALAR, 25000 * USDT_DECIMAL_SCALAR, USDC_DECIMAL_SCALAR, USDT_DECIMAL_SCALAR),
         amount_in - amount_in_fee, 
         25000 * USDC_DECIMAL_SCALAR, 
         25000 * USDT_DECIMAL_SCALAR,
@@ -215,7 +213,6 @@ module sc_dex::quote_tests {
       let expected_amount_in = fees::get_fee_in_initial_amount(
         &pool_fees, 
         stable::get_amount_in(
-          stable::invariant_(25000 * USDC_DECIMAL_SCALAR, 25000 * USDT_DECIMAL_SCALAR, USDC_DECIMAL_SCALAR, USDT_DECIMAL_SCALAR),
           amount_out_before_fee,
           25000 * USDC_DECIMAL_SCALAR, 
           25000 * USDT_DECIMAL_SCALAR,
@@ -244,7 +241,6 @@ module sc_dex::quote_tests {
       let expected_amount_in = fees::get_fee_in_initial_amount(
         &pool_fees, 
         stable::get_amount_in(
-          stable::invariant_(25000 * USDC_DECIMAL_SCALAR, 25000 * USDT_DECIMAL_SCALAR, USDC_DECIMAL_SCALAR, USDT_DECIMAL_SCALAR),
           amount_out_before_fee,
           25000 * USDC_DECIMAL_SCALAR, 
           25000 * USDT_DECIMAL_SCALAR,
