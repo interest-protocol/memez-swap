@@ -7,19 +7,33 @@ module sc_dex::volatile {
      (x as u256) * (y as u256)
   }
 
+  spec invariant_ {
+    ensures result == x * y;
+  }
+
   public fun get_amount_in(coin_out_amount: u64, balance_in: u64, balance_out: u64): u64 {
     assert!(coin_out_amount != 0, errors::no_zero_coin());
-    assert!(balance_in != 0 && balance_out != 0, errors::insufficient_liquidity());
+    assert!(balance_in != 0 && balance_out != 0 && balance_out > coin_out_amount, errors::insufficient_liquidity());
     let (coin_out_amount, balance_in, balance_out) = (
           (coin_out_amount as u256),
           (balance_in as u256),
           (balance_out as u256)
         );
 
-        let numerator = balance_in * coin_out_amount;
-        let denominator = balance_out - coin_out_amount; 
+    let numerator = balance_in * coin_out_amount;
+    let denominator = balance_out - coin_out_amount; 
         
-        (div_up(numerator, denominator) as u64) 
+    spec {
+      assume MAX_U64 >= div_up(numerator, denominator);
+    };
+
+    (div_up(numerator, denominator) as u64) 
+  }
+
+  spec get_amount_in {    
+    aborts_if balance_in == 0 || balance_out == 0 || coin_out_amount == 0 || coin_out_amount >= balance_out;
+
+    ensures (result + balance_in) * (balance_out - coin_out_amount) >= balance_in * balance_out; 
   }
 
   public fun get_amount_out(coin_in_amount: u64, balance_in: u64, balance_out: u64): u64 {
@@ -35,5 +49,11 @@ module sc_dex::volatile {
         let denominator = balance_in + coin_in_amount; 
 
         ((numerator / denominator) as u64) 
+  }
+
+  spec get_amount_out {
+    aborts_if coin_in_amount == 0 || balance_in == 0 || balance_out == 0;
+    
+    ensures (balance_out - result) * (balance_in + coin_in_amount) >= balance_in * balance_out;
   }
 }

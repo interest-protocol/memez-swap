@@ -2,5 +2,4 @@
 
 ## TODO
 
-- test flash loan
 - Formal Verification

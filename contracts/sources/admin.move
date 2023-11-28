@@ -8,6 +8,7 @@ module sc_dex::admin {
     id: UID
   }
 
+ #[allow(unused_function)]
   fun init(ctx: &mut TxContext) {
     transfer(Admin { id: object::new(ctx) }, tx_context::sender(ctx));
   }
