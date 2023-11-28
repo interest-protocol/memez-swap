@@ -90,15 +90,19 @@ module sc_dex::stable {
   } 
 
   fun y(x0: u256, xy: u256, y: u256): u256 {
-    let y_prev = 0;
-    while (diff(y, y_prev) > 1) {
-      y_prev = y;
+    let i = 0;
+    while (255 > i) {
+      let y_prev = y;
       let k = f(x0, y);
         
       y = if (k < xy)
             y + ((((xy - k) * PRECISION) / d(x0, y)) + 1) // round up
           else
             y - ((k - xy) * PRECISION) / d(x0, y);
+
+      if (1 >= diff(y, y_prev)) return y;
+      
+      i = i + 1;
     };
     y
   }
