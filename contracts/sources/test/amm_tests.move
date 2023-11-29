@@ -10,7 +10,6 @@ module sc_dex::sui_coins_amm_tests {
 
   use sc_dex::fees;
   use sc_dex::quote;
-  use sc_dex::admin;
   use sc_dex::stable;
   use sc_dex::math256;
   use sc_dex::btc::BTC;
@@ -18,6 +17,7 @@ module sc_dex::sui_coins_amm_tests {
   use sc_dex::volatile;
   use sc_dex::usdc::USDC;
   use sc_dex::usdt::USDT;
+  use sc_dex::admin::{Self, Admin};
   use sc_dex::curves::{Volatile, Stable};
   use sc_dex::sc_btce_eth::{Self, SC_BTCE_ETH};
   use sc_dex::sc_v_eth_usdc::{Self, SC_V_ETH_USDC};
@@ -34,6 +34,7 @@ module sc_dex::sui_coins_amm_tests {
   const INITIAL_VOLATILE_FEE_PERCENT: u256 = 3_000_000_000_000_000; // 0.3%
   const INITIAL_ADMIN_FEE: u256 = 200_000_000_000_000_000; // 20%
   const FLASH_LOAN_FEE_PERCENT: u256 = 5_000_000_000_000_000; //0.5% 
+  const MAX_FEE_PERCENT: u256 = 20_000_000_000_000_000; // 2%
 
   #[test]
   fun test_new_pool() {
@@ -527,6 +528,87 @@ module sc_dex::sui_coins_amm_tests {
     };    
 
     test::end(scenario); 
+  }
+
+  #[test]
+  fun test_admin_fees_actions() {
+    let scenario = scenario();
+    let (alice, _) = people();
+
+    let test = &mut scenario;
+
+    set_up_test(test);
+
+    let usdc_amount = 3333 * USDC_DECIMAL_SCALAR;
+    let usdt_amount = 3333 * USDT_DECIMAL_SCALAR;
+
+    deploy_usdc_usdt_pool(test, usdc_amount, usdt_amount);
+
+    next_tx(test, alice);
+    {
+      let registry = test::take_shared<Registry>(test);
+      let pool_id = sui_coins_amm::pool_id<Stable, USDC, USDT>(&registry);
+      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let admin_cap = test::take_from_sender<Admin>(test);
+      
+      sui_coins_amm::update_fee<USDC, USDT, SC_S_USDC_USDT>(
+        &admin_cap,
+        &mut pool,
+        option::some(MAX_FEE_PERCENT),
+        option::some(MAX_FEE_PERCENT),
+        option::none()
+      );
+
+      let pool_fees = sui_coins_amm::fees<USDC, USDT, SC_S_USDC_USDT>(&pool);
+      assert_eq(fees::fee_in_percent(&pool_fees), MAX_FEE_PERCENT);
+      assert_eq(fees::fee_out_percent(&pool_fees), MAX_FEE_PERCENT);
+
+      assert_eq(sui_coins_amm::admin_balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), 0);
+      assert_eq(sui_coins_amm::admin_balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), 0);
+
+      let i = 0;
+
+      while (10 > i) {
+        burn_for_testing(sui_coins_amm::swap<USDC, USDT, SC_S_USDC_USDT>(
+          &mut pool,
+          mint_for_testing(usdc_amount / 3, ctx(test)),
+          0,
+          ctx(test)
+        ));
+
+        burn_for_testing(sui_coins_amm::swap<USDT, USDC, SC_S_USDC_USDT>(
+          &mut pool,
+          mint_for_testing(usdt_amount / 3, ctx(test)),
+          0,
+          ctx(test)
+        ));
+
+        i = i + 1;
+      };
+
+      let admin_balance_x = sui_coins_amm::admin_balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool);
+      let admin_balance_y = sui_coins_amm::admin_balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool);
+
+      assert_eq(admin_balance_x != 0, true);
+      assert_eq(admin_balance_y != 0, true);
+
+      let (usdc_coin, usdt_coin) = sui_coins_amm::take_fees<USDC, USDT, SC_S_USDC_USDT>(
+        &admin_cap,
+        &mut pool,
+        ctx(test)
+      );
+
+      assert_eq(burn_for_testing(usdc_coin), admin_balance_x);
+      assert_eq(burn_for_testing(usdt_coin), admin_balance_y);
+      
+      assert_eq(sui_coins_amm::admin_balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), 0);
+      assert_eq(sui_coins_amm::admin_balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), 0);
+
+      test::return_to_sender(test, admin_cap);
+      test::return_shared(registry);  
+      test::return_shared(pool);         
+    };
+    test::end(scenario);    
   }
 
   #[test]
