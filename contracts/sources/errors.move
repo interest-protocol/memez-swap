@@ -1,19 +1,24 @@
 module amm::errors {
 
+  const ENotEnoughFundsToLend: u64 = 0;
+  const EFeeIsTooHigh: u64 = 1;
+  const ESelectDifferentCoins: u64 = 2;
+  const EProvideBothCoins: u64 = 3;
+
   public fun not_enough_funds_to_lend(): u64 {
-    0
+    ENotEnoughFundsToLend
   }
 
   public fun fee_is_too_high(): u64 {
-    1
+    EFeeIsTooHigh
   }
 
   public fun select_different_coins(): u64 {
-    2
+    ESelectDifferentCoins
   }
 
   public fun provide_both_coins(): u64 {
-    3
+    EProvideBothCoins
   }
 
   public fun coins_must_be_ordered(): u64 {

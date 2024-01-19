@@ -1,12 +1,13 @@
 module amm::quote {
+  use suitears::math64::{min, mul_div_down};
+
   use amm::stable;
   use amm::volatile;
   use amm::fees::{Self, Fees};
-  use amm::math64::{min, mul_div_down};
-  use amm::interest_protocol_amm::{Self, InterestProtocolPool};
+  use amm::interest_protocol_amm::{Self, InterestPool};
   use amm::utils::{get_optimal_add_liquidity, is_coin_x};
 
-  public fun amount_out<CoinIn, CoinOut, LpCoin>(pool: &InterestProtocolPool, amount_in: u64): u64 { 
+  public fun amount_out<CoinIn, CoinOut, LpCoin>(pool: &InterestPool, amount_in: u64): u64 { 
 
     if (is_coin_x<CoinIn, CoinOut>()) {
       let (balance_x, balance_y, decimals_x, decimals_y, volatile, fees) = get_pool_data<CoinIn, CoinOut, LpCoin>(pool);
@@ -27,7 +28,7 @@ module amm::quote {
     }
   }
 
-  public fun amount_in<CoinIn, CoinOut, LpCoin>(pool: &InterestProtocolPool, amount_out: u64): u64 {
+  public fun amount_in<CoinIn, CoinOut, LpCoin>(pool: &InterestPool, amount_out: u64): u64 {
 
     if (is_coin_x<CoinIn, CoinOut>()) {
       let (balance_x, balance_y, decimals_x, decimals_y, volatile, fees) = get_pool_data<CoinIn, CoinOut, LpCoin>(pool);
@@ -49,7 +50,7 @@ module amm::quote {
   }
 
   public fun add_liquidity<CoinX, CoinY, LpCoin>(
-    pool: &InterestProtocolPool,
+    pool: &InterestPool,
     amount_x: u64,
     amount_y: u64
   ): (u64, u64, u64) {
@@ -73,7 +74,7 @@ module amm::quote {
   }
 
   public fun remove_liquidity<CoinX, CoinY, LpCoin>(
-    pool: &InterestProtocolPool,
+    pool: &InterestPool,
     amount: u64
   ): (u64, u64) {
     let balance_x = interest_protocol_amm::balance_x<CoinX, CoinY, LpCoin>(pool);
@@ -91,7 +92,7 @@ module amm::quote {
     amount_out - fee_amount
   }
 
-  fun get_pool_data<CoinX, CoinY, LpCoin>(pool: &InterestProtocolPool): (u64, u64, u64, u64, bool, Fees) {
+  fun get_pool_data<CoinX, CoinY, LpCoin>(pool: &InterestPool): (u64, u64, u64, u64, bool, Fees) {
     let fees = interest_protocol_amm::fees<CoinX, CoinY, LpCoin>(pool);
     let balance_x = interest_protocol_amm::balance_x<CoinX, CoinY, LpCoin>(pool);
     let balance_y = interest_protocol_amm::balance_y<CoinX, CoinY, LpCoin>(pool);

@@ -1,7 +1,9 @@
 module amm::stable {
 
+  use suitears::math256::{div_up, diff};
+
   use amm::errors;
-  use amm::math256::{div_up, diff};
+
 
   const PRECISION: u256 = 1_000_000_000_000_000_000;
 

@@ -9,9 +9,9 @@ module amm::utils_tests {
 
   use amm::btc::BTC;
   use amm::eth::ETH;
-  use amm::sc_v_btc_eth::{Self, SC_V_BTC_ETH};
-  use amm::sc_btce_eth::{Self, SC_BTCE_ETH};
-  use amm::sc_btc_eth_wrong_decimals::{Self, SC_BTC_ETH_WRONG_DECIMALS};
+  use amm::ipx_v_btc_eth::{Self, IPX_V_BTC_ETH};
+  use amm::ipx_btce_eth::{Self, IPX_BTCE_ETH};
+  use amm::ipx_btc_eth_wrong_decimals::{Self, IPX_BTC_ETH_WRONG_DECIMALS};
   use amm::test_utils::{scenario, people, deploy_coins};
   use amm::utils::{
     is_coin_x, 
@@ -104,7 +104,7 @@ module amm::utils_tests {
         &eth_metadata,
         true
       ),
-      utf8(b"sc volatile Bitcoin Ether Lp Coin")
+      utf8(b"ipx volatile Bitcoin Ether Lp Coin")
       );
 
       assert_eq(get_lp_coin_name<BTC, ETH>(
@@ -112,7 +112,7 @@ module amm::utils_tests {
         &eth_metadata,
         false
       ),
-      utf8(b"sc stable Bitcoin Ether Lp Coin")
+      utf8(b"ipx stable Bitcoin Ether Lp Coin")
       );
 
       test::return_shared(btc_metadata);
@@ -141,7 +141,7 @@ module amm::utils_tests {
         &eth_metadata,
         true
       ),
-      to_ascii(utf8(b"sc-v-BTC-ETH"))
+      to_ascii(utf8(b"ipx-v-BTC-ETH"))
       );
 
       assert_eq(get_lp_coin_symbol<BTC, ETH>(
@@ -149,7 +149,7 @@ module amm::utils_tests {
         &eth_metadata,
         false
       ),
-      to_ascii(utf8(b"sc-s-BTC-ETH"))
+      to_ascii(utf8(b"ipx-s-BTC-ETH"))
       );
 
       test::return_shared(btc_metadata);
@@ -170,14 +170,14 @@ module amm::utils_tests {
 
     next_tx(test, alice);
     {
-      sc_v_btc_eth::init_for_testing(ctx(test));
+      ipx_v_btc_eth::init_for_testing(ctx(test));
     };
 
     next_tx(test, alice); 
     {
-      let metadata = test::take_shared<CoinMetadata<SC_V_BTC_ETH>>(test);
+      let metadata = test::take_shared<CoinMetadata<IPX_V_BTC_ETH>>(test);
 
-      assert_lp_coin_integrity<BTC, ETH, SC_V_BTC_ETH>(&metadata, true);
+      assert_lp_coin_integrity<BTC, ETH, IPX_V_BTC_ETH>(&metadata, true);
 
       test::return_shared(metadata);
     };
@@ -197,14 +197,14 @@ module amm::utils_tests {
 
     next_tx(test, alice);
     {
-      sc_btc_eth_wrong_decimals::init_for_testing(ctx(test));
+      ipx_btc_eth_wrong_decimals::init_for_testing(ctx(test));
     };
 
     next_tx(test, alice); 
     {
-      let metadata = test::take_shared<CoinMetadata<SC_BTC_ETH_WRONG_DECIMALS>>(test);
+      let metadata = test::take_shared<CoinMetadata<IPX_BTC_ETH_WRONG_DECIMALS>>(test);
 
-      assert_lp_coin_integrity<BTC, ETH, SC_BTC_ETH_WRONG_DECIMALS>(&metadata, true);
+      assert_lp_coin_integrity<BTC, ETH, IPX_BTC_ETH_WRONG_DECIMALS>(&metadata, true);
 
       test::return_shared(metadata);
     };
@@ -224,7 +224,7 @@ module amm::utils_tests {
 
     next_tx(test, alice);
     {
-      sc_btc_eth_wrong_decimals::init_for_testing(ctx(test));
+      ipx_btc_eth_wrong_decimals::init_for_testing(ctx(test));
     };
 
     next_tx(test, alice); 
@@ -251,14 +251,14 @@ module amm::utils_tests {
 
     next_tx(test, alice);
     {
-      sc_btce_eth::init_for_testing(ctx(test));
+      ipx_btce_eth::init_for_testing(ctx(test));
     };
 
     next_tx(test, alice); 
     {
-      let metadata = test::take_shared<CoinMetadata<SC_BTCE_ETH>>(test);
+      let metadata = test::take_shared<CoinMetadata<IPX_BTCE_ETH>>(test);
 
-      assert_lp_coin_integrity<BTC, ETH, SC_BTCE_ETH>(&metadata, true);
+      assert_lp_coin_integrity<BTC, ETH, IPX_BTCE_ETH>(&metadata, true);
 
       test::return_shared(metadata);
     };
@@ -274,18 +274,18 @@ module amm::utils_tests {
 }
 
 #[test_only]
-module amm::sc_btc_eth_wrong_decimals {
+module amm::ipx_btc_eth_wrong_decimals {
   use std::option;
 
   use sui::transfer;
   use sui::coin;
   use sui::tx_context::{Self, TxContext};
 
-  struct SC_BTC_ETH_WRONG_DECIMALS has drop {}
+  struct IPX_BTC_ETH_WRONG_DECIMALS has drop {}
 
-
-  fun init(witness: SC_BTC_ETH_WRONG_DECIMALS, ctx: &mut TxContext) {
-      let (treasury_cap, metadata) = coin::create_currency<SC_BTC_ETH_WRONG_DECIMALS>(
+  #[lint_allow(share_owned)]
+  fun init(witness: IPX_BTC_ETH_WRONG_DECIMALS, ctx: &mut TxContext) {
+      let (treasury_cap, metadata) = coin::create_currency(
             witness, 
             8, 
             b"",
@@ -301,6 +301,6 @@ module amm::sc_btc_eth_wrong_decimals {
 
   #[test_only]
   public fun init_for_testing(ctx: &mut TxContext) {
-    init(SC_BTC_ETH_WRONG_DECIMALS {}, ctx);
+    init(IPX_BTC_ETH_WRONG_DECIMALS {}, ctx);
   }  
 }

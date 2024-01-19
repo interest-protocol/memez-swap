@@ -13,6 +13,9 @@ module amm::interest_protocol_amm {
   use sui::balance::{Self, Balance};
   use sui::coin::{Self, Coin, CoinMetadata, TreasuryCap};
 
+  use suitears::math64::{min, mul_div_down}; 
+  use suitears::math256::{sqrt_down, mul_div_up};
+
   use amm::utils;
   use amm::errors;
   use amm::stable;
@@ -20,8 +23,6 @@ module amm::interest_protocol_amm {
   use amm::volatile; 
   use amm::admin::Admin;
   use amm::fees::{Self, Fees};
-  use amm::math64::{min, mul_div_down}; 
-  use amm::math256::{sqrt_down, mul_div_up};
   use amm::curves::{Self, Volatile, Stable};
 
   const PRECISION: u256 = 1_000_000_000_000_000_000;
@@ -36,7 +37,7 @@ module amm::interest_protocol_amm {
     pools: Table<TypeName, ID>
   }
   
-  struct InterestProtocolPool has key {
+  struct InterestPool has key {
     id: UID 
   }
 
@@ -94,57 +95,57 @@ module amm::interest_protocol_amm {
     table::contains(&registry.pools, type_name::get<RegistryKey<Curve, CoinX, CoinY>>())   
   }
 
-  public fun lp_coin_supply<CoinX, CoinY, LpCoin>(pool: &InterestProtocolPool): u64 {
+  public fun lp_coin_supply<CoinX, CoinY, LpCoin>(pool: &InterestPool): u64 {
     let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
     balance::supply_value(coin::supply_immut(&pool_state.lp_coin_cap))  
   }
 
-  public fun balance_x<CoinX, CoinY, LpCoin>(pool: &InterestProtocolPool): u64 {
+  public fun balance_x<CoinX, CoinY, LpCoin>(pool: &InterestPool): u64 {
     let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
     balance::value(&pool_state.balance_x)
   }
 
-  public fun balance_y<CoinX, CoinY, LpCoin>(pool: &InterestProtocolPool): u64 {
+  public fun balance_y<CoinX, CoinY, LpCoin>(pool: &InterestPool): u64 {
     let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
     balance::value(&pool_state.balance_y)
   }
 
-  public fun decimals_x<CoinX, CoinY, LpCoin>(pool: &InterestProtocolPool): u64 {
+  public fun decimals_x<CoinX, CoinY, LpCoin>(pool: &InterestPool): u64 {
     let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
     pool_state.decimals_x
   }
 
-  public fun decimals_y<CoinX, CoinY, LpCoin>(pool: &InterestProtocolPool): u64 {
+  public fun decimals_y<CoinX, CoinY, LpCoin>(pool: &InterestPool): u64 {
     let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
     pool_state.decimals_y
   }
 
-  public fun stable<CoinX, CoinY, LpCoin>(pool: &InterestProtocolPool): bool {
+  public fun stable<CoinX, CoinY, LpCoin>(pool: &InterestPool): bool {
     let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
     !pool_state.volatile
   }
 
-  public fun volatile<CoinX, CoinY, LpCoin>(pool: &InterestProtocolPool): bool {
+  public fun volatile<CoinX, CoinY, LpCoin>(pool: &InterestPool): bool {
     let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
     pool_state.volatile
   }
 
-  public fun fees<CoinX, CoinY, LpCoin>(pool: &InterestProtocolPool): Fees {
+  public fun fees<CoinX, CoinY, LpCoin>(pool: &InterestPool): Fees {
     let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
     pool_state.fees
   }
 
-  public fun locked<CoinX, CoinY, LpCoin>(pool: &InterestProtocolPool): bool {
+  public fun locked<CoinX, CoinY, LpCoin>(pool: &InterestPool): bool {
     let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
     pool_state.locked
   }
 
-  public fun admin_balance_x<CoinX, CoinY, LpCoin>(pool: &InterestProtocolPool): u64 {
+  public fun admin_balance_x<CoinX, CoinY, LpCoin>(pool: &InterestPool): u64 {
     let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
     balance::value(&pool_state.admin_balance_x)
   }
 
-  public fun admin_balance_y<CoinX, CoinY, LpCoin>(pool: &InterestProtocolPool): u64 {
+  public fun admin_balance_y<CoinX, CoinY, LpCoin>(pool: &InterestPool): u64 {
     let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
     balance::value(&pool_state.admin_balance_y)
   }
@@ -163,6 +164,7 @@ module amm::interest_protocol_amm {
 
   // === Mutative Functions ===  
 
+  #[lint_allow(share_owned)]
   public fun new_pool<CoinX, CoinY, LpCoin>(
     registry: &mut Registry,
     coin_x: Coin<CoinX>,
@@ -189,7 +191,7 @@ module amm::interest_protocol_amm {
   }
 
   public fun swap<CoinIn, CoinOut, LpCoin>(
-    pool: &mut InterestProtocolPool, 
+    pool: &mut InterestPool, 
     coin_in: Coin<CoinIn>,
     coin_min_value: u64,
     ctx: &mut TxContext    
@@ -203,7 +205,7 @@ module amm::interest_protocol_amm {
   }
 
   public fun add_liquidity<CoinX, CoinY, LpCoin>(
-    pool: &mut InterestProtocolPool,
+    pool: &mut InterestPool,
     coin_x: Coin<CoinX>,
     coin_y: Coin<CoinY>,
     lp_coin_min_amount: u64,
@@ -247,7 +249,7 @@ module amm::interest_protocol_amm {
   }
 
   public fun remove_liquidity<CoinX, CoinY, LpCoin>(
-    pool: &mut InterestProtocolPool,
+    pool: &mut InterestPool,
     lp_coin: Coin<LpCoin>,
     coin_x_min_amount: u64,
     coin_y_min_amount: u64,
@@ -282,7 +284,7 @@ module amm::interest_protocol_amm {
   // === Flash Loan ===
 
   public fun flash_loan<CoinX, CoinY, LpCoin>(
-    pool: &mut InterestProtocolPool,
+    pool: &mut InterestPool,
     amount_x: u64,
     amount_y: u64,
     ctx: &mut TxContext
@@ -316,7 +318,7 @@ module amm::interest_protocol_amm {
   }  
 
   public fun repay_flash_loan<CoinX, CoinY, LpCoin>(
-    pool: &mut InterestProtocolPool,
+    pool: &mut InterestPool,
     invoice: Invoice,
     coin_x: Coin<CoinX>,
     coin_y: Coin<CoinY>
@@ -393,7 +395,7 @@ module amm::interest_protocol_amm {
       admin_balance_y: balance::zero()
     };
 
-    let pool = InterestProtocolPool {
+    let pool = InterestPool {
       id: object::new(ctx)
     };
 
@@ -409,7 +411,7 @@ module amm::interest_protocol_amm {
   }
 
   fun swap_coin_x<CoinX, CoinY, LpCoin>(
-    pool: &mut InterestProtocolPool,
+    pool: &mut InterestPool,
     coin_x: Coin<CoinX>,
     coin_y_min_value: u64,
     ctx: &mut TxContext
@@ -438,7 +440,7 @@ module amm::interest_protocol_amm {
   }
 
   fun swap_coin_y<CoinX, CoinY, LpCoin>(
-    pool: &mut InterestProtocolPool,
+    pool: &mut InterestPool,
     coin_y: Coin<CoinY>,
     coin_x_min_value: u64,
     ctx: &mut TxContext
@@ -539,11 +541,11 @@ module amm::interest_protocol_amm {
     (amount_out, admin_fee_in, admin_fee_out)    
   }
 
-  fun borrow_pool_state<CoinX, CoinY, LpCoin>(pool: &InterestProtocolPool): &PoolState<CoinX, CoinY, LpCoin> {
+  fun borrow_pool_state<CoinX, CoinY, LpCoin>(pool: &InterestPool): &PoolState<CoinX, CoinY, LpCoin> {
     df::borrow(&pool.id, PoolStateKey {})
   }
 
-  fun borrow_mut_pool_state<CoinX, CoinY, LpCoin>(pool: &mut InterestProtocolPool): &mut PoolState<CoinX, CoinY, LpCoin> {
+  fun borrow_mut_pool_state<CoinX, CoinY, LpCoin>(pool: &mut InterestPool): &mut PoolState<CoinX, CoinY, LpCoin> {
     df::borrow_mut(&mut pool.id, PoolStateKey {})
   }
 
@@ -551,7 +553,7 @@ module amm::interest_protocol_amm {
 
   public fun update_fee<CoinX, CoinY, LpCoin>(
     _: &Admin,
-    pool: &mut InterestProtocolPool,
+    pool: &mut InterestPool,
     fee_in_percent: Option<u256>,
     fee_out_percent: Option<u256>, 
     admin_fee_percent: Option<u256>,  
@@ -565,7 +567,7 @@ module amm::interest_protocol_amm {
 
   public fun take_fees<CoinX, CoinY, LpCoin>(
     _: &Admin,
-    pool: &mut InterestProtocolPool,
+    pool: &mut InterestPool,
     ctx: &mut TxContext
   ): (Coin<CoinX>, Coin<CoinY>) {
     let pool_state = borrow_mut_pool_state<CoinX, CoinY, LpCoin>(pool);
@@ -581,7 +583,7 @@ module amm::interest_protocol_amm {
 
   public fun update_name<CoinX, CoinY, LpCoin>(
     _: &Admin,
-    pool: &InterestProtocolPool, 
+    pool: &InterestPool, 
     metadata: &mut CoinMetadata<LpCoin>, 
     name: string::String
   ) {
@@ -591,7 +593,7 @@ module amm::interest_protocol_amm {
 
   public fun update_symbol<CoinX, CoinY, LpCoin>(
     _: &Admin,
-    pool: &InterestProtocolPool, 
+    pool: &InterestPool, 
     metadata: &mut CoinMetadata<LpCoin>, 
     symbol: ascii::String
   ) {
@@ -601,7 +603,7 @@ module amm::interest_protocol_amm {
 
   public fun update_description<CoinX, CoinY, LpCoin>(
     _: &Admin,
-    pool: &InterestProtocolPool, 
+    pool: &InterestPool, 
     metadata: &mut CoinMetadata<LpCoin>, 
     description: string::String
   ) {
@@ -611,7 +613,7 @@ module amm::interest_protocol_amm {
 
   public fun update_icon_url<CoinX, CoinY, LpCoin>(
     _: &Admin,
-    pool: &InterestProtocolPool, 
+    pool: &InterestPool, 
     metadata: &mut CoinMetadata<LpCoin>, 
     url: ascii::String
   ) {
@@ -627,7 +629,7 @@ module amm::interest_protocol_amm {
   }
 
   #[test_only]
-  public fun seed_liquidity<CoinX, CoinY, LpCoin>(pool: &InterestProtocolPool): u64 {
+  public fun seed_liquidity<CoinX, CoinY, LpCoin>(pool: &InterestPool): u64 {
     let pool_state = borrow_pool_state<CoinX, CoinY, LpCoin>(pool);
     balance::value(&pool_state.seed_liquidity)
   }

@@ -5,8 +5,10 @@ version = "0.0.1"
 [dependencies]
 MoveStdlib = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/move-stdlib", rev = "framework/testnet"  }
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet" }
+SuiTears = { git = "https://github.com/interest-protocol/suitears.git", subdir = "contracts", rev = "testnet" }
 
 [addresses]
 amm = "0x0"
 std = "0x1"
 sui = "0x2"
+suitears = "0x1180cab80b5b3f5c002f70fba79035ef70e809eafacb34e788e7f0b24a97840f"

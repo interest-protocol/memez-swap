@@ -5,9 +5,10 @@ module amm::utils {
 
   use sui::coin::{Self, CoinMetadata};
 
+  use suitears::comparator;
+  use suitears::math64::mul_div_up;
+
   use amm::errors;
-  use amm::comparator;
-  use amm::math64::mul_div_up;
   
   public fun are_coins_ordered<CoinA, CoinB>(): bool {
     let coin_a_type_name = type_name::get<CoinA>();
@@ -15,11 +16,11 @@ module amm::utils {
     
     assert!(coin_a_type_name != coin_b_type_name, errors::select_different_coins());
     
-    comparator::is_smaller_than(&comparator::compare(&coin_a_type_name, &coin_b_type_name))
+    comparator::lt(&comparator::compare(&coin_a_type_name, &coin_b_type_name))
   }
 
   public fun is_coin_x<CoinA, CoinB>(): bool {
-    comparator::is_smaller_than(&comparator::compare(&type_name::get<CoinA>(), &type_name::get<CoinB>()))
+    comparator::lt(&comparator::compare(&type_name::get<CoinA>(), &type_name::get<CoinB>()))
   }
 
   public fun get_optimal_add_liquidity(
@@ -51,7 +52,7 @@ module amm::utils {
     let coin_y_name = coin::get_name(coin_y_metadata);
 
     let expected_lp_coin_name = string::utf8(b"");
-    string::append_utf8(&mut expected_lp_coin_name, b"sc ");
+    string::append_utf8(&mut expected_lp_coin_name, b"ipx ");
     string::append_utf8(&mut expected_lp_coin_name, if (volatile) b"volatile " else b"stable ");
     string::append_utf8(&mut expected_lp_coin_name, *string::bytes(&coin_x_name));
     string::append_utf8(&mut expected_lp_coin_name, b" ");
@@ -69,7 +70,7 @@ module amm::utils {
     let coin_y_symbol = coin::get_symbol(coin_y_metadata);
 
     let expected_lp_coin_symbol = string::utf8(b"");
-    string::append_utf8(&mut expected_lp_coin_symbol, b"sc-");
+    string::append_utf8(&mut expected_lp_coin_symbol, b"ipx-");
     string::append_utf8(&mut expected_lp_coin_symbol, if (volatile) b"v-" else b"s-");
     string::append_utf8(&mut expected_lp_coin_symbol, ascii::into_bytes(coin_x_symbol));
     string::append_utf8(&mut expected_lp_coin_symbol, b"-");
@@ -89,14 +90,14 @@ module amm::utils {
     let lp_coin_module_name = type_name::get_module(&type_name::get<LpCoin>());
 
     let expected_lp_coin_module_name = string::utf8(b"");
-    string::append_utf8(&mut expected_lp_coin_module_name, b"sc_");
+    string::append_utf8(&mut expected_lp_coin_module_name, b"ipx_");
     string::append_utf8(&mut expected_lp_coin_module_name, if (volatile) b"v_" else b"s_");
     string::append_utf8(&mut expected_lp_coin_module_name, ascii::into_bytes(coin_x_module_name));
     string::append_utf8(&mut expected_lp_coin_module_name, b"_");
     string::append_utf8(&mut expected_lp_coin_module_name, ascii::into_bytes(coin_y_module_name));
 
     assert!(
-      comparator::is_equal(&comparator::compare(&lp_coin_module_name, &string::to_ascii(expected_lp_coin_module_name))), 
+      comparator::eq(&comparator::compare(&lp_coin_module_name, &string::to_ascii(expected_lp_coin_module_name))), 
       errors::wrong_module_name()
     );
   }

@@ -1,7 +1,7 @@
 module amm::fees {
   use std::option::{Self, Option};
 
-  use amm::math256::mul_div_up;
+  use suitears::math256::mul_div_up;
 
   use amm::errors;
 

@@ -9,9 +9,9 @@ module amm::test_utils {
   use amm::usdt::{Self, USDT};
   use amm::eth::{Self, ETH};
   use amm::usdc::{Self, USDC};
-  use amm::sc_v_eth_usdc::{Self, SC_V_ETH_USDC};
+  use amm::ipx_v_eth_usdc::{Self, IPX_V_ETH_USDC};
   use amm::interest_protocol_amm::{Self, Registry};
-  use amm::sc_s_usdc_usdt::{Self, SC_S_USDC_USDT};
+  use amm::ipx_s_usdc_usdt::{Self, IPX_S_USDC_USDT};
 
   public fun deploy_coins(test: &mut Scenario) {
     let (alice, _) = people();
@@ -32,16 +32,16 @@ module amm::test_utils {
 
     next_tx(test, alice);
     {
-      sc_v_eth_usdc::init_for_testing(ctx(test));
+      ipx_v_eth_usdc::init_for_testing(ctx(test));
     };
 
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let lp_coin_cap = test::take_from_sender<TreasuryCap<SC_V_ETH_USDC>>(test);
+      let lp_coin_cap = test::take_from_sender<TreasuryCap<IPX_V_ETH_USDC>>(test);
       let eth_metadata = test::take_shared<CoinMetadata<ETH>>(test);
       let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(test);
-      let lp_coin_metadata = test::take_shared<CoinMetadata<SC_V_ETH_USDC>>(test);
+      let lp_coin_metadata = test::take_shared<CoinMetadata<IPX_V_ETH_USDC>>(test);
       
       let lp_coin = interest_protocol_amm::new_pool(
         &mut registry,
@@ -71,16 +71,16 @@ module amm::test_utils {
 
     next_tx(test, alice);
     {
-      sc_s_usdc_usdt::init_for_testing(ctx(test));
+      ipx_s_usdc_usdt::init_for_testing(ctx(test));
     };
 
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let lp_coin_cap = test::take_from_sender<TreasuryCap<SC_S_USDC_USDT>>(test);
+      let lp_coin_cap = test::take_from_sender<TreasuryCap<IPX_S_USDC_USDT>>(test);
       let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(test);
       let usdt_metadata = test::take_shared<CoinMetadata<USDT>>(test);
-      let lp_coin_metadata = test::take_shared<CoinMetadata<SC_S_USDC_USDT>>(test);
+      let lp_coin_metadata = test::take_shared<CoinMetadata<IPX_S_USDC_USDT>>(test);
       
       let lp_coin = interest_protocol_amm::new_pool(
         &mut registry,
