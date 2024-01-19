@@ -1,5 +1,5 @@
 #[test_only]
-module sc_dex::sui_coins_amm_tests {
+module amm::interest_protocol_amm_tests {
   use std::option;
   use std::string::{utf8, to_ascii};
 
@@ -8,22 +8,22 @@ module sc_dex::sui_coins_amm_tests {
   use sui::coin::{Self, mint_for_testing, burn_for_testing, TreasuryCap, CoinMetadata};
   use sui::test_scenario::{Self as test, Scenario, next_tx, ctx};
 
-  use sc_dex::fees;
-  use sc_dex::quote;
-  use sc_dex::stable;
-  use sc_dex::math256;
-  use sc_dex::btc::BTC;
-  use sc_dex::eth::ETH;
-  use sc_dex::volatile;
-  use sc_dex::usdc::USDC;
-  use sc_dex::usdt::USDT;
-  use sc_dex::admin::{Self, Admin};
-  use sc_dex::curves::{Volatile, Stable};
-  use sc_dex::sc_btce_eth::{Self, SC_BTCE_ETH};
-  use sc_dex::sc_v_eth_usdc::{Self, SC_V_ETH_USDC};
-  use sc_dex::sc_s_usdc_usdt::{Self, SC_S_USDC_USDT};
-  use sc_dex::sui_coins_amm::{Self, Registry, SuiCoinsPool};
-  use sc_dex::test_utils::{people, scenario, deploy_coins, deploy_eth_usdc_pool, deploy_usdc_usdt_pool};
+  use amm::fees;
+  use amm::quote;
+  use amm::stable;
+  use amm::math256;
+  use amm::btc::BTC;
+  use amm::eth::ETH;
+  use amm::volatile;
+  use amm::usdc::USDC;
+  use amm::usdt::USDT;
+  use amm::admin::{Self, Admin};
+  use amm::curves::{Volatile, Stable};
+  use amm::sc_btce_eth::{Self, SC_BTCE_ETH};
+  use amm::sc_v_eth_usdc::{Self, SC_V_ETH_USDC};
+  use amm::sc_s_usdc_usdt::{Self, SC_S_USDC_USDT};
+  use amm::interest_protocol_amm::{Self, Registry, InterestProtocolPool};
+  use amm::test_utils::{people, scenario, deploy_coins, deploy_eth_usdc_pool, deploy_usdc_usdt_pool};
 
   const PRECISION: u256 = 1_000_000_000_000_000_000;
   const MINIMUM_LIQUIDITY: u64 = 100;
@@ -64,10 +64,10 @@ module sc_dex::sui_coins_amm_tests {
       let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(test);
       let lp_coin_metadata = test::take_shared<CoinMetadata<SC_V_ETH_USDC>>(test);
       
-      assert_eq(table::is_empty(sui_coins_amm::borrow_pools(&registry)), true);
+      assert_eq(table::is_empty(interest_protocol_amm::borrow_pools(&registry)), true);
       
 
-      let lp_coin = sui_coins_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
+      let lp_coin = interest_protocol_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
         &mut registry,
         mint_for_testing(eth_amount, ctx(test)),
         mint_for_testing(usdc_amount, ctx(test)),
@@ -81,7 +81,7 @@ module sc_dex::sui_coins_amm_tests {
 
       assert_eq(coin::get_symbol(&lp_coin_metadata), to_ascii(utf8(b"sc-v-ETH-USDC")));
       assert_eq(coin::get_name(&lp_coin_metadata), utf8(b"sc volatile Ether USD Coin Lp Coin"));
-      assert_eq(sui_coins_amm::exists_<Volatile, ETH, USDC>(&registry), true);
+      assert_eq(interest_protocol_amm::exists_<Volatile, ETH, USDC>(&registry), true);
       assert_eq(burn_for_testing(lp_coin), expected_shares);
 
       test::return_shared(eth_metadata);
@@ -93,21 +93,21 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
-      assert_eq(sui_coins_amm::lp_coin_supply<ETH, USDC, SC_V_ETH_USDC>(&pool), expected_shares + MINIMUM_LIQUIDITY);
-      assert_eq(sui_coins_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), eth_amount);
-      assert_eq(sui_coins_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), usdc_amount);
-      assert_eq(sui_coins_amm::decimals_x<ETH, USDC, SC_V_ETH_USDC>(&pool), ETH_DECIMAL_SCALAR);
-      assert_eq(sui_coins_amm::decimals_y<ETH, USDC, SC_V_ETH_USDC>(&pool), USDC_DECIMAL_SCALAR);
-      assert_eq(sui_coins_amm::volatile<ETH, USDC, SC_V_ETH_USDC>(&pool), true);
-      assert_eq(sui_coins_amm::seed_liquidity<ETH, USDC, SC_V_ETH_USDC>(&pool), MINIMUM_LIQUIDITY);
-      assert_eq(sui_coins_amm::locked<ETH, USDC, SC_V_ETH_USDC>(&pool), false);
-      assert_eq(sui_coins_amm::admin_balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), 0);
-      assert_eq(sui_coins_amm::admin_balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), 0);
+      assert_eq(interest_protocol_amm::lp_coin_supply<ETH, USDC, SC_V_ETH_USDC>(&pool), expected_shares + MINIMUM_LIQUIDITY);
+      assert_eq(interest_protocol_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), eth_amount);
+      assert_eq(interest_protocol_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), usdc_amount);
+      assert_eq(interest_protocol_amm::decimals_x<ETH, USDC, SC_V_ETH_USDC>(&pool), ETH_DECIMAL_SCALAR);
+      assert_eq(interest_protocol_amm::decimals_y<ETH, USDC, SC_V_ETH_USDC>(&pool), USDC_DECIMAL_SCALAR);
+      assert_eq(interest_protocol_amm::volatile<ETH, USDC, SC_V_ETH_USDC>(&pool), true);
+      assert_eq(interest_protocol_amm::seed_liquidity<ETH, USDC, SC_V_ETH_USDC>(&pool), MINIMUM_LIQUIDITY);
+      assert_eq(interest_protocol_amm::locked<ETH, USDC, SC_V_ETH_USDC>(&pool), false);
+      assert_eq(interest_protocol_amm::admin_balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), 0);
+      assert_eq(interest_protocol_amm::admin_balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), 0);
 
-      let fees = sui_coins_amm::fees<ETH, USDC, SC_V_ETH_USDC>(&pool);
+      let fees = interest_protocol_amm::fees<ETH, USDC, SC_V_ETH_USDC>(&pool);
 
       assert_eq(fees::fee_in_percent(&fees), INITIAL_VOLATILE_FEE_PERCENT);
       assert_eq(fees::fee_out_percent(&fees), INITIAL_VOLATILE_FEE_PERCENT);
@@ -129,11 +129,11 @@ module sc_dex::sui_coins_amm_tests {
       let usdt_metadata = test::take_shared<CoinMetadata<USDT>>(test);
       let lp_coin_metadata = test::take_shared<CoinMetadata<SC_S_USDC_USDT>>(test);
       
-      assert_eq(table::is_empty(sui_coins_amm::borrow_pools(&registry)), false);
-      assert_eq(table::length(sui_coins_amm::borrow_pools(&registry)), 1);
+      assert_eq(table::is_empty(interest_protocol_amm::borrow_pools(&registry)), false);
+      assert_eq(table::length(interest_protocol_amm::borrow_pools(&registry)), 1);
       
 
-      let lp_coin = sui_coins_amm::new_pool<USDC, USDT, SC_S_USDC_USDT>(
+      let lp_coin = interest_protocol_amm::new_pool<USDC, USDT, SC_S_USDC_USDT>(
         &mut registry,
         mint_for_testing(usdc_amount, ctx(test)),
         mint_for_testing(usdt_amount, ctx(test)),
@@ -147,7 +147,7 @@ module sc_dex::sui_coins_amm_tests {
 
       assert_eq(coin::get_symbol(&lp_coin_metadata), to_ascii(utf8(b"sc-s-USDC-USDT")));
       assert_eq(coin::get_name(&lp_coin_metadata), utf8(b"sc stable USD Coin USD Tether Lp Coin"));
-      assert_eq(sui_coins_amm::exists_<Stable, USDC, USDT>(&registry), true);
+      assert_eq(interest_protocol_amm::exists_<Stable, USDC, USDT>(&registry), true);
       assert_eq(burn_for_testing(lp_coin), expected_shares);
 
       test::return_shared(usdt_metadata);
@@ -159,22 +159,22 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {      
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Stable, USDC, USDT>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Stable, USDC, USDT>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
-      assert_eq(sui_coins_amm::lp_coin_supply<USDC, USDT, SC_S_USDC_USDT>(&pool), expected_shares + MINIMUM_LIQUIDITY);
-      assert_eq(sui_coins_amm::balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), usdc_amount);
-      assert_eq(sui_coins_amm::balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), usdt_amount);
-      assert_eq(sui_coins_amm::decimals_x<USDC, USDT, SC_S_USDC_USDT>(&pool), USDC_DECIMAL_SCALAR);
-      assert_eq(sui_coins_amm::decimals_y<USDC, USDT, SC_S_USDC_USDT>(&pool), USDT_DECIMAL_SCALAR);
-      assert_eq(sui_coins_amm::volatile<USDC, USDT, SC_S_USDC_USDT>(&pool), false);
-      assert_eq(sui_coins_amm::stable<USDC, USDT, SC_S_USDC_USDT>(&pool), true);
-      assert_eq(sui_coins_amm::seed_liquidity<USDC, USDT, SC_S_USDC_USDT>(&pool), MINIMUM_LIQUIDITY);
-      assert_eq(sui_coins_amm::locked<USDC, USDT, SC_S_USDC_USDT>(&pool), false);
-      assert_eq(sui_coins_amm::admin_balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), 0);
-      assert_eq(sui_coins_amm::admin_balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), 0); 
+      assert_eq(interest_protocol_amm::lp_coin_supply<USDC, USDT, SC_S_USDC_USDT>(&pool), expected_shares + MINIMUM_LIQUIDITY);
+      assert_eq(interest_protocol_amm::balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), usdc_amount);
+      assert_eq(interest_protocol_amm::balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), usdt_amount);
+      assert_eq(interest_protocol_amm::decimals_x<USDC, USDT, SC_S_USDC_USDT>(&pool), USDC_DECIMAL_SCALAR);
+      assert_eq(interest_protocol_amm::decimals_y<USDC, USDT, SC_S_USDC_USDT>(&pool), USDT_DECIMAL_SCALAR);
+      assert_eq(interest_protocol_amm::volatile<USDC, USDT, SC_S_USDC_USDT>(&pool), false);
+      assert_eq(interest_protocol_amm::stable<USDC, USDT, SC_S_USDC_USDT>(&pool), true);
+      assert_eq(interest_protocol_amm::seed_liquidity<USDC, USDT, SC_S_USDC_USDT>(&pool), MINIMUM_LIQUIDITY);
+      assert_eq(interest_protocol_amm::locked<USDC, USDT, SC_S_USDC_USDT>(&pool), false);
+      assert_eq(interest_protocol_amm::admin_balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), 0);
+      assert_eq(interest_protocol_amm::admin_balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), 0); 
 
-      let fees = sui_coins_amm::fees<USDC, USDT, SC_S_USDC_USDT>(&pool);
+      let fees = interest_protocol_amm::fees<USDC, USDT, SC_S_USDC_USDT>(&pool);
 
       assert_eq(fees::fee_in_percent(&fees), INITIAL_STABLE_FEE_PERCENT);
       assert_eq(fees::fee_out_percent(&fees), INITIAL_STABLE_FEE_PERCENT);
@@ -197,7 +197,7 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       admin::init_for_testing(ctx(test));
-      sui_coins_amm::init_for_testing(ctx(test));
+      interest_protocol_amm::init_for_testing(ctx(test));
     };
 
     let eth_amount = 15 * ETH_DECIMAL_SCALAR;
@@ -208,9 +208,9 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
-      let pool_fees = sui_coins_amm::fees<ETH, USDC, SC_V_ETH_USDC>(&pool);
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
+      let pool_fees = interest_protocol_amm::fees<ETH, USDC, SC_V_ETH_USDC>(&pool);
 
       let amount_in = 3 * ETH_DECIMAL_SCALAR;
       let amount_in_fee = fees::get_fee_in_amount(&pool_fees, amount_in);
@@ -220,7 +220,7 @@ module sc_dex::sui_coins_amm_tests {
       let admin_out_fee = fees::get_admin_amount(&pool_fees, amount_out_fee);
       let expected_amount_out = expected_amount_out - amount_out_fee; 
 
-      let usdc_coin = sui_coins_amm::swap<ETH, USDC, SC_V_ETH_USDC>(
+      let usdc_coin = interest_protocol_amm::swap<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         mint_for_testing(amount_in, ctx(test)),
         expected_amount_out,
@@ -228,10 +228,10 @@ module sc_dex::sui_coins_amm_tests {
       );
 
       assert_eq(burn_for_testing(usdc_coin), expected_amount_out);
-      assert_eq(sui_coins_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), eth_amount + amount_in - admin_in_fee);
-      assert_eq(sui_coins_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), usdc_amount - (expected_amount_out + admin_out_fee));
-      assert_eq(sui_coins_amm::admin_balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), admin_in_fee);
-      assert_eq(sui_coins_amm::admin_balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), admin_out_fee);
+      assert_eq(interest_protocol_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), eth_amount + amount_in - admin_in_fee);
+      assert_eq(interest_protocol_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), usdc_amount - (expected_amount_out + admin_out_fee));
+      assert_eq(interest_protocol_amm::admin_balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), admin_in_fee);
+      assert_eq(interest_protocol_amm::admin_balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), admin_out_fee);
 
       test::return_shared(registry);
       test::return_shared(pool);      
@@ -240,14 +240,14 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
-      let pool_fees = sui_coins_amm::fees<ETH, USDC, SC_V_ETH_USDC>(&pool);
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
+      let pool_fees = interest_protocol_amm::fees<ETH, USDC, SC_V_ETH_USDC>(&pool);
 
-      let eth_amount = sui_coins_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool);
-      let usdc_amount = sui_coins_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool);
-      let initial_admin_balance_x = sui_coins_amm::admin_balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool);
-      let initial_admin_balance_y = sui_coins_amm::admin_balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool);
+      let eth_amount = interest_protocol_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool);
+      let usdc_amount = interest_protocol_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool);
+      let initial_admin_balance_x = interest_protocol_amm::admin_balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool);
+      let initial_admin_balance_y = interest_protocol_amm::admin_balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool);
 
       let amount_in = 7777 * USDC_DECIMAL_SCALAR;
       let amount_in_fee = fees::get_fee_in_amount(&pool_fees, amount_in);
@@ -257,7 +257,7 @@ module sc_dex::sui_coins_amm_tests {
       let admin_out_fee = fees::get_admin_amount(&pool_fees, amount_out_fee);
       let expected_amount_out = expected_amount_out - amount_out_fee;       
 
-     let eth_coin = sui_coins_amm::swap<USDC, ETH, SC_V_ETH_USDC>(
+     let eth_coin = interest_protocol_amm::swap<USDC, ETH, SC_V_ETH_USDC>(
         &mut pool,
         mint_for_testing(amount_in, ctx(test)),
         expected_amount_out,
@@ -265,10 +265,10 @@ module sc_dex::sui_coins_amm_tests {
       );
 
       assert_eq(burn_for_testing(eth_coin), expected_amount_out);
-      assert_eq(sui_coins_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), eth_amount - (expected_amount_out + admin_out_fee));
-      assert_eq(sui_coins_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), usdc_amount + amount_in - admin_in_fee);
-      assert_eq(sui_coins_amm::admin_balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), admin_out_fee + initial_admin_balance_x);
-      assert_eq(sui_coins_amm::admin_balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), admin_in_fee + initial_admin_balance_y);
+      assert_eq(interest_protocol_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), eth_amount - (expected_amount_out + admin_out_fee));
+      assert_eq(interest_protocol_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), usdc_amount + amount_in - admin_in_fee);
+      assert_eq(interest_protocol_amm::admin_balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), admin_out_fee + initial_admin_balance_x);
+      assert_eq(interest_protocol_amm::admin_balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), admin_in_fee + initial_admin_balance_y);
 
       test::return_shared(registry);
       test::return_shared(pool);
@@ -294,9 +294,9 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Stable, USDC, USDT>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
-      let pool_fees = sui_coins_amm::fees<USDC, USDT, SC_S_USDC_USDT>(&pool);
+      let pool_id = interest_protocol_amm::pool_id<Stable, USDC, USDT>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
+      let pool_fees = interest_protocol_amm::fees<USDC, USDT, SC_S_USDC_USDT>(&pool);
 
       let amount_in = 150 * USDC_DECIMAL_SCALAR;
       let amount_in_fee = fees::get_fee_in_amount(&pool_fees, amount_in);
@@ -315,7 +315,7 @@ module sc_dex::sui_coins_amm_tests {
       let admin_out_fee = fees::get_admin_amount(&pool_fees, amount_out_fee);
       let expected_amount_out = expected_amount_out - amount_out_fee;     
 
-      let usdt_coin = sui_coins_amm::swap<USDC, USDT, SC_S_USDC_USDT>(
+      let usdt_coin = interest_protocol_amm::swap<USDC, USDT, SC_S_USDC_USDT>(
         &mut pool,
         mint_for_testing(amount_in, ctx(test)),
         expected_amount_out,
@@ -323,10 +323,10 @@ module sc_dex::sui_coins_amm_tests {
       );
       
       assert_eq(burn_for_testing(usdt_coin), expected_amount_out);
-      assert_eq(sui_coins_amm::balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), usdc_amount + amount_in - admin_in_fee);
-      assert_eq(sui_coins_amm::balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), usdt_amount - (expected_amount_out + admin_out_fee));
-      assert_eq(sui_coins_amm::admin_balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), admin_in_fee);
-      assert_eq(sui_coins_amm::admin_balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), admin_out_fee);
+      assert_eq(interest_protocol_amm::balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), usdc_amount + amount_in - admin_in_fee);
+      assert_eq(interest_protocol_amm::balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), usdt_amount - (expected_amount_out + admin_out_fee));
+      assert_eq(interest_protocol_amm::admin_balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), admin_in_fee);
+      assert_eq(interest_protocol_amm::admin_balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), admin_out_fee);
 
       test::return_shared(registry);
       test::return_shared(pool);   
@@ -335,14 +335,14 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Stable, USDC, USDT>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
-      let pool_fees = sui_coins_amm::fees<USDC, USDT, SC_S_USDC_USDT>(&pool);
+      let pool_id = interest_protocol_amm::pool_id<Stable, USDC, USDT>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
+      let pool_fees = interest_protocol_amm::fees<USDC, USDT, SC_S_USDC_USDT>(&pool);
 
-      let usdc_amount = sui_coins_amm::balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool);
-      let usdt_amount = sui_coins_amm::balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool);
-      let initial_admin_balance_x = sui_coins_amm::admin_balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool);
-      let initial_admin_balance_y = sui_coins_amm::admin_balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool);
+      let usdc_amount = interest_protocol_amm::balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool);
+      let usdt_amount = interest_protocol_amm::balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool);
+      let initial_admin_balance_x = interest_protocol_amm::admin_balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool);
+      let initial_admin_balance_y = interest_protocol_amm::admin_balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool);
 
       let amount_in = 345 * USDT_DECIMAL_SCALAR;
       let amount_in_fee = fees::get_fee_in_amount(&pool_fees, amount_in);
@@ -361,7 +361,7 @@ module sc_dex::sui_coins_amm_tests {
       let admin_out_fee = fees::get_admin_amount(&pool_fees, amount_out_fee);
       let expected_amount_out = expected_amount_out - amount_out_fee;       
 
-      let usdc_coin = sui_coins_amm::swap<USDT, USDC, SC_S_USDC_USDT>(
+      let usdc_coin = interest_protocol_amm::swap<USDT, USDC, SC_S_USDC_USDT>(
         &mut pool,
         mint_for_testing(amount_in, ctx(test)),
         expected_amount_out,
@@ -369,10 +369,10 @@ module sc_dex::sui_coins_amm_tests {
       );
 
       assert_eq(burn_for_testing(usdc_coin), expected_amount_out);
-      assert_eq(sui_coins_amm::balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), usdc_amount - (expected_amount_out + admin_out_fee));
-      assert_eq(sui_coins_amm::balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), usdt_amount + amount_in - admin_in_fee);
-      assert_eq(sui_coins_amm::admin_balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), admin_out_fee + initial_admin_balance_x);
-      assert_eq(sui_coins_amm::admin_balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), admin_in_fee + initial_admin_balance_y);
+      assert_eq(interest_protocol_amm::balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), usdc_amount - (expected_amount_out + admin_out_fee));
+      assert_eq(interest_protocol_amm::balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), usdt_amount + amount_in - admin_in_fee);
+      assert_eq(interest_protocol_amm::admin_balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), admin_out_fee + initial_admin_balance_x);
+      assert_eq(interest_protocol_amm::admin_balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), admin_in_fee + initial_admin_balance_y);
 
       test::return_shared(registry);
       test::return_shared(pool);
@@ -398,16 +398,16 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
-      let initial_lp_coin_supply = sui_coins_amm::lp_coin_supply<ETH, USDC, SC_V_ETH_USDC>(&pool);
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
+      let initial_lp_coin_supply = interest_protocol_amm::lp_coin_supply<ETH, USDC, SC_V_ETH_USDC>(&pool);
 
       let amount_x = 20 * ETH_DECIMAL_SCALAR;
       let amount_y = 27000 * USDC_DECIMAL_SCALAR;
 
       let (shares, optimal_x, optimal_y) = quote::add_liquidity<ETH, USDC, SC_V_ETH_USDC>(&pool, amount_x, amount_y);
 
-      let (lp_coin, eth_coin, usdc_coin) = sui_coins_amm::add_liquidity<ETH, USDC, SC_V_ETH_USDC>(
+      let (lp_coin, eth_coin, usdc_coin) = interest_protocol_amm::add_liquidity<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         mint_for_testing(amount_x, ctx(test)),
         mint_for_testing(amount_y, ctx(test)),
@@ -418,9 +418,9 @@ module sc_dex::sui_coins_amm_tests {
       assert_eq(burn_for_testing(lp_coin), shares);
       assert_eq(burn_for_testing(eth_coin), amount_x - optimal_x);
       assert_eq(burn_for_testing(usdc_coin), amount_y - optimal_y);
-      assert_eq(sui_coins_amm::lp_coin_supply<ETH, USDC, SC_V_ETH_USDC>(&pool), shares + initial_lp_coin_supply);
-      assert_eq(sui_coins_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), eth_amount + optimal_x);
-      assert_eq(sui_coins_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), usdc_amount + optimal_y);
+      assert_eq(interest_protocol_amm::lp_coin_supply<ETH, USDC, SC_V_ETH_USDC>(&pool), shares + initial_lp_coin_supply);
+      assert_eq(interest_protocol_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), eth_amount + optimal_x);
+      assert_eq(interest_protocol_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), usdc_amount + optimal_y);
 
       test::return_shared(registry);
       test::return_shared(pool);
@@ -445,13 +445,13 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
-      let initial_lp_coin_supply = sui_coins_amm::lp_coin_supply<ETH, USDC, SC_V_ETH_USDC>(&pool);  
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
+      let initial_lp_coin_supply = interest_protocol_amm::lp_coin_supply<ETH, USDC, SC_V_ETH_USDC>(&pool);  
 
       let (expected_x, expected_y) = quote::remove_liquidity<ETH, USDC, SC_V_ETH_USDC>(&pool, initial_lp_coin_supply / 3);
 
-      let (eth_coin, usdc_coin) = sui_coins_amm::remove_liquidity<ETH, USDC, SC_V_ETH_USDC>(
+      let (eth_coin, usdc_coin) = interest_protocol_amm::remove_liquidity<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         mint_for_testing(initial_lp_coin_supply / 3, ctx(test)),
         expected_x,
@@ -461,9 +461,9 @@ module sc_dex::sui_coins_amm_tests {
 
       assert_eq(burn_for_testing(eth_coin), expected_x);
       assert_eq(burn_for_testing(usdc_coin), expected_y);
-      assert_eq(sui_coins_amm::lp_coin_supply<ETH, USDC, SC_V_ETH_USDC>(&pool), initial_lp_coin_supply - initial_lp_coin_supply / 3);
-      assert_eq(sui_coins_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), eth_amount - expected_x);
-      assert_eq(sui_coins_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), usdc_amount - expected_y);
+      assert_eq(interest_protocol_amm::lp_coin_supply<ETH, USDC, SC_V_ETH_USDC>(&pool), initial_lp_coin_supply - initial_lp_coin_supply / 3);
+      assert_eq(interest_protocol_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), eth_amount - expected_x);
+      assert_eq(interest_protocol_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), usdc_amount - expected_y);
 
       test::return_shared(registry);
       test::return_shared(pool);
@@ -488,40 +488,40 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
       let eth_coin_amount = 5 * ETH_DECIMAL_SCALAR;
       let usdc_coin_amount = 1500 * USDC_DECIMAL_SCALAR;
 
-      let (invoice, eth_coin, usdc_coin) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      let (invoice, eth_coin, usdc_coin) = interest_protocol_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         eth_coin_amount,
         usdc_coin_amount,
         ctx(test)
       );
 
-      let invoice_repay_amount_x = sui_coins_amm::repay_amount_x(&invoice);
-      let invoice_repay_amount_y = sui_coins_amm::repay_amount_y(&invoice);
+      let invoice_repay_amount_x = interest_protocol_amm::repay_amount_x(&invoice);
+      let invoice_repay_amount_y = interest_protocol_amm::repay_amount_y(&invoice);
 
       assert_eq(burn_for_testing(eth_coin), eth_coin_amount);
       assert_eq(burn_for_testing(usdc_coin), usdc_coin_amount);
-      assert_eq(sui_coins_amm::locked<ETH, USDC, SC_V_ETH_USDC>(&pool), true);
-      assert_eq(sui_coins_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), eth_amount - eth_coin_amount);
-      assert_eq(sui_coins_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), usdc_amount - usdc_coin_amount);
+      assert_eq(interest_protocol_amm::locked<ETH, USDC, SC_V_ETH_USDC>(&pool), true);
+      assert_eq(interest_protocol_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), eth_amount - eth_coin_amount);
+      assert_eq(interest_protocol_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), usdc_amount - usdc_coin_amount);
       assert_eq(invoice_repay_amount_x, eth_coin_amount + (math256::mul_div_up((eth_coin_amount as u256), FLASH_LOAN_FEE_PERCENT, PRECISION) as u64));
       assert_eq(invoice_repay_amount_y, usdc_coin_amount + (math256::mul_div_up((usdc_coin_amount as u256), FLASH_LOAN_FEE_PERCENT, PRECISION) as u64));
 
-      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      interest_protocol_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         invoice,
         mint_for_testing(invoice_repay_amount_x, ctx(test)),
         mint_for_testing(invoice_repay_amount_y, ctx(test))
       );
 
-      assert_eq(sui_coins_amm::locked<ETH, USDC, SC_V_ETH_USDC>(&pool), false);
-      assert_eq(sui_coins_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), eth_amount + invoice_repay_amount_x - eth_coin_amount);
-      assert_eq(sui_coins_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), usdc_amount + invoice_repay_amount_y - usdc_coin_amount);
+      assert_eq(interest_protocol_amm::locked<ETH, USDC, SC_V_ETH_USDC>(&pool), false);
+      assert_eq(interest_protocol_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool), eth_amount + invoice_repay_amount_x - eth_coin_amount);
+      assert_eq(interest_protocol_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool), usdc_amount + invoice_repay_amount_y - usdc_coin_amount);
 
       test::return_shared(registry);
       test::return_shared(pool);     
@@ -547,11 +547,11 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Stable, USDC, USDT>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Stable, USDC, USDT>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
       let admin_cap = test::take_from_sender<Admin>(test);
       
-      sui_coins_amm::update_fee<USDC, USDT, SC_S_USDC_USDT>(
+      interest_protocol_amm::update_fee<USDC, USDT, SC_S_USDC_USDT>(
         &admin_cap,
         &mut pool,
         option::some(MAX_FEE_PERCENT),
@@ -559,24 +559,24 @@ module sc_dex::sui_coins_amm_tests {
         option::none()
       );
 
-      let pool_fees = sui_coins_amm::fees<USDC, USDT, SC_S_USDC_USDT>(&pool);
+      let pool_fees = interest_protocol_amm::fees<USDC, USDT, SC_S_USDC_USDT>(&pool);
       assert_eq(fees::fee_in_percent(&pool_fees), MAX_FEE_PERCENT);
       assert_eq(fees::fee_out_percent(&pool_fees), MAX_FEE_PERCENT);
 
-      assert_eq(sui_coins_amm::admin_balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), 0);
-      assert_eq(sui_coins_amm::admin_balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), 0);
+      assert_eq(interest_protocol_amm::admin_balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), 0);
+      assert_eq(interest_protocol_amm::admin_balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), 0);
 
       let i = 0;
 
       while (10 > i) {
-        burn_for_testing(sui_coins_amm::swap<USDC, USDT, SC_S_USDC_USDT>(
+        burn_for_testing(interest_protocol_amm::swap<USDC, USDT, SC_S_USDC_USDT>(
           &mut pool,
           mint_for_testing(usdc_amount / 3, ctx(test)),
           0,
           ctx(test)
         ));
 
-        burn_for_testing(sui_coins_amm::swap<USDT, USDC, SC_S_USDC_USDT>(
+        burn_for_testing(interest_protocol_amm::swap<USDT, USDC, SC_S_USDC_USDT>(
           &mut pool,
           mint_for_testing(usdt_amount / 3, ctx(test)),
           0,
@@ -586,13 +586,13 @@ module sc_dex::sui_coins_amm_tests {
         i = i + 1;
       };
 
-      let admin_balance_x = sui_coins_amm::admin_balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool);
-      let admin_balance_y = sui_coins_amm::admin_balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool);
+      let admin_balance_x = interest_protocol_amm::admin_balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool);
+      let admin_balance_y = interest_protocol_amm::admin_balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool);
 
       assert_eq(admin_balance_x != 0, true);
       assert_eq(admin_balance_y != 0, true);
 
-      let (usdc_coin, usdt_coin) = sui_coins_amm::take_fees<USDC, USDT, SC_S_USDC_USDT>(
+      let (usdc_coin, usdt_coin) = interest_protocol_amm::take_fees<USDC, USDT, SC_S_USDC_USDT>(
         &admin_cap,
         &mut pool,
         ctx(test)
@@ -601,8 +601,8 @@ module sc_dex::sui_coins_amm_tests {
       assert_eq(burn_for_testing(usdc_coin), admin_balance_x);
       assert_eq(burn_for_testing(usdt_coin), admin_balance_y);
       
-      assert_eq(sui_coins_amm::admin_balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), 0);
-      assert_eq(sui_coins_amm::admin_balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), 0);
+      assert_eq(interest_protocol_amm::admin_balance_x<USDC, USDT, SC_S_USDC_USDT>(&pool), 0);
+      assert_eq(interest_protocol_amm::admin_balance_y<USDC, USDT, SC_S_USDC_USDT>(&pool), 0);
 
       test::return_to_sender(test, admin_cap);
       test::return_shared(registry);  
@@ -629,17 +629,17 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
-      let (invoice, eth_coin, usdc_coin) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      let (invoice, eth_coin, usdc_coin) = interest_protocol_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         eth_amount + 1,
         usdc_amount,
         ctx(test)
       );
 
-      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      interest_protocol_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         invoice,
         eth_coin,
@@ -670,17 +670,17 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
-      let (invoice, eth_coin, usdc_coin) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      let (invoice, eth_coin, usdc_coin) = interest_protocol_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         eth_amount,
         usdc_amount + 1,
         ctx(test)
       );
 
-      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      interest_protocol_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         invoice,
         eth_coin,
@@ -711,31 +711,31 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
-      let (invoice, eth_coin, usdc_coin) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      let (invoice, eth_coin, usdc_coin) = interest_protocol_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         1,
         2,
         ctx(test)
       );
 
-      let (invoice2, eth_coin2, usdc_coin2) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      let (invoice2, eth_coin2, usdc_coin2) = interest_protocol_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         3,
         4,
         ctx(test)
       );
 
-      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      interest_protocol_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         invoice,
         eth_coin,
         usdc_coin
       );
 
-      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      interest_protocol_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         invoice2,
         eth_coin2,
@@ -767,19 +767,19 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool1 = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
-      let pool_id = sui_coins_amm::pool_id<Stable, USDC, USDT>(&registry);
-      let pool2 = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool1 = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Stable, USDC, USDT>(&registry);
+      let pool2 = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
-      let (invoice, eth_coin, usdc_coin) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      let (invoice, eth_coin, usdc_coin) = interest_protocol_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool1,
         1,
         2,
         ctx(test)
       );
 
-      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      interest_protocol_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool2,
         invoice,
         eth_coin,
@@ -810,10 +810,10 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
-      let (invoice, eth_coin, usdc_coin) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      let (invoice, eth_coin, usdc_coin) = interest_protocol_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         eth_amount,
         usdc_amount,
@@ -823,10 +823,10 @@ module sc_dex::sui_coins_amm_tests {
       burn_for_testing(eth_coin);
       burn_for_testing(usdc_coin);
 
-      let invoice_repay_amount_x = sui_coins_amm::repay_amount_x(&invoice);
-      let invoice_repay_amount_y = sui_coins_amm::repay_amount_y(&invoice);      
+      let invoice_repay_amount_x = interest_protocol_amm::repay_amount_x(&invoice);
+      let invoice_repay_amount_y = interest_protocol_amm::repay_amount_y(&invoice);      
 
-      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      interest_protocol_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         invoice,
         mint_for_testing(invoice_repay_amount_x - 1, ctx(test)),
@@ -856,10 +856,10 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
-      let (invoice, eth_coin, usdc_coin) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      let (invoice, eth_coin, usdc_coin) = interest_protocol_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         eth_amount,
         usdc_amount,
@@ -869,10 +869,10 @@ module sc_dex::sui_coins_amm_tests {
       burn_for_testing(eth_coin);
       burn_for_testing(usdc_coin);
 
-      let invoice_repay_amount_x = sui_coins_amm::repay_amount_x(&invoice);
-      let invoice_repay_amount_y = sui_coins_amm::repay_amount_y(&invoice);      
+      let invoice_repay_amount_x = interest_protocol_amm::repay_amount_x(&invoice);
+      let invoice_repay_amount_y = interest_protocol_amm::repay_amount_y(&invoice);      
 
-      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      interest_protocol_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         invoice,
         mint_for_testing(invoice_repay_amount_x, ctx(test)),
@@ -908,7 +908,7 @@ module sc_dex::sui_coins_amm_tests {
       let eth_metadata = test::take_shared<CoinMetadata<ETH>>(test);
       let lp_coin_metadata = test::take_shared<CoinMetadata<SC_BTCE_ETH>>(test);
       
-      let lp_coin = sui_coins_amm::new_pool<BTC, ETH, SC_BTCE_ETH>(
+      let lp_coin = interest_protocol_amm::new_pool<BTC, ETH, SC_BTCE_ETH>(
         &mut registry,
         mint_for_testing(100, ctx(test)),
         mint_for_testing(10, ctx(test)),
@@ -955,7 +955,7 @@ module sc_dex::sui_coins_amm_tests {
 
       burn_for_testing(coin::mint(&mut lp_coin_cap, 100, ctx(test)));
       
-      let lp_coin = sui_coins_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
+      let lp_coin = interest_protocol_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
         &mut registry,
         mint_for_testing(100, ctx(test)),
         mint_for_testing(10, ctx(test)),
@@ -1000,7 +1000,7 @@ module sc_dex::sui_coins_amm_tests {
       let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(test);
       let lp_coin_metadata = test::take_shared<CoinMetadata<SC_V_ETH_USDC>>(test);
       
-      let lp_coin =sui_coins_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
+      let lp_coin =interest_protocol_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
         &mut registry,
         coin::zero(ctx(test)),
         mint_for_testing(10, ctx(test)),
@@ -1045,7 +1045,7 @@ module sc_dex::sui_coins_amm_tests {
       let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(test);
       let lp_coin_metadata = test::take_shared<CoinMetadata<SC_V_ETH_USDC>>(test);
       
-      let lp_coin =sui_coins_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
+      let lp_coin =interest_protocol_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
         &mut registry,
         mint_for_testing(10, ctx(test)),
         coin::zero(ctx(test)),
@@ -1090,7 +1090,7 @@ module sc_dex::sui_coins_amm_tests {
       let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(test);
       let lp_coin_metadata = test::take_shared<CoinMetadata<SC_V_ETH_USDC>>(test);
       
-      let lp_coin =sui_coins_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
+      let lp_coin =interest_protocol_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
         &mut registry,
         mint_for_testing(10, ctx(test)),
         mint_for_testing(10, ctx(test)),
@@ -1123,7 +1123,7 @@ module sc_dex::sui_coins_amm_tests {
       let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(test);
       let lp_coin_metadata = test::take_shared<CoinMetadata<SC_V_ETH_USDC>>(test);
       
-      let lp_coin =sui_coins_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
+      let lp_coin =interest_protocol_amm::new_pool<ETH, USDC, SC_V_ETH_USDC>(
         &mut registry,
         mint_for_testing(10, ctx(test)),
         mint_for_testing(10, ctx(test)),
@@ -1157,7 +1157,7 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       admin::init_for_testing(ctx(test));
-      sui_coins_amm::init_for_testing(ctx(test));
+      interest_protocol_amm::init_for_testing(ctx(test));
     };
 
     let eth_amount = 15 * ETH_DECIMAL_SCALAR;
@@ -1168,10 +1168,10 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
-      let eth_coin = sui_coins_amm::swap<USDC, ETH, SC_V_ETH_USDC>(
+      let eth_coin = interest_protocol_amm::swap<USDC, ETH, SC_V_ETH_USDC>(
         &mut pool,
         coin::zero(ctx(test)),
         0,
@@ -1197,7 +1197,7 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       admin::init_for_testing(ctx(test));
-      sui_coins_amm::init_for_testing(ctx(test));
+      interest_protocol_amm::init_for_testing(ctx(test));
     };
 
     let eth_amount = 15 * ETH_DECIMAL_SCALAR;
@@ -1208,24 +1208,24 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
-      let (invoice, coin_x, coin_y) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      let (invoice, coin_x, coin_y) = interest_protocol_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         1,
         2,
         ctx(test)
       );
 
-      let eth_coin = sui_coins_amm::swap<USDC, ETH, SC_V_ETH_USDC>(
+      let eth_coin = interest_protocol_amm::swap<USDC, ETH, SC_V_ETH_USDC>(
         &mut pool,
         mint_for_testing(1, ctx(test)),
         0,
         ctx(test)
       );
 
-      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      interest_protocol_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         invoice,
         coin_x,
@@ -1251,7 +1251,7 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       admin::init_for_testing(ctx(test));
-      sui_coins_amm::init_for_testing(ctx(test));
+      interest_protocol_amm::init_for_testing(ctx(test));
     };
 
     let eth_amount = 15 * ETH_DECIMAL_SCALAR;
@@ -1262,24 +1262,24 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
-      let (invoice, coin_x, coin_y) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      let (invoice, coin_x, coin_y) = interest_protocol_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         1,
         2,
         ctx(test)
       );
 
-      let usdc_coin = sui_coins_amm::swap<ETH, USDC, SC_V_ETH_USDC>(
+      let usdc_coin = interest_protocol_amm::swap<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         mint_for_testing(1, ctx(test)),
         0,
         ctx(test)
       );
 
-      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      interest_protocol_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         invoice,
         coin_x,
@@ -1311,9 +1311,9 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
-      let pool_fees = sui_coins_amm::fees<ETH, USDC, SC_V_ETH_USDC>(&pool);
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
+      let pool_fees = interest_protocol_amm::fees<ETH, USDC, SC_V_ETH_USDC>(&pool);
 
       let amount_in = 3 * ETH_DECIMAL_SCALAR;
       let amount_in_fee = fees::get_fee_in_amount(&pool_fees, amount_in);
@@ -1321,7 +1321,7 @@ module sc_dex::sui_coins_amm_tests {
       let amount_out_fee = fees::get_fee_out_amount(&pool_fees, expected_amount_out);
       let expected_amount_out = expected_amount_out - amount_out_fee; 
 
-      let usdc_coin = sui_coins_amm::swap<ETH, USDC, SC_V_ETH_USDC>(
+      let usdc_coin = interest_protocol_amm::swap<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         mint_for_testing(amount_in, ctx(test)),
         expected_amount_out + 1,
@@ -1355,12 +1355,12 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
-      let pool_fees = sui_coins_amm::fees<ETH, USDC, SC_V_ETH_USDC>(&pool);
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
+      let pool_fees = interest_protocol_amm::fees<ETH, USDC, SC_V_ETH_USDC>(&pool);
 
-      let eth_amount = sui_coins_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool);
-      let usdc_amount = sui_coins_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool);
+      let eth_amount = interest_protocol_amm::balance_x<ETH, USDC, SC_V_ETH_USDC>(&pool);
+      let usdc_amount = interest_protocol_amm::balance_y<ETH, USDC, SC_V_ETH_USDC>(&pool);
 
       let amount_in = 7777 * USDC_DECIMAL_SCALAR;
       let amount_in_fee = fees::get_fee_in_amount(&pool_fees, amount_in);
@@ -1368,7 +1368,7 @@ module sc_dex::sui_coins_amm_tests {
       let amount_out_fee = fees::get_fee_out_amount(&pool_fees, expected_amount_out);
       let expected_amount_out = expected_amount_out - amount_out_fee;       
 
-      let eth_coin = sui_coins_amm::swap<USDC, ETH, SC_V_ETH_USDC>(
+      let eth_coin = interest_protocol_amm::swap<USDC, ETH, SC_V_ETH_USDC>(
         &mut pool,
         mint_for_testing(amount_in, ctx(test)),
         expected_amount_out + 1,
@@ -1402,15 +1402,15 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
       let amount_x = 20 * ETH_DECIMAL_SCALAR;
       let amount_y = 27000 * USDC_DECIMAL_SCALAR;
 
       let (shares, _, _) = quote::add_liquidity<ETH, USDC, SC_V_ETH_USDC>(&pool, amount_x, amount_y);
 
-      let (lp_coin, eth_coin, usdc_coin) = sui_coins_amm::add_liquidity<ETH, USDC, SC_V_ETH_USDC>(
+      let (lp_coin, eth_coin, usdc_coin) = interest_protocol_amm::add_liquidity<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         mint_for_testing(amount_x, ctx(test)),
         mint_for_testing(amount_y, ctx(test)),
@@ -1446,20 +1446,20 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
       let amount_x = 20 * ETH_DECIMAL_SCALAR;
       let amount_y = 27000 * USDC_DECIMAL_SCALAR;
 
-      let (invoice, coin_x, coin_y) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      let (invoice, coin_x, coin_y) = interest_protocol_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         1,
         2,
         ctx(test)
       );
 
-      let (lp_coin, eth_coin, usdc_coin) = sui_coins_amm::add_liquidity<ETH, USDC, SC_V_ETH_USDC>(
+      let (lp_coin, eth_coin, usdc_coin) = interest_protocol_amm::add_liquidity<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         mint_for_testing(amount_x, ctx(test)),
         mint_for_testing(amount_y, ctx(test)),
@@ -1467,7 +1467,7 @@ module sc_dex::sui_coins_amm_tests {
         ctx(test)
       );
 
-      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      interest_protocol_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         invoice,
         coin_x,
@@ -1502,10 +1502,10 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
-      let (lp_coin, eth_coin, usdc_coin) = sui_coins_amm::add_liquidity<ETH, USDC, SC_V_ETH_USDC>(
+      let (lp_coin, eth_coin, usdc_coin) = interest_protocol_amm::add_liquidity<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         coin::zero(ctx(test)),
         mint_for_testing(1, ctx(test)),
@@ -1541,10 +1541,10 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
-      let (lp_coin, eth_coin, usdc_coin) = sui_coins_amm::add_liquidity<ETH, USDC, SC_V_ETH_USDC>(
+      let (lp_coin, eth_coin, usdc_coin) = interest_protocol_amm::add_liquidity<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         mint_for_testing(1, ctx(test)),
         coin::zero(ctx(test)),
@@ -1580,10 +1580,10 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
-      let (lp_coin, eth_coin, usdc_coin) = sui_coins_amm::add_liquidity<ETH, USDC, SC_V_ETH_USDC>(
+      let (lp_coin, eth_coin, usdc_coin) = interest_protocol_amm::add_liquidity<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         coin::zero(ctx(test)),
         coin::zero(ctx(test)),
@@ -1619,10 +1619,10 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
-      let (eth_coin, usdc_coin) = sui_coins_amm::remove_liquidity<ETH, USDC, SC_V_ETH_USDC>(
+      let (eth_coin, usdc_coin) = interest_protocol_amm::remove_liquidity<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         coin::zero(ctx(test)),
         0,
@@ -1657,17 +1657,17 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
 
-      let (invoice, coin_x, coin_y) = sui_coins_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      let (invoice, coin_x, coin_y) = interest_protocol_amm::flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         1,
         2,
         ctx(test)
       );
 
-      let (eth_coin, usdc_coin) = sui_coins_amm::remove_liquidity<ETH, USDC, SC_V_ETH_USDC>(
+      let (eth_coin, usdc_coin) = interest_protocol_amm::remove_liquidity<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         mint_for_testing(1, ctx(test)),
         0,
@@ -1678,7 +1678,7 @@ module sc_dex::sui_coins_amm_tests {
       burn_for_testing(eth_coin);
       burn_for_testing(usdc_coin);
 
-      sui_coins_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
+      interest_protocol_amm::repay_flash_loan<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         invoice,
         coin_x,
@@ -1709,13 +1709,13 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
-      let initial_lp_coin_supply = sui_coins_amm::lp_coin_supply<ETH, USDC, SC_V_ETH_USDC>(&pool);  
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
+      let initial_lp_coin_supply = interest_protocol_amm::lp_coin_supply<ETH, USDC, SC_V_ETH_USDC>(&pool);  
 
       let (expected_x, expected_y) = quote::remove_liquidity<ETH, USDC, SC_V_ETH_USDC>(&pool, initial_lp_coin_supply / 3);
 
-      let (eth_coin, usdc_coin) = sui_coins_amm::remove_liquidity<ETH, USDC, SC_V_ETH_USDC>(
+      let (eth_coin, usdc_coin) = interest_protocol_amm::remove_liquidity<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         mint_for_testing(initial_lp_coin_supply / 3, ctx(test)),
         expected_x + 1,
@@ -1750,13 +1750,13 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       let registry = test::take_shared<Registry>(test);
-      let pool_id = sui_coins_amm::pool_id<Volatile, ETH, USDC>(&registry);
-      let pool = test::take_shared_by_id<SuiCoinsPool>(test, option::destroy_some(pool_id));
-      let initial_lp_coin_supply = sui_coins_amm::lp_coin_supply<ETH, USDC, SC_V_ETH_USDC>(&pool);  
+      let pool_id = interest_protocol_amm::pool_id<Volatile, ETH, USDC>(&registry);
+      let pool = test::take_shared_by_id<InterestProtocolPool>(test, option::destroy_some(pool_id));
+      let initial_lp_coin_supply = interest_protocol_amm::lp_coin_supply<ETH, USDC, SC_V_ETH_USDC>(&pool);  
 
       let (expected_x, expected_y) = quote::remove_liquidity<ETH, USDC, SC_V_ETH_USDC>(&pool, initial_lp_coin_supply / 3);
 
-      let (eth_coin, usdc_coin) = sui_coins_amm::remove_liquidity<ETH, USDC, SC_V_ETH_USDC>(
+      let (eth_coin, usdc_coin) = interest_protocol_amm::remove_liquidity<ETH, USDC, SC_V_ETH_USDC>(
         &mut pool,
         mint_for_testing(initial_lp_coin_supply / 3, ctx(test)),
         expected_x,
@@ -1781,7 +1781,7 @@ module sc_dex::sui_coins_amm_tests {
     next_tx(test, alice);
     {
       admin::init_for_testing(ctx(test));
-      sui_coins_amm::init_for_testing(ctx(test));
+      interest_protocol_amm::init_for_testing(ctx(test));
     };
   }
 }

@@ -1,5 +1,5 @@
 [package]
-name = "ScDEX"
+name = "AMM"
 version = "0.0.1"
 
 [dependencies]
@@ -7,6 +7,6 @@ MoveStdlib = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/s
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet" }
 
 [addresses]
-sc_dex = "0x0"
+amm = "0x0"
 std = "0x1"
 sui = "0x2"

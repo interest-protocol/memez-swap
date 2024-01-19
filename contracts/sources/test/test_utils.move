@@ -1,17 +1,17 @@
 #[test_only]
-module sc_dex::test_utils {
+module amm::test_utils {
 
   use sui::transfer;
   use sui::coin::{mint_for_testing, TreasuryCap, CoinMetadata};
   use sui::test_scenario::{Self as test, Scenario, next_tx, ctx};
 
-  use sc_dex::btc;
-  use sc_dex::usdt::{Self, USDT};
-  use sc_dex::eth::{Self, ETH};
-  use sc_dex::usdc::{Self, USDC};
-  use sc_dex::sc_v_eth_usdc::{Self, SC_V_ETH_USDC};
-  use sc_dex::sui_coins_amm::{Self, Registry};
-  use sc_dex::sc_s_usdc_usdt::{Self, SC_S_USDC_USDT};
+  use amm::btc;
+  use amm::usdt::{Self, USDT};
+  use amm::eth::{Self, ETH};
+  use amm::usdc::{Self, USDC};
+  use amm::sc_v_eth_usdc::{Self, SC_V_ETH_USDC};
+  use amm::interest_protocol_amm::{Self, Registry};
+  use amm::sc_s_usdc_usdt::{Self, SC_S_USDC_USDT};
 
   public fun deploy_coins(test: &mut Scenario) {
     let (alice, _) = people();
@@ -43,7 +43,7 @@ module sc_dex::test_utils {
       let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(test);
       let lp_coin_metadata = test::take_shared<CoinMetadata<SC_V_ETH_USDC>>(test);
       
-      let lp_coin = sui_coins_amm::new_pool(
+      let lp_coin = interest_protocol_amm::new_pool(
         &mut registry,
         mint_for_testing<ETH>(eth_amount, ctx(test)),
         mint_for_testing<USDC>(usdc_amount, ctx(test)),
@@ -82,7 +82,7 @@ module sc_dex::test_utils {
       let usdt_metadata = test::take_shared<CoinMetadata<USDT>>(test);
       let lp_coin_metadata = test::take_shared<CoinMetadata<SC_S_USDC_USDT>>(test);
       
-      let lp_coin = sui_coins_amm::new_pool(
+      let lp_coin = interest_protocol_amm::new_pool(
         &mut registry,
         mint_for_testing<USDC>(usdc_amount, ctx(test)),
         mint_for_testing<USDT>(usdt_amount, ctx(test)),

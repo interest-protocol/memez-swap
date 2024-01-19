@@ -1,9 +1,9 @@
 #[test_only]
-module sc_dex::math256_tests {
+module amm::math256_tests {
 
   use sui::test_utils::assert_eq;
   
-  use sc_dex::math256::{diff, div_up, mul_div_down, mul_div_up, sqrt_down, log2_down, min};
+  use amm::math256::{diff, div_up, mul_div_down, mul_div_up, sqrt_down, log2_down, min};
 
   const MAX_U256: u256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
 

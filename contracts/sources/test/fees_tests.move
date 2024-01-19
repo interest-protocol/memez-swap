@@ -1,13 +1,13 @@
 #[test_only]
-module sc_dex::fees_tests {
+module amm::fees_tests {
   use std::option;
 
   use sui::test_utils::assert_eq;
   use sui::test_scenario::{Self as test, next_tx};
 
-  use sc_dex::fees;
+  use amm::fees;
   
-  use sc_dex::test_utils::{people, scenario};
+  use amm::test_utils::{people, scenario};
 
   const INITIAL_FEE_PERCENT: u256 = 250000000000000; // 0.025%
   const MAX_FEE_PERCENT: u256 = 20000000000000000; // 2%

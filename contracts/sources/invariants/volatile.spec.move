@@ -1,4 +1,4 @@
-spec sc_dex::volatile {
+spec amm::volatile {
 
   spec invariant_ {
     ensures result == x * y;

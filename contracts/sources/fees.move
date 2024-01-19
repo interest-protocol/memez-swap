@@ -1,9 +1,9 @@
-module sc_dex::fees {
+module amm::fees {
   use std::option::{Self, Option};
 
-  use sc_dex::math256::mul_div_up;
+  use amm::math256::mul_div_up;
 
-  use sc_dex::errors;
+  use amm::errors;
 
   const PRECISION: u256 = 1_000_000_000_000_000_000;
   const MAX_FEE_PERCENT: u256 = 20_000_000_000_000_000; // 2%

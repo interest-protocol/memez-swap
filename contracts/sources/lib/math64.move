@@ -1,6 +1,6 @@
-module sc_dex::math64 {
+module amm::math64 {
 
-  use sc_dex::math256;
+  use amm::math256;
 
   public fun mul_div_down(x: u64, y: u64, z: u64): u64 {
     (math256::mul_div_down((x as u256), (y as u256), (z as u256)) as u64)

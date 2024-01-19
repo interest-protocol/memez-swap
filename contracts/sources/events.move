@@ -1,9 +1,9 @@
-module sc_dex::events {
+module amm::events {
 
   use sui::object::ID;
   use sui::event::emit;
 
-  friend sc_dex::sui_coins_amm;
+  friend amm::interest_protocol_amm;
 
   struct NewPool<phantom Curve, phantom CoinX, phantom CoinY> has copy, drop {
     pool_id: ID,

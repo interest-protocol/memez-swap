@@ -1,8 +1,8 @@
 #[test_only]
-module sc_dex::stable_tests {
+module amm::stable_tests {
   use sui::test_utils::assert_eq;
 
-  use sc_dex::stable;
+  use amm::stable;
 
   const PRECISION: u256 = 1_000_000_000_000_000_000;
 

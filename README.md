@@ -1,4 +1,4 @@
-# [Sui Coins](https://www.suicoins.com/)
+# [Interest Protocol AMM](https://www.suicoins.com/)
 
  <p> <img width="50px"height="50px" src="./logo.png" /></p> 
  
@@ -55,7 +55,7 @@ Only the UniV2 invariant has been formally verified.
 
 ### DEX
 
-The Sui Coins DEX allows users to create pools, add/remove liquidity and swap.
+The Interest Protocol AMM DEX allows users to create pools, add/remove liquidity and swap.
 
 The DEX supports two types of pools denoted as:
 

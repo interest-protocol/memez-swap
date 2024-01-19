@@ -1,13 +1,13 @@
-module sc_dex::utils {
+module amm::utils {
   use std::ascii;
   use std::type_name;
   use std::string::{Self, String};
 
   use sui::coin::{Self, CoinMetadata};
 
-  use sc_dex::errors;
-  use sc_dex::comparator;
-  use sc_dex::math64::mul_div_up;
+  use amm::errors;
+  use amm::comparator;
+  use amm::math64::mul_div_up;
   
   public fun are_coins_ordered<CoinA, CoinB>(): bool {
     let coin_a_type_name = type_name::get<CoinA>();

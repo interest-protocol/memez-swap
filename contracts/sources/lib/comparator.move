@@ -1,5 +1,5 @@
 /// From https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-stdlib/sources/comparator.move
-module sc_dex::comparator {
+module amm::comparator {
     use std::bcs;
     use std::vector;
 

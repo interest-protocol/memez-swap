@@ -1,5 +1,5 @@
 #[test_only]
-module sc_dex::utils_tests {
+module amm::utils_tests {
   use std::string::{utf8, to_ascii};
 
   use sui::sui::SUI;
@@ -7,13 +7,13 @@ module sc_dex::utils_tests {
   use sui::test_utils::assert_eq;
   use sui::test_scenario::{Self as test, next_tx, ctx};
 
-  use sc_dex::btc::BTC;
-  use sc_dex::eth::ETH;
-  use sc_dex::sc_v_btc_eth::{Self, SC_V_BTC_ETH};
-  use sc_dex::sc_btce_eth::{Self, SC_BTCE_ETH};
-  use sc_dex::sc_btc_eth_wrong_decimals::{Self, SC_BTC_ETH_WRONG_DECIMALS};
-  use sc_dex::test_utils::{scenario, people, deploy_coins};
-  use sc_dex::utils::{
+  use amm::btc::BTC;
+  use amm::eth::ETH;
+  use amm::sc_v_btc_eth::{Self, SC_V_BTC_ETH};
+  use amm::sc_btce_eth::{Self, SC_BTCE_ETH};
+  use amm::sc_btc_eth_wrong_decimals::{Self, SC_BTC_ETH_WRONG_DECIMALS};
+  use amm::test_utils::{scenario, people, deploy_coins};
+  use amm::utils::{
     is_coin_x, 
     quote_liquidity,
     get_lp_coin_name,
@@ -274,7 +274,7 @@ module sc_dex::utils_tests {
 }
 
 #[test_only]
-module sc_dex::sc_btc_eth_wrong_decimals {
+module amm::sc_btc_eth_wrong_decimals {
   use std::option;
 
   use sui::transfer;

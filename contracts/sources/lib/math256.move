@@ -1,4 +1,4 @@
-module sc_dex::math256 {
+module amm::math256 {
   
   public fun diff(x: u256, y: u256): u256 {
     if (x > y) x - y else y - x

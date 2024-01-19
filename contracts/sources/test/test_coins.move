@@ -1,5 +1,5 @@
 #[test_only]
-module sc_dex::eth {
+module amm::eth {
   use std::option;
 
   use sui::transfer;
@@ -31,7 +31,7 @@ module sc_dex::eth {
 }
 
 #[test_only]
-module sc_dex::btc {
+module amm::btc {
   use std::option;
 
   use sui::transfer;
@@ -63,7 +63,7 @@ module sc_dex::btc {
 }
 
 #[test_only]
-module sc_dex::usdc {
+module amm::usdc {
   use std::option;
 
   use sui::transfer;
@@ -95,7 +95,7 @@ module sc_dex::usdc {
 }
 
 #[test_only]
-module sc_dex::usdt {
+module amm::usdt {
   use std::option;
 
   use sui::transfer;
@@ -126,7 +126,7 @@ module sc_dex::usdt {
 }
 
 #[test_only]
-module sc_dex::sc_v_btc_eth {
+module amm::sc_v_btc_eth {
   use std::option;
 
   use sui::transfer;
@@ -158,7 +158,7 @@ module sc_dex::sc_v_btc_eth {
 }
 
 #[test_only]
-module sc_dex::sc_v_eth_usdc {
+module amm::sc_v_eth_usdc {
   use std::option;
 
   use sui::transfer;
@@ -190,7 +190,7 @@ module sc_dex::sc_v_eth_usdc {
 }
 
 #[test_only]
-module sc_dex::sc_s_usdc_usdt {
+module amm::sc_s_usdc_usdt {
   use std::option;
 
   use sui::transfer;
@@ -223,7 +223,7 @@ module sc_dex::sc_s_usdc_usdt {
 // * Invalid Coin
 
 #[test_only]
-module sc_dex::sc_btce_eth {
+module amm::sc_btce_eth {
   use std::option;
 
   use sui::transfer;

@@ -1,9 +1,9 @@
 #[test_only]
-module sc_dex::math64_tests {
+module amm::math64_tests {
 
   use sui::test_utils::assert_eq;
   
-  use sc_dex::math64::{min, mul_div_down, mul_div_up};
+  use amm::math64::{min, mul_div_down, mul_div_up};
 
   #[test]
   fun test_mul_div_down() {
