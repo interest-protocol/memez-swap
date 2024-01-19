@@ -78,37 +78,37 @@ module amm::stable_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 9)]  
+  #[expected_failure(abort_code = amm::errors::ENoZeroCoin, location = amm::stable)]  
   fun get_amount_in_zero_coin() {
     stable::get_amount_in( 0,  2558285805075701, 25582858050757, 100000000, 1000000, true);
   }
 
   #[test]
-  #[expected_failure(abort_code = 14)]  
+  #[expected_failure(abort_code = amm::errors::EInsufficientLiquidity, location = amm::stable)]  
   fun get_amount_in_zero_balance_x() {
     stable::get_amount_in( 1,  0, 25582858050757, 100000000, 1000000, true);
   }
 
   #[test]
-  #[expected_failure(abort_code = 14)]  
+  #[expected_failure(abort_code = amm::errors::EInsufficientLiquidity, location = amm::stable)]  
   fun get_amount_in_zero_balance_y() {
     stable::get_amount_in( 1,  1, 0, 100000000, 1000000, true);
   }
 
   #[test]
-  #[expected_failure(abort_code = 9)]  
+  #[expected_failure(abort_code = amm::errors::ENoZeroCoin, location = amm::stable)]  
   fun get_amount_out_zero_coin() {
     stable::get_amount_out( 0,  2558285805075701, 25582858050757, 100000000, 1000000, true);
   }
 
   #[test]
-  #[expected_failure(abort_code = 14)]  
+  #[expected_failure(abort_code = amm::errors::EInsufficientLiquidity, location = amm::stable)]  
   fun get_amount_out_zero_balance_x() {
     stable::get_amount_in( 1,  0, 25582858050757, 100000000, 1000000, true);
   }
 
   #[test]
-  #[expected_failure(abort_code = 14)]  
+  #[expected_failure(abort_code = amm::errors::EInsufficientLiquidity, location = amm::stable)]  
   fun get_amount_out_zero_balance_y() {
     stable::get_amount_in( 1,  1, 0, 100000000, 1000000, true);
   }

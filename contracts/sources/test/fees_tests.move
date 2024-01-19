@@ -118,7 +118,7 @@ module amm::fees_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 1)]  
+  #[expected_failure(abort_code = amm::errors::EFeeIsTooHigh, location = amm::fees)]  
   fun aborts_max_fee_in() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -135,7 +135,7 @@ module amm::fees_tests {
   }  
 
   #[test]
-  #[expected_failure(abort_code = 1)]  
+  #[expected_failure(abort_code = amm::errors::EFeeIsTooHigh, location = amm::fees)]  
   fun aborts_max_fee_out() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -152,7 +152,7 @@ module amm::fees_tests {
   }   
 
   #[test]
-  #[expected_failure(abort_code = 1)]  
+  #[expected_failure(abort_code = amm::errors::EFeeIsTooHigh, location = amm::fees)]  
   fun aborts_max_admin_fee() {
     let scenario = scenario();
     let (alice, _) = people();

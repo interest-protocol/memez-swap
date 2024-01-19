@@ -653,7 +653,7 @@ module amm::interest_protocol_amm_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 0)]  
+  #[expected_failure(abort_code = amm::errors::ENotEnoughFundsToLend, location = amm::interest_protocol_amm)]  
   fun test_flash_loan_not_enough_balance_y() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -694,7 +694,7 @@ module amm::interest_protocol_amm_tests {
   }  
 
   #[test]
-  #[expected_failure(abort_code = 11)]  
+  #[expected_failure(abort_code = amm::errors::EPoolIsLocked, location = amm::interest_protocol_amm)]  
   fun test_flash_loan_locked() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -749,7 +749,7 @@ module amm::interest_protocol_amm_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 15)]    
+  #[expected_failure(abort_code = amm::errors::EWrongPool, location = amm::interest_protocol_amm)]    
   fun test_repay_wrong_pool() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -794,7 +794,7 @@ module amm::interest_protocol_amm_tests {
   } 
 
   #[test]
-  #[expected_failure(abort_code = 12)]    
+  #[expected_failure(abort_code = amm::errors::EWrongRepayAmount, location = amm::interest_protocol_amm)]    
   fun test_repay_wrong_repay_amount_x() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -840,7 +840,7 @@ module amm::interest_protocol_amm_tests {
   }   
 
   #[test]
-  #[expected_failure(abort_code = 12)]    
+  #[expected_failure(abort_code = amm::errors::EWrongRepayAmount, location = amm::interest_protocol_amm)]    
   fun test_repay_wrong_repay_amount_y() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -886,7 +886,7 @@ module amm::interest_protocol_amm_tests {
   }        
 
   #[test]
-  #[expected_failure(abort_code = 13)]  
+  #[expected_failure(abort_code = amm::errors::EWrongModuleName, location = amm::utils)]  
   fun test_new_pool_wrong_lp_coin_metadata() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -931,7 +931,7 @@ module amm::interest_protocol_amm_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 6)]  
+  #[expected_failure(abort_code = amm::errors::ESupplyMustHaveZeroValue, location = amm::interest_protocol_amm)]  
   fun test_new_pool_wrong_lp_coin_supply() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -978,7 +978,7 @@ module amm::interest_protocol_amm_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 3)]  
+  #[expected_failure(abort_code = amm::errors::EProvideBothCoins, location = amm::interest_protocol_amm)]  
   fun test_new_pool_zero_coin_x() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -1023,7 +1023,7 @@ module amm::interest_protocol_amm_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 3)]  
+  #[expected_failure(abort_code = amm::errors::EProvideBothCoins, location = amm::interest_protocol_amm)]  
   fun test_new_pool_zero_coin_y() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -1068,7 +1068,7 @@ module amm::interest_protocol_amm_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 5)]  
+  #[expected_failure(abort_code = amm::errors::EPoolAlreadyDeployed, location = amm::interest_protocol_amm)]  
   fun test_new_pool_deploy_same_pool() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -1147,7 +1147,7 @@ module amm::interest_protocol_amm_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 9)]  
+  #[expected_failure(abort_code = amm::errors::ENoZeroCoin, location = amm::interest_protocol_amm)]  
   fun test_swap_zero_coin() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -1187,7 +1187,7 @@ module amm::interest_protocol_amm_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 11)]  
+  #[expected_failure(abort_code = amm::errors::EPoolIsLocked, location = amm::interest_protocol_amm)]  
   fun test_swap_x_locked_pool() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -1241,7 +1241,7 @@ module amm::interest_protocol_amm_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 11)]  
+  #[expected_failure(abort_code = amm::errors::EPoolIsLocked, location = amm::interest_protocol_amm)]  
   fun test_swap_y_locked_pool() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -1295,7 +1295,7 @@ module amm::interest_protocol_amm_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 8)]  
+  #[expected_failure(abort_code = amm::errors::ESlippage, location = amm::interest_protocol_amm)]  
   fun test_swap_x_slippage() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -1338,7 +1338,7 @@ module amm::interest_protocol_amm_tests {
   }  
 
   #[test]
-  #[expected_failure(abort_code = 8)]  
+  #[expected_failure(abort_code = amm::errors::ESlippage, location = amm::interest_protocol_amm)]  
   fun test_swap_y_slippage() {
 
     let scenario = scenario();
@@ -1385,7 +1385,7 @@ module amm::interest_protocol_amm_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 8)]    
+  #[expected_failure(abort_code = amm::errors::ESlippage, location = amm::interest_protocol_amm)]    
   fun test_add_liquidity_slippage() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -1429,7 +1429,7 @@ module amm::interest_protocol_amm_tests {
   }
   
   #[test]
-  #[expected_failure(abort_code = 11)]    
+  #[expected_failure(abort_code = amm::errors::EPoolIsLocked, location = amm::interest_protocol_amm)]    
   fun test_add_liquidity_locked() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -1485,7 +1485,7 @@ module amm::interest_protocol_amm_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 3)]    
+  #[expected_failure(abort_code = amm::errors::EProvideBothCoins, location = amm::interest_protocol_amm)]    
   fun test_add_liquidity_zero_coin_x() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -1524,7 +1524,7 @@ module amm::interest_protocol_amm_tests {
   }  
 
   #[test]
-  #[expected_failure(abort_code = 3)]    
+  #[expected_failure(abort_code = amm::errors::EProvideBothCoins, location = amm::interest_protocol_amm)]    
   fun test_add_liquidity_zero_coin_y() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -1563,7 +1563,7 @@ module amm::interest_protocol_amm_tests {
   }  
 
   #[test]
-  #[expected_failure(abort_code = 3)]    
+  #[expected_failure(abort_code = amm::errors::EProvideBothCoins, location = amm::interest_protocol_amm)]    
   fun test_add_liquidity_both_zero_coins() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -1602,7 +1602,7 @@ module amm::interest_protocol_amm_tests {
   }  
 
   #[test]
-  #[expected_failure(abort_code = 9)]  
+  #[expected_failure(abort_code = amm::errors::ENoZeroCoin, location = amm::interest_protocol_amm)]  
   fun test_remove_liquidity_no_zero_coin() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -1640,7 +1640,7 @@ module amm::interest_protocol_amm_tests {
   }   
 
   #[test]
-  #[expected_failure(abort_code = 11)]  
+  #[expected_failure(abort_code = amm::errors::EPoolIsLocked, location = amm::interest_protocol_amm)]  
   fun test_remove_liquidity_locked() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -1692,7 +1692,7 @@ module amm::interest_protocol_amm_tests {
   }  
 
   #[test]
-  #[expected_failure(abort_code = 8)] 
+  #[expected_failure(abort_code = amm::errors::ESlippage, location = amm::interest_protocol_amm)] 
   fun test_remove_liquidity_slippage_coin_x() {
     let scenario = scenario();
     let (alice, _) = people();
@@ -1733,7 +1733,7 @@ module amm::interest_protocol_amm_tests {
   }  
 
   #[test]
-  #[expected_failure(abort_code = 8)] 
+  #[expected_failure(abort_code = amm::errors::ESlippage, location = amm::interest_protocol_amm)] 
   fun test_remove_liquidity_slippage_coin_y() {
     let scenario = scenario();
     let (alice, _) = people();

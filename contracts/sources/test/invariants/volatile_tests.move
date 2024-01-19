@@ -29,19 +29,19 @@ module amm::volatile_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 9)]  
+  #[expected_failure(abort_code = amm::errors::ENoZeroCoin, location = amm::volatile)]  
   fun test_get_amount_in_zero_coin_amount() {
     assert_eq(volatile::get_amount_in(0, 75, 150), 0);
   }
 
   #[test]
-  #[expected_failure(abort_code = 14)]  
+  #[expected_failure(abort_code = amm::errors::EInsufficientLiquidity, location = amm::volatile)]  
   fun test_get_amount_in_zero_balance_in() {
     assert_eq(volatile::get_amount_in(10, 0, 50), 3);
   }
 
   #[test]
-  #[expected_failure(abort_code = 14)]  
+  #[expected_failure(abort_code = amm::errors::EInsufficientLiquidity, location = amm::volatile)]  
   fun test_get_amount_in_zero_balance_out() {
     assert_eq(volatile::get_amount_in(10, 50, 0), 3);
   }
@@ -53,19 +53,19 @@ module amm::volatile_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 14)]  
+  #[expected_failure(abort_code = amm::errors::EInsufficientLiquidity, location = amm::volatile)]  
   fun test_get_amount_out_zero_balance_in() {
     assert_eq(volatile::get_amount_out(10, 0, 150), 3);
   }
 
   #[test]
-  #[expected_failure(abort_code = 9)]  
+  #[expected_failure(abort_code = amm::errors::ENoZeroCoin, location = amm::volatile)]  
   fun test_get_amount_out_zero_coin_amount() {
     assert_eq(volatile::get_amount_out(0, 75, 150), 0);
   }
 
   #[test]
-  #[expected_failure(abort_code = 14)]  
+  #[expected_failure(abort_code = amm::errors::EInsufficientLiquidity, location = amm::volatile)]  
   fun test_get_amount_out_zero_balance_out() {
     assert_eq(volatile::get_amount_out(10, 150, 0), 3);
   }

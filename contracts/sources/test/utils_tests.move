@@ -186,7 +186,7 @@ module amm::utils_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 7)]
+  #[expected_failure(abort_code = amm::errors::ELpCoinsMustHave9Decimals, location = amm::utils)]
   fun test_assert_lp_coin_integrity_wrong_decimal() {
    let scenario = scenario();
     let (alice, _) = people();
@@ -213,7 +213,7 @@ module amm::utils_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 4)]
+  #[expected_failure(abort_code = amm::errors::ECoinsMustBeOrdered, location = amm::utils)]
   fun test_assert_lp_coin_integrity_wrong_coin_order() {
    let scenario = scenario();
     let (alice, _) = people();
@@ -240,7 +240,7 @@ module amm::utils_tests {
   }
 
   #[test]
-  #[expected_failure(abort_code = 13)]
+  #[expected_failure(abort_code = amm::errors::EWrongModuleName, location = amm::utils)]
   fun test_assert_lp_coin_integrity_wrong_lp_module_name() {
     let scenario = scenario();
     let (alice, _) = people();
