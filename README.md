@@ -70,7 +70,7 @@ The DEX supports two types of pools denoted as:
 ## Contact Us
 
 - Twitter: [@interest_dinero](https://twitter.com/interest_dinero)
-- Discord: https://discord.gg/interestprotocol
+- Discord: https://discord.gg/interest
 - Telegram: https://t.me/interestprotocol
 - Email: [contact@interestprotocol.com](mailto:contact@interestprotocol.com)
 - Medium: [@interestprotocol](https://medium.com/@interestprotocol)
