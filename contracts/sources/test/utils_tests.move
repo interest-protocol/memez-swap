@@ -1,5 +1,5 @@
 #[test_only]
-module amm::utils_tests {
+module amm::amm_utils_tests {
   use std::string::{utf8, to_ascii};
 
   use sui::sui::SUI;

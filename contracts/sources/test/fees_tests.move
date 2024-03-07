@@ -7,7 +7,7 @@ module amm::fees_tests {
 
   use amm::fees;
   
-  use amm::test_utils::{people, scenario};
+  use amm::amm_utils_test::{people, scenario};
 
   const INITIAL_FEE_PERCENT: u256 = 250000000000000; // 0.025%
   const MAX_FEE_PERCENT: u256 = 20000000000000000; // 2%
