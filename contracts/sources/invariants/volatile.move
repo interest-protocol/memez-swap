@@ -19,10 +19,6 @@ module amm::volatile {
 
     let numerator = balance_in * coin_out_amount;
     let denominator = balance_out - coin_out_amount; 
-        
-    spec {
-      assume MAX_U64 >= div_up(numerator, denominator);
-    };
 
     (div_up(numerator, denominator) as u64) 
   }
