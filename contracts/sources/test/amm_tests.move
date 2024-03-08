@@ -24,7 +24,7 @@ module amm::interest_protocol_amm_tests {
   use amm::ipx_v_eth_usdc::{Self, IPX_V_ETH_USDC};
   use amm::ipx_s_usdc_usdt::{Self, IPX_S_USDC_USDT};
   use amm::interest_protocol_amm::{Self, Registry, InterestPool};
-  use amm::amm_utils_test::{people, scenario, deploy_coins, deploy_eth_usdc_pool, deploy_usdc_usdt_pool};
+  use amm::deploy_utils::{people, scenario, deploy_coins, deploy_eth_usdc_pool, deploy_usdc_usdt_pool};
 
   const PRECISION: u256 = 1_000_000_000_000_000_000;
   const MINIMUM_LIQUIDITY: u64 = 100;

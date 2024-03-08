@@ -1,5 +1,5 @@
 #[test_only]
-module amm::test_utils {
+module amm::deploy_utils {
 
   use sui::transfer;
   use sui::coin::{mint_for_testing, TreasuryCap, CoinMetadata};

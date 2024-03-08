@@ -19,7 +19,7 @@ module amm::quote_tests {
   use amm::ipx_s_usdc_usdt::IPX_S_USDC_USDT;
   use amm::curves::{Volatile, Stable};
   use amm::interest_protocol_amm::{Self, Registry, InterestPool};
-  use amm::amm_utils_test::{people, scenario, deploy_eth_usdc_pool, deploy_usdc_usdt_pool};
+  use amm::deploy_utils::{people, scenario, deploy_eth_usdc_pool, deploy_usdc_usdt_pool};
 
   const USDC_DECIMAL_SCALAR: u64 = 1_000_000;
   const ETH_DECIMAL_SCALAR: u64 = 1_000_000_000;

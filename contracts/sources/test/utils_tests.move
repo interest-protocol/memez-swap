@@ -1,5 +1,5 @@
 #[test_only]
-module amm::amm_utils_tests {
+module amm::utils_tests {
   use std::string::{utf8, to_ascii};
 
   use sui::sui::SUI;
@@ -12,7 +12,7 @@ module amm::amm_utils_tests {
   use amm::ipx_v_btc_eth::{Self, IPX_V_BTC_ETH};
   use amm::ipx_btce_eth::{Self, IPX_BTCE_ETH};
   use amm::ipx_btc_eth_wrong_decimals::{Self, IPX_BTC_ETH_WRONG_DECIMALS};
-  use amm::test_utils::{scenario, people, deploy_coins};
+  use amm::deploy_utils::{scenario, people, deploy_coins};
   use amm::utils::{
     is_coin_x, 
     quote_liquidity,
