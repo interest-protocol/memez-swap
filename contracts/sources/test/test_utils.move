@@ -43,7 +43,7 @@ module amm::deploy_utils {
       let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(test);
       let lp_coin_metadata = test::take_shared<CoinMetadata<IPX_V_ETH_USDC>>(test);
       
-      let lp_coin = interest_protocol_amm::new_pool(
+      let lp_coin = interest_protocol_amm::new(
         &mut registry,
         mint_for_testing<ETH>(eth_amount, ctx(test)),
         mint_for_testing<USDC>(usdc_amount, ctx(test)),
@@ -82,7 +82,7 @@ module amm::deploy_utils {
       let usdt_metadata = test::take_shared<CoinMetadata<USDT>>(test);
       let lp_coin_metadata = test::take_shared<CoinMetadata<IPX_S_USDC_USDT>>(test);
       
-      let lp_coin = interest_protocol_amm::new_pool(
+      let lp_coin = interest_protocol_amm::new(
         &mut registry,
         mint_for_testing<USDC>(usdc_amount, ctx(test)),
         mint_for_testing<USDT>(usdt_amount, ctx(test)),

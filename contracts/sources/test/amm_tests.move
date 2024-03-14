@@ -61,9 +61,9 @@ module amm::interest_protocol_amm_tests {
       let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(scenario_mut);
       let lp_coin_metadata = test::take_shared<CoinMetadata<IPX_V_ETH_USDC>>(scenario_mut);
       
-      assert_eq(table::is_empty(interest_protocol_amm::borrow_pools(&registry)), true);
+      assert_eq(table::is_empty(interest_protocol_amm::pools(&registry)), true);
       
-      let lp_coin = interest_protocol_amm::new_pool<ETH, USDC, IPX_V_ETH_USDC>(
+      let lp_coin = interest_protocol_amm::new<ETH, USDC, IPX_V_ETH_USDC>(
         &mut registry,
         mint_for_testing(eth_amount, ctx(scenario_mut)),
         mint_for_testing(usdc_amount, ctx(scenario_mut)),
@@ -122,10 +122,10 @@ module amm::interest_protocol_amm_tests {
       let usdt_metadata = test::take_shared<CoinMetadata<USDT>>(scenario_mut);
       let lp_coin_metadata = test::take_shared<CoinMetadata<IPX_S_USDC_USDT>>(scenario_mut);
       
-      assert_eq(table::is_empty(interest_protocol_amm::borrow_pools(&registry)), false);
-      assert_eq(table::length(interest_protocol_amm::borrow_pools(&registry)), 1);
+      assert_eq(table::is_empty(interest_protocol_amm::pools(&registry)), false);
+      assert_eq(table::length(interest_protocol_amm::pools(&registry)), 1);
       
-      let lp_coin = interest_protocol_amm::new_pool<USDC, USDT, IPX_S_USDC_USDT>(
+      let lp_coin = interest_protocol_amm::new<USDC, USDT, IPX_S_USDC_USDT>(
         &mut registry,
         mint_for_testing(usdc_amount, ctx(scenario_mut)),
         mint_for_testing(usdt_amount, ctx(scenario_mut)),
@@ -493,7 +493,7 @@ module amm::interest_protocol_amm_tests {
       let request = request<Stable, USDC, USDT, IPX_S_USDC_USDT>(scenario_mut);
       let admin_cap = test::take_from_sender<Admin>(scenario_mut);
       
-      interest_protocol_amm::update_fee<USDC, USDT, IPX_S_USDC_USDT>(
+      interest_protocol_amm::update_fees<USDC, USDT, IPX_S_USDC_USDT>(
         &admin_cap,
         &mut request.pool,
         option::some(MAX_FEE_PERCENT),
@@ -814,7 +814,7 @@ module amm::interest_protocol_amm_tests {
       let eth_metadata = test::take_shared<CoinMetadata<ETH>>(scenario_mut);
       let lp_coin_metadata = test::take_shared<CoinMetadata<IPX_BTCE_ETH>>(scenario_mut);
       
-      let lp_coin = interest_protocol_amm::new_pool<BTC, ETH, IPX_BTCE_ETH>(
+      let lp_coin = interest_protocol_amm::new<BTC, ETH, IPX_BTCE_ETH>(
         &mut registry,
         mint_for_testing(100, ctx(scenario_mut)),
         mint_for_testing(10, ctx(scenario_mut)),
@@ -858,7 +858,7 @@ module amm::interest_protocol_amm_tests {
 
       burn_for_testing(coin::mint(&mut lp_coin_cap, 100, ctx(scenario_mut)));
       
-      let lp_coin = interest_protocol_amm::new_pool<ETH, USDC, IPX_V_ETH_USDC>(
+      let lp_coin = interest_protocol_amm::new<ETH, USDC, IPX_V_ETH_USDC>(
         &mut registry,
         mint_for_testing(100, ctx(scenario_mut)),
         mint_for_testing(10, ctx(scenario_mut)),
@@ -900,7 +900,7 @@ module amm::interest_protocol_amm_tests {
       let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(scenario_mut);
       let lp_coin_metadata = test::take_shared<CoinMetadata<IPX_V_ETH_USDC>>(scenario_mut);
       
-      let lp_coin =interest_protocol_amm::new_pool<ETH, USDC, IPX_V_ETH_USDC>(
+      let lp_coin =interest_protocol_amm::new<ETH, USDC, IPX_V_ETH_USDC>(
         &mut registry,
         coin::zero(ctx(scenario_mut)),
         mint_for_testing(10, ctx(scenario_mut)),
@@ -942,7 +942,7 @@ module amm::interest_protocol_amm_tests {
       let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(scenario_mut);
       let lp_coin_metadata = test::take_shared<CoinMetadata<IPX_V_ETH_USDC>>(scenario_mut);
       
-      let lp_coin =interest_protocol_amm::new_pool<ETH, USDC, IPX_V_ETH_USDC>(
+      let lp_coin =interest_protocol_amm::new<ETH, USDC, IPX_V_ETH_USDC>(
         &mut registry,
         mint_for_testing(10, ctx(scenario_mut)),
         coin::zero(ctx(scenario_mut)),
@@ -984,7 +984,7 @@ module amm::interest_protocol_amm_tests {
       let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(scenario_mut);
       let lp_coin_metadata = test::take_shared<CoinMetadata<IPX_V_ETH_USDC>>(scenario_mut);
       
-      let lp_coin =interest_protocol_amm::new_pool<ETH, USDC, IPX_V_ETH_USDC>(
+      let lp_coin =interest_protocol_amm::new<ETH, USDC, IPX_V_ETH_USDC>(
         &mut registry,
         mint_for_testing(10, ctx(scenario_mut)),
         mint_for_testing(10, ctx(scenario_mut)),
@@ -1017,7 +1017,7 @@ module amm::interest_protocol_amm_tests {
       let usdc_metadata = test::take_shared<CoinMetadata<USDC>>(scenario_mut);
       let lp_coin_metadata = test::take_shared<CoinMetadata<IPX_V_ETH_USDC>>(scenario_mut);
       
-      let lp_coin =interest_protocol_amm::new_pool<ETH, USDC, IPX_V_ETH_USDC>(
+      let lp_coin =interest_protocol_amm::new<ETH, USDC, IPX_V_ETH_USDC>(
         &mut registry,
         mint_for_testing(10, ctx(scenario_mut)),
         mint_for_testing(10, ctx(scenario_mut)),
