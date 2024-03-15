@@ -20,6 +20,7 @@ module amm::errors {
   const EInvalidRentPerSecond: u64 = 17;
   const EThereIsAnActiveManager: u64 = 18;
   const EInvalidNextManager: u64 = 19;
+  const EInvalidActiveAccount: u64 = 20;
   
   public fun not_enough_funds_to_lend(): u64 {
     ENotEnoughFundsToLend
@@ -99,5 +100,9 @@ module amm::errors {
 
   public fun invalid_next_manager(): u64 {
     EInvalidNextManager
+  }
+
+  public fun invalid_active_account(): u64 {
+    EInvalidActiveAccount
   }
 }
