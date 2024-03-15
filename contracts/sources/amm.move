@@ -21,6 +21,7 @@ module amm::interest_protocol_amm {
   use amm::errors;
   use amm::stable;
   use amm::events;
+  use amm::auction;
   use amm::volatile; 
   use amm::admin::Admin;
   use amm::fees::{Self, Fees};
@@ -61,8 +62,16 @@ module amm::interest_protocol_amm {
     seed_liquidity: Balance<LpCoin>,
     fees: Fees,
     volatile: bool,
+    auction: AuctionManager,
     locked: bool     
   } 
+
+  struct AuctionManager has store {
+    manager: address,
+    start: u64,
+    end: u64,
+    manager_fees: Fees,
+  }
 
   struct Invoice {
     pool_id: ID,
@@ -467,12 +476,20 @@ module amm::interest_protocol_amm {
       fees: new_fees<Curve>(),
       locked: false,
       admin_balance_x: balance::zero(),
-      admin_balance_y: balance::zero()
+      admin_balance_y: balance::zero(),
+      auction: AuctionManager {
+        manager_fees: new_fees<Curve>(),
+        manager: @0x0,
+        start: 0,
+        end: 0
+      }
     };
 
     let pool = InterestPool {
       id: object::new(ctx)
     };
+
+    let pool_address = object::uid_to_address(&pool.id);
 
     df::add(&mut pool.id, PoolStateKey {}, pool_state);
 
@@ -481,7 +498,8 @@ module amm::interest_protocol_amm {
     events::new_pool<Curve, CoinX, CoinY>(object::id(&pool), coin_x_value, coin_y_value);
 
     share_object(pool);
-
+    share_object(auction::new_auction<LpCoin>(pool_address, ctx));
+    
     sender_balance
   }
 

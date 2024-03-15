@@ -16,6 +16,8 @@ module amm::errors {
   const EWrongModuleName: u64 = 13;
   const EInsufficientLiquidity: u64 = 14;
   const EWrongPool: u64 = 15;
+  const EDepositAmountIsTooLow: u64 = 16;
+  const EInvalidRentPerSecond: u64 = 17;
   
   public fun not_enough_funds_to_lend(): u64 {
     ENotEnoughFundsToLend
@@ -79,5 +81,13 @@ module amm::errors {
 
   public fun wrong_pool(): u64 {
     EWrongPool
+  }
+
+  public fun deposit_amount_is_too_low(): u64 {
+    EDepositAmountIsTooLow
+  }
+
+  public fun invalid_rent_per_second(): u64 {
+    EInvalidRentPerSecond
   }
 }
