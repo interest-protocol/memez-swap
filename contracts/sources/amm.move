@@ -70,7 +70,7 @@ module amm::interest_protocol_amm {
     manager: address,
     start: u64,
     end: u64,
-    manager_fees: Fees,
+    fees: Fees,
   }
 
   struct Invoice {
@@ -478,10 +478,10 @@ module amm::interest_protocol_amm {
       admin_balance_x: balance::zero(),
       admin_balance_y: balance::zero(),
       auction: AuctionManager {
-        manager_fees: new_fees<Curve>(),
         manager: @0x0,
         start: 0,
-        end: 0
+        end: 0,
+        fees: new_fees<Curve>(),
       }
     };
 
@@ -498,7 +498,7 @@ module amm::interest_protocol_amm {
     events::new_pool<Curve, CoinX, CoinY>(object::id(&pool), coin_x_value, coin_y_value);
 
     share_object(pool);
-    share_object(auction::new_auction<LpCoin>(pool_address, ctx));
+    auction::new_auction<LpCoin>(pool_address, ctx);
     
     sender_balance
   }

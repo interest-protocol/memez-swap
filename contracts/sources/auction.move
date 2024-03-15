@@ -1,14 +1,13 @@
 module amm::auction {
   // === Imports ===
-  use std::option::{Self, Option};
 
   use sui::coin::{Self, Coin};
   use sui::object::{Self, UID};
   use sui::clock::{Self, Clock};
   use sui::table::{Self, Table};
   use sui::balance::{Self, Balance};
-  use sui::transfer::public_transfer;
   use sui::tx_context::{Self, TxContext};
+  use sui::transfer::{share_object, public_transfer};
 
   use amm::admin::Admin;
 
@@ -32,7 +31,7 @@ module amm::auction {
 
   // === Structs ===
   
-  struct Auction<phantom LpCoin: drop> has key {
+  struct Auction<phantom LpCoin> has key {
     id: UID,
     pool_address: address,
     k: u64,
@@ -42,27 +41,32 @@ module amm::auction {
     deposits: Table<address, Balance<LpCoin>>,
   }
 
-  struct Manager has store {
+  struct Manager has store, copy, drop {
     start: u64,
     end: u64,
-    account_address: address,
+    address: address,
     rent_per_second: u64,
   }
 
   struct Account has key, store {
     id: UID,
+    /// `sui::object::uid_to_address` of {Account}
+    address: address
   }
 
   // === Public-Mutative Functions ===
 
   public fun new_account(ctx: &mut TxContext): Account {
+    let id = object::new(ctx);
+    let address = object::uid_to_address(&id);
     Account {
-      id: object::new(ctx)
+      id,
+      address
     }
   }  
 
   public fun destroy_account(account: Account) {
-    let Account { id } = account;
+    let Account { id, address: _ } = account;
     object::delete(id);
   }
 
@@ -82,29 +86,39 @@ module amm::auction {
     
     let current_timestamp = clock_timestamp_s(clock);
 
-    let is_usurping = self.next_manager.start > current_timestamp;
-    let end = math64::max(self.active_manager.end, current_timestamp);
+    let is_usurping_next_manager = self.next_manager.address != NO_MANAGER;
+    let active_manager_end = math64::max(self.active_manager.end, current_timestamp);
 
-    if (is_usurping) {
+    if (is_usurping_next_manager) {
       let minimum_increment = fixed_point::mul_up(self.minimum_bid_increment, self.next_manager.rent_per_second);
       assert!(rent_per_second >= self.next_manager.rent_per_second + minimum_increment, errors::invalid_rent_per_second());
 
       public_transfer(
         coin::from_balance(
-          balance::withdraw_all(table::borrow_mut(&mut self.deposits, self.next_manager.account_address)), 
+          balance::withdraw_all(table::borrow_mut(&mut self.deposits, self.next_manager.address)), 
           ctx
         ),
-        self.next_manager.account_address
+        self.next_manager.address
       );
     };
 
-    set_manager(
-      &mut self.next_manager,
-      object::uid_to_address(&account.id),
-      rent_per_second,
-      end + self.k,
-      end + duration
-    );  
+    self.next_manager.address = account.address;
+    self.next_manager.start = active_manager_end + self.k;
+    self.next_manager.end = active_manager_end + self.k + duration;
+    self.next_manager.rent_per_second = rent_per_second; 
+
+
+
+    abort 0
+  }
+
+  public fun activate<LpCoin: drop>(self: &mut Auction<LpCoin>, clock: &Clock) {
+    let current_timestamp = clock_timestamp_s(clock);
+
+    assert!(current_timestamp > self.active_manager.end, errors::there_is_an_active_manager());
+    assert!(self.next_manager.address != NO_MANAGER, errors::invalid_next_manager());
+
+    activate_impl(self);
   }
 
   // === Public-View Functions ===
@@ -121,39 +135,42 @@ module amm::auction {
 
   // === Public-Friend Functions ===
 
-  public(friend) fun new_auction<LpCoin: drop>(pool_address: address, ctx: &mut TxContext): Auction<LpCoin> {
-    Auction {
+  public(friend) fun new_auction<LpCoin>(pool_address: address, ctx: &mut TxContext) {
+    let auction = Auction<LpCoin> {
       id: object::new(ctx),
       pool_address,
       k: INITLAL_K,
       minimum_bid_increment: INITIAL_MINIMUM_BID_INCREMENT,
       deposits: table::new(ctx),
-      active_manager: Manager {
-        start: 0,
-        end: 0,
-        account_address: NO_MANAGER,
-        rent_per_second: 0,
-      },
-      next_manager: Manager {
-        start: 0,
-        end: 0,
-        account_address: NO_MANAGER,
-        rent_per_second: 0,
-      }
-    }
+      active_manager: no_manager(),
+      next_manager: no_manager()
+    };
+
+    share_object(auction);
   }
 
   // === Private Functions ===
 
-  fun set_manager(manager: &mut Manager, account_address: address, rent_per_second: u64, start: u64, end: u64) {
-    manager.account_address = account_address;
-    manager.start = start;
-    manager.end = end;
-    manager.rent_per_second = rent_per_second;
+  fun activate_impl<LpCoin: drop>(self: &mut Auction<LpCoin>) {
+    self.active_manager = self.next_manager;
+    self.next_manager = no_manager();    
   }
 
   fun clock_timestamp_s(c: &Clock): u64 {
     clock::timestamp_ms(c) / 1000
+  }
+
+  fun no_manager(): Manager {
+    Manager {
+        start: 0,
+        end: 0,
+        address: NO_MANAGER,
+        rent_per_second: 0,
+    }
+  }
+
+  fun deposit<LpCoin: drop>(self: &mut Auction<LpCoin>, account: &Account, deposit: Coin<LpCoin>) {
+    abort 0
   }
 
   // === Test Functions ===  

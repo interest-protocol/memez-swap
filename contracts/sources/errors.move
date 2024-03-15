@@ -18,6 +18,8 @@ module amm::errors {
   const EWrongPool: u64 = 15;
   const EDepositAmountIsTooLow: u64 = 16;
   const EInvalidRentPerSecond: u64 = 17;
+  const EThereIsAnActiveManager: u64 = 18;
+  const EInvalidNextManager: u64 = 19;
   
   public fun not_enough_funds_to_lend(): u64 {
     ENotEnoughFundsToLend
@@ -89,5 +91,13 @@ module amm::errors {
 
   public fun invalid_rent_per_second(): u64 {
     EInvalidRentPerSecond
+  }
+
+  public fun there_is_an_active_manager(): u64 {
+    EThereIsAnActiveManager
+  }
+
+  public fun invalid_next_manager(): u64 {
+    EInvalidNextManager
   }
 }
