@@ -71,7 +71,7 @@ module amm::auction {
     object::delete(id);
   }
 
-  public fun bid<LpCoin: drop>(
+  public fun bid<LpCoin>(
     self: &mut Auction<LpCoin>,
     clock: &Clock, 
     account: &Account, 
@@ -108,12 +108,12 @@ module amm::auction {
     self.next_manager.end = active_manager_end + self.k + duration;
     self.next_manager.rent_per_second = rent_per_second; 
 
-    if (current_timestamp > self.active_manager.end) activate_impl(self);
-
     deposit(self, account, deposit);
+
+    if (current_timestamp > self.active_manager.end) activate_impl(self);
   }
 
-  public fun activate<LpCoin: drop>(self: &mut Auction<LpCoin>, clock: &Clock) {
+  public fun activate<LpCoin>(self: &mut Auction<LpCoin>, clock: &Clock) {
     let current_timestamp = clock_timestamp_s(clock);
 
     assert!(current_timestamp > self.active_manager.end, errors::there_is_an_active_manager());
@@ -153,11 +153,11 @@ module amm::auction {
 
   // === Admin Functions ===
 
-  public fun set_k<LpCoin: drop>(_: &Admin, self: &mut Auction<LpCoin>, k: u64) {
+  public fun set_k<LpCoin>(_: &Admin, self: &mut Auction<LpCoin>, k: u64) {
     self.k = k
   }
 
-  public fun set_minimum_bid_increment<LpCoin: drop>(_: &Admin, self: &mut Auction<LpCoin>, minimum_bid_increment: u64) {
+  public fun set_minimum_bid_increment<LpCoin>(_: &Admin, self: &mut Auction<LpCoin>, minimum_bid_increment: u64) {
     self.minimum_bid_increment = minimum_bid_increment;
   }
 
@@ -184,7 +184,7 @@ module amm::auction {
 
   // === Private Functions ===
 
-  fun activate_impl<LpCoin: drop>(self: &mut Auction<LpCoin>) {
+  fun activate_impl<LpCoin>(self: &mut Auction<LpCoin>) {
     self.active_manager = self.next_manager;
     self.next_manager = no_manager();    
 
@@ -205,7 +205,7 @@ module amm::auction {
     }
   }
 
-  fun deposit<LpCoin: drop>(self: &mut Auction<LpCoin>, account: &Account, deposit: Coin<LpCoin>) {
+  fun deposit<LpCoin>(self: &mut Auction<LpCoin>, account: &Account, deposit: Coin<LpCoin>) {
 
     if (!table::contains(&self.deposits, account.address))
       table::add(&mut self.deposits, account.address, balance::zero<LpCoin>());
