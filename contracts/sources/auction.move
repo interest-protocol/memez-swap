@@ -6,8 +6,8 @@ module amm::auction {
   use sui::clock::{Self, Clock};
   use sui::table::{Self, Table};
   use sui::tx_context::TxContext;
+  use sui::transfer::share_object;
   use sui::balance::{Self, Balance};
-  use sui::transfer::{share_object, public_transfer};
 
   use amm::admin::Admin;
 
@@ -39,7 +39,8 @@ module amm::auction {
     next_manager: Manager,
     minimum_bid_increment: u64,
     deposits: Table<address, Balance<LpCoin>>,
-    burn_wallet: Balance<LpCoin>
+    withdrawls: Table<address, Balance<LpCoin>>,
+    burn_wallet: Balance<LpCoin>,
   }
 
   struct Manager has store, copy, drop {
@@ -76,8 +77,7 @@ module amm::auction {
     clock: &Clock, 
     account: &Account, 
     deposit: Coin<LpCoin>, 
-    period: u64,
-    ctx: &mut TxContext
+    period: u64
   ) {
     let deposit_value = coin::value(&deposit);
     let duration = period + self.k;
@@ -94,13 +94,9 @@ module amm::auction {
       let minimum_increment = fixed_point::mul_up(self.minimum_bid_increment, self.next_manager.rent_per_second);
       assert!(rent_per_second >= self.next_manager.rent_per_second + minimum_increment, errors::invalid_rent_per_second());
 
-      public_transfer(
-        coin::from_balance(
-          balance::withdraw_all(table::borrow_mut(&mut self.deposits, self.next_manager.address)), 
-          ctx
-        ),
-        self.next_manager.address
-      );
+      let usurped_balance = balance::withdraw_all(table::borrow_mut(&mut self.deposits, self.next_manager.address));
+
+      add_withdrawls(self, account, usurped_balance);      
     };
 
     self.next_manager.address = account.address;
@@ -108,7 +104,7 @@ module amm::auction {
     self.next_manager.end = active_manager_end + self.k + duration;
     self.next_manager.rent_per_second = rent_per_second; 
 
-    deposit(self, account, deposit);
+    add_deposits(self, account, deposit);
 
     if (current_timestamp > self.active_manager.end) activate_impl(self);
   }
@@ -120,6 +116,10 @@ module amm::auction {
     assert!(self.next_manager.address != NO_MANAGER, errors::invalid_next_manager());
 
     activate_impl(self);
+  }
+
+  public fun withdraw<LpCoin>(self: &mut Auction<LpCoin>, account: &Account, ctx: &mut TxContext): Coin<LpCoin> {
+    coin::from_balance(balance::withdraw_all(table::borrow_mut(&mut self.withdrawls, account.address)), ctx)
   }
 
   // === Public-View Functions ===
@@ -172,7 +172,8 @@ module amm::auction {
       deposits: table::new(ctx),
       active_manager: no_manager(),
       next_manager: no_manager(),
-      burn_wallet: balance::zero()
+      burn_wallet: balance::zero(),
+      withdrawls: table::new(ctx)
     };
 
     share_object(auction);
@@ -205,13 +206,20 @@ module amm::auction {
     }
   }
 
-  fun deposit<LpCoin>(self: &mut Auction<LpCoin>, account: &Account, deposit: Coin<LpCoin>) {
-
-    if (!table::contains(&self.deposits, account.address))
-      table::add(&mut self.deposits, account.address, balance::zero<LpCoin>());
-
-    balance::join(table::borrow_mut(&mut self.deposits, account.address), coin::into_balance(deposit));
+  fun add_deposits<LpCoin>(self: &mut Auction<LpCoin>, account: &Account, deposit: Coin<LpCoin>) {
+    add_balance(&mut self.deposits, coin::into_balance(deposit), account.address);
   }
 
+  fun add_withdrawls<LpCoin>(self: &mut Auction<LpCoin>, account: &Account, balance_in: Balance<LpCoin>) {
+    add_balance(&mut self.withdrawls, balance_in, account.address);
+  }
+
+  fun add_balance<LpCoin>(balance_table: &mut Table<address, Balance<LpCoin>>, balance_in: Balance<LpCoin>, key: address) {
+
+    if (!table::contains(balance_table, key))
+      table::add(balance_table, key, balance::zero<LpCoin>());
+
+    balance::join(table::borrow_mut(balance_table, key), balance_in);
+  }
   // === Test Functions ===  
 }
