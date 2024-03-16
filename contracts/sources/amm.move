@@ -273,6 +273,7 @@ module amm::interest_protocol_amm {
     remove_liquidity_fee_percent: Option<u256>,   
   ) {
     auction::assert_is_manager_active<LpCoin>(auction, clock, account);
+    let pool_address = object::uid_to_address(&pool.id);
     let pool_state = pool_state_mut<CoinX, CoinY, LpCoin>(pool);
 
     pool_state.manager.address = auction::account_address(account);
@@ -281,7 +282,15 @@ module amm::interest_protocol_amm {
 
     fees::update_fee_in_percent(&mut pool_state.fees, fee_in_percent);
     fees::update_fee_out_percent(&mut pool_state.fees, fee_out_percent);  
-    fees::update_remove_liquidity_fee_percent(&mut pool_state.fees, remove_liquidity_fee_percent);      
+    fees::update_remove_liquidity_fee_percent(&mut pool_state.fees, remove_liquidity_fee_percent);
+
+    events::manager_fees(
+      pool_address, 
+      pool_state.manager.address, 
+      pool_state.manager.start, 
+      pool_state.manager.end, 
+      pool_state.manager.fees
+    );      
   }
 
   public fun take_manager_fees<CoinX, CoinY, LpCoin>(
@@ -495,11 +504,14 @@ module amm::interest_protocol_amm {
     fee_out_percent: Option<u256>, 
     admin_fee_percent: Option<u256>,  
   ) {
+    let pool_address = object::uid_to_address(&pool.id);
     let pool_state = pool_state_mut<CoinX, CoinY, LpCoin>(pool);
 
     fees::update_fee_in_percent(&mut pool_state.fees, fee_in_percent);
     fees::update_fee_out_percent(&mut pool_state.fees, fee_out_percent);  
     fees::update_admin_fee_percent(&mut pool_state.fees, admin_fee_percent);
+
+    events::update_fees(pool_address, pool_state.fees);
   }
 
   public fun take_fees<CoinX, CoinY, LpCoin>(

@@ -2,6 +2,8 @@ module amm::events {
 
   use sui::event::emit;
 
+  use amm::fees::Fees;
+
   friend amm::interest_protocol_amm;
 
   struct NewPool<phantom Curve, phantom CoinX, phantom CoinY> has copy, drop {
@@ -39,8 +41,17 @@ module amm::events {
     admin_amount: u64
   }
 
-  struct ManagerFees<phantom CoinX, phantom CoinY> has copy, drop {
-    pool_address: address
+  struct ManagerFees has copy, drop {
+    pool_address: address,
+    manager_address: address,
+    start: u64,
+    end: u64,
+    fees: Fees
+  }
+
+  struct UpdateFees has copy, drop {
+    pool_address: address,
+    fees: Fees    
   }
 
   public(friend) fun new_pool<Curve, CoinX, CoinY>(
@@ -81,6 +92,20 @@ module amm::events {
   }
 
   public(friend) fun manager_burn<LpCoin>(pool_address: address, amount: u64, admin_amount: u64) {
-    emit(ManagerBurn<LpCoin>{ pool_address, amount, admin_amount });
+    emit(ManagerBurn<LpCoin> { pool_address, amount, admin_amount });
+  }  
+
+  public(friend) fun manager_fees(
+    pool_address: address,
+    manager_address: address,
+    start: u64,
+    end: u64,
+    fees: Fees    
+  ) {
+    emit(ManagerFees { pool_address, manager_address, start, end, fees });
+  }  
+
+  public(friend) fun update_fees(pool_address: address, fees: Fees) {
+    emit(UpdateFees { pool_address, fees });
   }  
 }
