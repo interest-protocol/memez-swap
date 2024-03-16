@@ -2,6 +2,7 @@
 module amm::quote_tests {
   use std::option;
 
+  use sui::object;
   use sui::test_utils::assert_eq;
   use sui::test_scenario::{Self as test, Scenario, next_tx, ctx};
   
@@ -317,8 +318,10 @@ module amm::quote_tests {
 
   fun request<Curve, CoinX, CoinY, LPCoinType>(scenario_mut: &Scenario): Request {
     let registry = test::take_shared<Registry>(scenario_mut);
-    let pool_id = interest_protocol_amm::pool_id<Curve, CoinX, CoinY>(&registry);
-    let pool = test::take_shared_by_id<InterestPool>(scenario_mut, option::destroy_some(pool_id));
+    let pool_address = interest_protocol_amm::pool_address<Curve, CoinX, CoinY>(&registry);
+    let pool = test::take_shared_by_id<InterestPool>(
+      scenario_mut, object::id_from_address(option::destroy_some(pool_address))
+    );
     let pool_fees = interest_protocol_amm::fees<CoinX, CoinY, LPCoinType>(&pool);
 
     Request {
