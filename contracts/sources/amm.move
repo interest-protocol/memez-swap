@@ -7,6 +7,7 @@ module amm::interest_protocol_amm {
 
   use sui::math::pow;
   use sui::dynamic_field as df;
+  use sui::clock::{Self, Clock};
   use sui::table::{Self, Table};
   use sui::tx_context::TxContext;
   use sui::transfer::share_object;
@@ -21,11 +22,11 @@ module amm::interest_protocol_amm {
   use amm::errors;
   use amm::stable;
   use amm::events;
-  use amm::auction;
   use amm::volatile; 
   use amm::admin::Admin;
   use amm::fees::{Self, Fees};
   use amm::curves::{Self, Volatile, Stable};
+  use amm::auction::{Self, Auction, Account};
 
   // === Constants ===
 
@@ -62,15 +63,21 @@ module amm::interest_protocol_amm {
     seed_liquidity: Balance<LpCoin>,
     fees: Fees,
     volatile: bool,
-    auction: AuctionManager,
+    manager: Manager,
+    manager_balances: Table<address, ManagerBalances<CoinX, CoinY>>,
     locked: bool     
   } 
 
-  struct AuctionManager has store {
-    manager: address,
+  struct Manager has store {
+    address: address,
     start: u64,
     end: u64,
     fees: Fees,
+  }
+
+  struct ManagerBalances<phantom CoinX, phantom CoinY> has store {
+    balance_x: Balance<CoinX>,
+    balance_y: Balance<CoinY>
   }
 
   struct Invoice {
@@ -91,6 +98,8 @@ module amm::interest_protocol_amm {
       }
     );
   }  
+
+  // === DEX ===
 
   #[lint_allow(share_owned)]
   public fun new<CoinX, CoinY, LpCoin>(
@@ -178,6 +187,7 @@ module amm::interest_protocol_amm {
 
   public fun remove_liquidity<CoinX, CoinY, LpCoin>(
     pool: &mut InterestPool,
+    clock: &Clock,
     lp_coin: Coin<LpCoin>,
     coin_x_min_amount: u64,
     coin_y_min_amount: u64,
@@ -203,11 +213,75 @@ module amm::interest_protocol_amm {
 
     events::remove_liquidity<CoinX, CoinY>(pool_id, coin_x_removed, coin_y_removed, lp_coin_value);
 
+    let coin_x = coin::take(&mut pool_state.balance_x, coin_x_removed, ctx);
+    let coin_y = coin::take(&mut pool_state.balance_y, coin_y_removed, ctx);
+
+    if (are_manager_fees_active_impl(pool_state, clock)) {
+      let manager_coin_x_value = fees::get_remove_liquidity_amount(&pool_state.manager.fees, coin_x_removed);
+      let manager_coin_y_value = fees::get_remove_liquidity_amount(&pool_state.manager.fees, coin_y_removed);
+      add_manager_fee_x(pool_state, coin::split(&mut coin_x, manager_coin_x_value, ctx));
+      add_manager_fee_y(pool_state, coin::split(&mut coin_y, manager_coin_y_value, ctx));
+    };    
+
     (
-      coin::take(&mut pool_state.balance_x, coin_x_removed, ctx),
-      coin::take(&mut pool_state.balance_y, coin_y_removed, ctx)
+      coin_x,
+      coin_y
     )
   }  
+
+  // === Auction ===
+
+  public fun burn_manager_deposits<CoinX, CoinY, LpCoin>(pool: &mut InterestPool, auction: &mut Auction<LpCoin>, ctx: &mut TxContext): u64 {
+    let pool_state = pool_state_mut<CoinX, CoinY, LpCoin>(pool);
+
+    let burn_balance = auction::burn_wallet_mut(auction);
+
+    coin::burn(&mut pool_state.lp_coin_cap, coin::from_balance(balance::withdraw_all(burn_balance), ctx))
+  }
+
+  public fun set_manager_fees<CoinX, CoinY, LpCoin>(
+    pool: &mut InterestPool,
+    auction: &Auction<LpCoin>, 
+    clock: &Clock,
+    account: &Account,
+    fee_in_percent: Option<u256>,
+    fee_out_percent: Option<u256>, 
+    remove_liquidity_fee_percent: Option<u256>,   
+  ) {
+    auction::assert_is_manager_active<LpCoin>(auction, clock, account);
+    let pool_state = pool_state_mut<CoinX, CoinY, LpCoin>(pool);
+
+    pool_state.manager.address = auction::account_address(account);
+    pool_state.manager.start = auction::active_manager_start(auction);
+    pool_state.manager.end = auction::active_manager_end(auction);
+
+    fees::update_fee_in_percent(&mut pool_state.fees, fee_in_percent);
+    fees::update_fee_out_percent(&mut pool_state.fees, fee_out_percent);  
+    fees::update_remove_liquidity_fee_percent(&mut pool_state.fees, remove_liquidity_fee_percent);      
+  }
+
+  public fun take_manager_fees<CoinX, CoinY, LpCoin>(
+    pool: &mut InterestPool,
+    account: &Account,
+    ctx: &mut TxContext
+  ): (Coin<CoinX>, Coin<CoinY>) {
+    let pool_state = pool_state_mut<CoinX, CoinY, LpCoin>(pool);
+
+    let manager_balance = table::borrow_mut(
+      &mut pool_state.manager_balances, 
+      auction::account_address(account)
+    );
+
+    let amount_x = balance::value(&manager_balance.balance_x);
+    let amount_y = balance::value(&manager_balance.balance_y);
+
+    (
+      coin::take(&mut manager_balance.balance_x, amount_x, ctx),
+      coin::take(&mut manager_balance.balance_y, amount_y, ctx)
+    )
+  }
+
+  // === Flash Loans ===
 
   public fun flash_loan<CoinX, CoinY, LpCoin>(
     pool: &mut InterestPool,
@@ -358,6 +432,12 @@ module amm::interest_protocol_amm {
     invoice.prev_k
   }  
 
+  public fun are_manager_fees_active<CoinX, CoinY, LpCoin>(pool: &InterestPool, clock: &Clock): bool {
+    let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
+
+    are_manager_fees_active_impl(pool_state, clock)
+  }
+
   // === Admin Functions ===
 
   public fun update_fees<CoinX, CoinY, LpCoin>(
@@ -477,12 +557,13 @@ module amm::interest_protocol_amm {
       locked: false,
       admin_balance_x: balance::zero(),
       admin_balance_y: balance::zero(),
-      auction: AuctionManager {
-        manager: @0x0,
+      manager: Manager {
+        address: @0x0,
         start: 0,
         end: 0,
         fees: new_fees<Curve>(),
-      }
+      },
+      manager_balances: table::new(ctx)
     };
 
     let pool = InterestPool {
@@ -632,6 +713,51 @@ module amm::interest_protocol_amm {
     assert!(new_k >= prev_k, errors::invalid_invariant());
 
     (amount_out, admin_fee_in, admin_fee_out)    
+  }
+
+  fun add_manager_fee_x<CoinX, CoinY, LpCoin>(pool_state: &mut PoolState<CoinX, CoinY, LpCoin>, coin_x: Coin<CoinX>) {
+    if (!table::contains(&pool_state.manager_balances, pool_state.manager.address)) {
+      table::add(
+        &mut pool_state.manager_balances, 
+        pool_state.manager.address, 
+        ManagerBalances {
+          balance_x: balance::zero(),
+          balance_y: balance::zero()
+        } 
+      )
+    };
+
+    balance::join(
+      &mut table::borrow_mut(&mut pool_state.manager_balances, pool_state.manager.address).balance_x, 
+      coin::into_balance(coin_x)
+    );
+  }
+
+  fun add_manager_fee_y<CoinX, CoinY, LpCoin>(pool_state: &mut PoolState<CoinX, CoinY, LpCoin>, coin_y: Coin<CoinY>) {
+    if (!table::contains(&pool_state.manager_balances, pool_state.manager.address)) {
+      table::add(
+        &mut pool_state.manager_balances, 
+        pool_state.manager.address, 
+        ManagerBalances {
+          balance_x: balance::zero(),
+          balance_y: balance::zero()
+        } 
+      )
+    };
+
+    balance::join(
+      &mut table::borrow_mut(&mut pool_state.manager_balances, pool_state.manager.address).balance_y, 
+      coin::into_balance(coin_y)
+    );
+  }
+
+  fun are_manager_fees_active_impl<CoinX, CoinY, LpCoin>(pool_state: &PoolState<CoinX, CoinY, LpCoin>, clock: &Clock): bool {
+    let current_timestamp = clock_timestamp_s(clock);
+    current_timestamp >= pool_state.manager.start && pool_state.manager.end > current_timestamp
+  }
+
+  fun clock_timestamp_s(clock: &Clock): u64 {
+    clock::timestamp_ms(clock) / 1000
   }
 
   fun pool_state<CoinX, CoinY, LpCoin>(pool: &InterestPool): &PoolState<CoinX, CoinY, LpCoin> {

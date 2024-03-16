@@ -26,8 +26,8 @@ module amm::auction {
 
   //@dev 10 seconds
   const INITLAL_K: u64 = 10;
-  const INITIAL_MINIMUM_BID_INCREMENT: u64 = 10000000;
   const NO_MANAGER: address = @0x0;
+  const INITIAL_MINIMUM_BID_INCREMENT: u64 = 10000000;
 
   // === Structs ===
   
@@ -124,7 +124,7 @@ module amm::auction {
 
   // === Public-View Functions ===
 
-  public fun assert_is_active<LpCoin>(self: &mut Auction<LpCoin>, clock: &Clock, account: &Account) {
+  public fun assert_is_manager_active<LpCoin>(self: &Auction<LpCoin>, clock: &Clock, account: &Account) {
     let current_timestamp = clock_timestamp_s(clock);
 
     assert!(
@@ -133,6 +133,10 @@ module amm::auction {
       && self.active_manager.address == account.address,
       errors::invalid_active_account()
     );
+  }
+
+  public fun account_address(account: &Account): address {
+    account.address
   }
 
   public fun active_manager_start<LpCoin>(self: &Auction<LpCoin>): u64 {

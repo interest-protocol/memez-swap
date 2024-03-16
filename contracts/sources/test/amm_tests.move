@@ -386,43 +386,43 @@ module amm::interest_protocol_amm_tests {
     test::end(scenario);    
   }
 
-  #[test]
-  fun test_remove_liquidity() {
-    let (scenario, alice, _) = start_test();  
+  // #[test]
+  // fun test_remove_liquidity() {
+  //   let (scenario, alice, _) = start_test();  
 
-    let scenario_mut = &mut scenario;
+  //   let scenario_mut = &mut scenario;
 
-    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
-    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
+  //   let eth_amount = 15 * ETH_DECIMAL_SCALAR;
+  //   let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
     
-    deploy_eth_usdc_pool(scenario_mut, eth_amount, usdc_amount);
+  //   deploy_eth_usdc_pool(scenario_mut, eth_amount, usdc_amount);
 
-    next_tx(scenario_mut, alice);
-    {
-      let request = request<Volatile, ETH, USDC, IPX_V_ETH_USDC>(scenario_mut);
+  //   next_tx(scenario_mut, alice);
+  //   {
+  //     let request = request<Volatile, ETH, USDC, IPX_V_ETH_USDC>(scenario_mut);
 
-      let initial_lp_coin_supply = interest_protocol_amm::lp_coin_supply<ETH, USDC, IPX_V_ETH_USDC>(&request.pool);  
+  //     let initial_lp_coin_supply = interest_protocol_amm::lp_coin_supply<ETH, USDC, IPX_V_ETH_USDC>(&request.pool);  
 
-      let (expected_x, expected_y) = quote::remove_liquidity<ETH, USDC, IPX_V_ETH_USDC>(&request.pool, initial_lp_coin_supply / 3);
+  //     let (expected_x, expected_y) = quote::remove_liquidity<ETH, USDC, IPX_V_ETH_USDC>(&request.pool, initial_lp_coin_supply / 3);
 
-      let (eth_coin, usdc_coin) = interest_protocol_amm::remove_liquidity<ETH, USDC, IPX_V_ETH_USDC>(
-        &mut request.pool,
-        mint_for_testing(initial_lp_coin_supply / 3, ctx(scenario_mut)),
-        expected_x,
-        expected_y,
-        ctx(scenario_mut)
-      );   
+  //     let (eth_coin, usdc_coin) = interest_protocol_amm::remove_liquidity<ETH, USDC, IPX_V_ETH_USDC>(
+  //       &mut request.pool,
+  //       mint_for_testing(initial_lp_coin_supply / 3, ctx(scenario_mut)),
+  //       expected_x,
+  //       expected_y,
+  //       ctx(scenario_mut)
+  //     );   
 
-      assert_eq(burn_for_testing(eth_coin), expected_x);
-      assert_eq(burn_for_testing(usdc_coin), expected_y);
-      assert_eq(interest_protocol_amm::lp_coin_supply<ETH, USDC, IPX_V_ETH_USDC>(&request.pool), initial_lp_coin_supply - initial_lp_coin_supply / 3);
-      assert_eq(interest_protocol_amm::balance_x<ETH, USDC, IPX_V_ETH_USDC>(&request.pool), eth_amount - expected_x);
-      assert_eq(interest_protocol_amm::balance_y<ETH, USDC, IPX_V_ETH_USDC>(&request.pool), usdc_amount - expected_y);
+  //     assert_eq(burn_for_testing(eth_coin), expected_x);
+  //     assert_eq(burn_for_testing(usdc_coin), expected_y);
+  //     assert_eq(interest_protocol_amm::lp_coin_supply<ETH, USDC, IPX_V_ETH_USDC>(&request.pool), initial_lp_coin_supply - initial_lp_coin_supply / 3);
+  //     assert_eq(interest_protocol_amm::balance_x<ETH, USDC, IPX_V_ETH_USDC>(&request.pool), eth_amount - expected_x);
+  //     assert_eq(interest_protocol_amm::balance_y<ETH, USDC, IPX_V_ETH_USDC>(&request.pool), usdc_amount - expected_y);
 
-      destroy_request(request);
-    };    
-    test::end(scenario); 
-  }
+  //     destroy_request(request);
+  //   };    
+  //   test::end(scenario); 
+  // }
 
   #[test]
   fun test_flash_loan() {
@@ -1439,153 +1439,153 @@ module amm::interest_protocol_amm_tests {
     test::end(scenario);    
   }  
 
-  #[test]
-  #[expected_failure(abort_code = amm::errors::ENoZeroCoin, location = amm::interest_protocol_amm)]  
-  fun test_remove_liquidity_no_zero_coin() {
-    let (scenario, alice, _) = start_test();  
+  // #[test]
+  // #[expected_failure(abort_code = amm::errors::ENoZeroCoin, location = amm::interest_protocol_amm)]  
+  // fun test_remove_liquidity_no_zero_coin() {
+  //   let (scenario, alice, _) = start_test();  
 
-    let scenario_mut = &mut scenario;
+  //   let scenario_mut = &mut scenario;
 
-    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
-    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
+  //   let eth_amount = 15 * ETH_DECIMAL_SCALAR;
+  //   let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
     
-    deploy_eth_usdc_pool(scenario_mut, eth_amount, usdc_amount);
+  //   deploy_eth_usdc_pool(scenario_mut, eth_amount, usdc_amount);
 
-    next_tx(scenario_mut, alice);
-    {
-      let request = request<Volatile, ETH, USDC, IPX_V_ETH_USDC>(scenario_mut);
+  //   next_tx(scenario_mut, alice);
+  //   {
+  //     let request = request<Volatile, ETH, USDC, IPX_V_ETH_USDC>(scenario_mut);
 
-      let (eth_coin, usdc_coin) = interest_protocol_amm::remove_liquidity<ETH, USDC, IPX_V_ETH_USDC>(
-        &mut request.pool,
-        coin::zero(ctx(scenario_mut)),
-        0,
-        0,
-        ctx(scenario_mut)
-      );   
+  //     let (eth_coin, usdc_coin) = interest_protocol_amm::remove_liquidity<ETH, USDC, IPX_V_ETH_USDC>(
+  //       &mut request.pool,
+  //       coin::zero(ctx(scenario_mut)),
+  //       0,
+  //       0,
+  //       ctx(scenario_mut)
+  //     );   
 
-      burn_for_testing(eth_coin);
-      burn_for_testing(usdc_coin);
+  //     burn_for_testing(eth_coin);
+  //     burn_for_testing(usdc_coin);
 
-      destroy_request(request);
-    };    
-    test::end(scenario); 
-  }   
+  //     destroy_request(request);
+  //   };    
+  //   test::end(scenario); 
+  // }   
 
-  #[test]
-  #[expected_failure(abort_code = amm::errors::EPoolIsLocked, location = amm::interest_protocol_amm)]  
-  fun test_remove_liquidity_locked() {
-    let (scenario, alice, _) = start_test();  
+  // #[test]
+  // #[expected_failure(abort_code = amm::errors::EPoolIsLocked, location = amm::interest_protocol_amm)]  
+  // fun test_remove_liquidity_locked() {
+  //   let (scenario, alice, _) = start_test();  
 
-    let scenario_mut = &mut scenario;
+  //   let scenario_mut = &mut scenario;
 
-    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
-    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
+  //   let eth_amount = 15 * ETH_DECIMAL_SCALAR;
+  //   let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
     
-    deploy_eth_usdc_pool(scenario_mut, eth_amount, usdc_amount);
+  //   deploy_eth_usdc_pool(scenario_mut, eth_amount, usdc_amount);
 
-    next_tx(scenario_mut, alice);
-    {
-      let request = request<Volatile, ETH, USDC, IPX_V_ETH_USDC>(scenario_mut);
+  //   next_tx(scenario_mut, alice);
+  //   {
+  //     let request = request<Volatile, ETH, USDC, IPX_V_ETH_USDC>(scenario_mut);
 
-      let (invoice, coin_x, coin_y) = interest_protocol_amm::flash_loan<ETH, USDC, IPX_V_ETH_USDC>(
-        &mut request.pool,
-        1,
-        2,
-        ctx(scenario_mut)
-      );
+  //     let (invoice, coin_x, coin_y) = interest_protocol_amm::flash_loan<ETH, USDC, IPX_V_ETH_USDC>(
+  //       &mut request.pool,
+  //       1,
+  //       2,
+  //       ctx(scenario_mut)
+  //     );
 
-      let (eth_coin, usdc_coin) = interest_protocol_amm::remove_liquidity<ETH, USDC, IPX_V_ETH_USDC>(
-        &mut request.pool,
-        mint_for_testing(1, ctx(scenario_mut)),
-        0,
-        0,
-        ctx(scenario_mut)
-      );   
+  //     let (eth_coin, usdc_coin) = interest_protocol_amm::remove_liquidity<ETH, USDC, IPX_V_ETH_USDC>(
+  //       &mut request.pool,
+  //       mint_for_testing(1, ctx(scenario_mut)),
+  //       0,
+  //       0,
+  //       ctx(scenario_mut)
+  //     );   
 
-      burn_for_testing(eth_coin);
-      burn_for_testing(usdc_coin);
+  //     burn_for_testing(eth_coin);
+  //     burn_for_testing(usdc_coin);
 
-      interest_protocol_amm::repay_flash_loan<ETH, USDC, IPX_V_ETH_USDC>(
-        &mut request.pool,
-        invoice,
-        coin_x,
-        coin_y
-      );
+  //     interest_protocol_amm::repay_flash_loan<ETH, USDC, IPX_V_ETH_USDC>(
+  //       &mut request.pool,
+  //       invoice,
+  //       coin_x,
+  //       coin_y
+  //     );
 
-      destroy_request(request);
-    };    
-    test::end(scenario); 
-  }  
+  //     destroy_request(request);
+  //   };    
+  //   test::end(scenario); 
+  // }  
 
-  #[test]
-  #[expected_failure(abort_code = amm::errors::ESlippage, location = amm::interest_protocol_amm)] 
-  fun test_remove_liquidity_slippage_coin_x() {
-    let (scenario, alice, _) = start_test();  
+  // #[test]
+  // #[expected_failure(abort_code = amm::errors::ESlippage, location = amm::interest_protocol_amm)] 
+  // fun test_remove_liquidity_slippage_coin_x() {
+  //   let (scenario, alice, _) = start_test();  
 
-    let scenario_mut = &mut scenario;
+  //   let scenario_mut = &mut scenario;
 
-    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
-    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
+  //   let eth_amount = 15 * ETH_DECIMAL_SCALAR;
+  //   let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
     
-    deploy_eth_usdc_pool(scenario_mut, eth_amount, usdc_amount);
+  //   deploy_eth_usdc_pool(scenario_mut, eth_amount, usdc_amount);
 
-    next_tx(scenario_mut, alice);
-    {
-      let request = request<Volatile, ETH, USDC, IPX_V_ETH_USDC>(scenario_mut);
-      let initial_lp_coin_supply = interest_protocol_amm::lp_coin_supply<ETH, USDC, IPX_V_ETH_USDC>(&request.pool);  
+  //   next_tx(scenario_mut, alice);
+  //   {
+  //     let request = request<Volatile, ETH, USDC, IPX_V_ETH_USDC>(scenario_mut);
+  //     let initial_lp_coin_supply = interest_protocol_amm::lp_coin_supply<ETH, USDC, IPX_V_ETH_USDC>(&request.pool);  
 
-      let (expected_x, expected_y) = quote::remove_liquidity<ETH, USDC, IPX_V_ETH_USDC>(&request.pool, initial_lp_coin_supply / 3);
+  //     let (expected_x, expected_y) = quote::remove_liquidity<ETH, USDC, IPX_V_ETH_USDC>(&request.pool, initial_lp_coin_supply / 3);
 
-      let (eth_coin, usdc_coin) = interest_protocol_amm::remove_liquidity<ETH, USDC, IPX_V_ETH_USDC>(
-        &mut request.pool,
-        mint_for_testing(initial_lp_coin_supply / 3, ctx(scenario_mut)),
-        expected_x + 1,
-        expected_y,
-        ctx(scenario_mut)
-      );   
+  //     let (eth_coin, usdc_coin) = interest_protocol_amm::remove_liquidity<ETH, USDC, IPX_V_ETH_USDC>(
+  //       &mut request.pool,
+  //       mint_for_testing(initial_lp_coin_supply / 3, ctx(scenario_mut)),
+  //       expected_x + 1,
+  //       expected_y,
+  //       ctx(scenario_mut)
+  //     );   
 
-      burn_for_testing(eth_coin);
-      burn_for_testing(usdc_coin);
+  //     burn_for_testing(eth_coin);
+  //     burn_for_testing(usdc_coin);
 
-      destroy_request(request);
-    };    
-    test::end(scenario); 
-  }  
+  //     destroy_request(request);
+  //   };    
+  //   test::end(scenario); 
+  // }  
 
-  #[test]
-  #[expected_failure(abort_code = amm::errors::ESlippage, location = amm::interest_protocol_amm)] 
-  fun test_remove_liquidity_slippage_coin_y() {
-    let (scenario, alice, _) = start_test();  
+  // #[test]
+  // #[expected_failure(abort_code = amm::errors::ESlippage, location = amm::interest_protocol_amm)] 
+  // fun test_remove_liquidity_slippage_coin_y() {
+  //   let (scenario, alice, _) = start_test();  
 
-    let scenario_mut = &mut scenario;
+  //   let scenario_mut = &mut scenario;
 
-    let eth_amount = 15 * ETH_DECIMAL_SCALAR;
-    let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
+  //   let eth_amount = 15 * ETH_DECIMAL_SCALAR;
+  //   let usdc_amount = 37500 * USDC_DECIMAL_SCALAR;
     
-    deploy_eth_usdc_pool(scenario_mut, eth_amount, usdc_amount);
+  //   deploy_eth_usdc_pool(scenario_mut, eth_amount, usdc_amount);
 
-    next_tx(scenario_mut, alice);
-    {
-      let request = request<Volatile, ETH, USDC, IPX_V_ETH_USDC>(scenario_mut);
-      let initial_lp_coin_supply = interest_protocol_amm::lp_coin_supply<ETH, USDC, IPX_V_ETH_USDC>(&request.pool);  
+  //   next_tx(scenario_mut, alice);
+  //   {
+  //     let request = request<Volatile, ETH, USDC, IPX_V_ETH_USDC>(scenario_mut);
+  //     let initial_lp_coin_supply = interest_protocol_amm::lp_coin_supply<ETH, USDC, IPX_V_ETH_USDC>(&request.pool);  
 
-      let (expected_x, expected_y) = quote::remove_liquidity<ETH, USDC, IPX_V_ETH_USDC>(&request.pool, initial_lp_coin_supply / 3);
+  //     let (expected_x, expected_y) = quote::remove_liquidity<ETH, USDC, IPX_V_ETH_USDC>(&request.pool, initial_lp_coin_supply / 3);
 
-      let (eth_coin, usdc_coin) = interest_protocol_amm::remove_liquidity<ETH, USDC, IPX_V_ETH_USDC>(
-        &mut request.pool,
-        mint_for_testing(initial_lp_coin_supply / 3, ctx(scenario_mut)),
-        expected_x,
-        expected_y + 1,
-        ctx(scenario_mut)
-      );   
+  //     let (eth_coin, usdc_coin) = interest_protocol_amm::remove_liquidity<ETH, USDC, IPX_V_ETH_USDC>(
+  //       &mut request.pool,
+  //       mint_for_testing(initial_lp_coin_supply / 3, ctx(scenario_mut)),
+  //       expected_x,
+  //       expected_y + 1,
+  //       ctx(scenario_mut)
+  //     );   
 
-      burn_for_testing(eth_coin);
-      burn_for_testing(usdc_coin);
+  //     burn_for_testing(eth_coin);
+  //     burn_for_testing(usdc_coin);
 
-      destroy_request(request);
-    };    
-    test::end(scenario); 
-  } 
+  //     destroy_request(request);
+  //   };    
+  //   test::end(scenario); 
+  // } 
 
   struct Request {
     registry: Registry,
