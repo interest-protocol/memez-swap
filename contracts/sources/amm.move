@@ -129,6 +129,7 @@ module amm::interest_protocol_amm {
 
   public fun swap<CoinIn, CoinOut, LpCoin>(
     pool: &mut InterestPool, 
+    clock: &Clock,
     coin_in: Coin<CoinIn>,
     coin_min_value: u64,
     ctx: &mut TxContext    
@@ -136,9 +137,9 @@ module amm::interest_protocol_amm {
     assert!(coin::value(&coin_in) != 0, errors::no_zero_coin());
 
     if (utils::is_coin_x<CoinIn, CoinOut>()) 
-      swap_coin_x<CoinIn, CoinOut, LpCoin>(pool, coin_in, coin_min_value, ctx)
+      swap_coin_x<CoinIn, CoinOut, LpCoin>(pool, clock, coin_in, coin_min_value, ctx)
     else 
-      swap_coin_y<CoinOut, CoinIn, LpCoin>(pool, coin_in, coin_min_value, ctx)
+      swap_coin_y<CoinOut, CoinIn, LpCoin>(pool, clock,  coin_in, coin_min_value, ctx)
   }
 
   public fun add_liquidity<CoinX, CoinY, LpCoin>(
@@ -211,17 +212,17 @@ module amm::interest_protocol_amm {
 
     balance::decrease_supply(coin::supply_mut(&mut pool_state.lp_coin_cap), coin::into_balance(lp_coin));
 
-    events::remove_liquidity<CoinX, CoinY>(pool_id, coin_x_removed, coin_y_removed, lp_coin_value);
-
     let coin_x = coin::take(&mut pool_state.balance_x, coin_x_removed, ctx);
     let coin_y = coin::take(&mut pool_state.balance_y, coin_y_removed, ctx);
 
-    if (are_manager_fees_active_impl(pool_state, clock)) {
+    if (are_manager_fees_active_impl(pool_state, clock) && fees::remove_liquidity_fee_percent(&pool_state.manager.fees) != 0) {
       let manager_coin_x_value = fees::get_remove_liquidity_amount(&pool_state.manager.fees, coin_x_removed);
       let manager_coin_y_value = fees::get_remove_liquidity_amount(&pool_state.manager.fees, coin_y_removed);
       add_manager_fee_x(pool_state, coin::split(&mut coin_x, manager_coin_x_value, ctx));
       add_manager_fee_y(pool_state, coin::split(&mut coin_y, manager_coin_y_value, ctx));
     };    
+
+    events::remove_liquidity<CoinX, CoinY>(pool_id, coin::value(&coin_x), coin::value(&coin_y), lp_coin_value);
 
     (
       coin_x,
@@ -586,6 +587,7 @@ module amm::interest_protocol_amm {
 
   fun swap_coin_x<CoinX, CoinY, LpCoin>(
     pool: &mut InterestPool,
+    clock: &Clock,
     coin_x: Coin<CoinX>,
     coin_y_min_value: u64,
     ctx: &mut TxContext
@@ -595,15 +597,32 @@ module amm::interest_protocol_amm {
     assert!(!pool_state.locked, errors::pool_is_locked());
 
     let coin_in_amount = coin::value(&coin_x);
+    let is_manager_fee_active = are_manager_fees_active_impl(pool_state, clock);
     
-    let (amount_out, fee_x, fee_y) = swap_amounts(pool_state, coin_in_amount, coin_y_min_value, true);
+    let (amount_out, fee_x, fee_y) = swap_amounts(
+      pool_state, 
+      coin_in_amount, 
+      coin_y_min_value, 
+      true,
+      is_manager_fee_active
+      );
 
     if (fee_x != 0) {
-      balance::join(&mut pool_state.admin_balance_x, coin::into_balance(coin::split(&mut coin_x, fee_x, ctx)));
+      let fee_coin_x = coin::split(&mut coin_x, fee_x, ctx);
+      if (is_manager_fee_active) {
+        add_manager_fee_x(pool_state, fee_coin_x); 
+      } else {
+        balance::join(&mut pool_state.admin_balance_x, coin::into_balance(fee_coin_x));
+      };
     };
 
     if (fee_y != 0) {
-      balance::join(&mut pool_state.admin_balance_y, balance::split(&mut pool_state.balance_y, fee_y));  
+      let fee_balance_y = balance::split(&mut pool_state.balance_y, fee_y);
+      if (is_manager_fee_active) {
+        add_manager_fee_y(pool_state, coin::from_balance(fee_balance_y, ctx)); 
+      } else {
+        balance::join(&mut pool_state.admin_balance_y, fee_balance_y);  
+      }
     };
 
     balance::join(&mut pool_state.balance_x, coin::into_balance(coin_x));
@@ -615,6 +634,7 @@ module amm::interest_protocol_amm {
 
   fun swap_coin_y<CoinX, CoinY, LpCoin>(
     pool: &mut InterestPool,
+    clock: &Clock,
     coin_y: Coin<CoinY>,
     coin_x_min_value: u64,
     ctx: &mut TxContext
@@ -624,8 +644,15 @@ module amm::interest_protocol_amm {
     assert!(!pool_state.locked, errors::pool_is_locked());
 
     let coin_in_amount = coin::value(&coin_y);
+    let is_manager_fee_active = are_manager_fees_active_impl(pool_state, clock);
 
-    let (amount_out, fee_y, fee_x) = swap_amounts(pool_state, coin_in_amount, coin_x_min_value, false);
+    let (amount_out, fee_y, fee_x) = swap_amounts(
+      pool_state, 
+      coin_in_amount, 
+      coin_x_min_value, 
+      false,
+      is_manager_fee_active
+    );
 
     if (fee_y != 0) {
       balance::join(&mut pool_state.admin_balance_y, coin::into_balance(coin::split(&mut coin_y, fee_y, ctx)));
@@ -661,7 +688,8 @@ module amm::interest_protocol_amm {
     pool_state: &PoolState<CoinX, CoinY, LpCoin>,
     coin_in_amount: u64,
     coin_out_min_value: u64,
-    is_x: bool 
+    is_x: bool,
+    is_manager_fee_active: bool,
   ): (u64, u64, u64) {
     let (balance_x, balance_y, _) = amounts(pool_state);
 
@@ -670,7 +698,9 @@ module amm::interest_protocol_amm {
     else 
       stable::invariant_(balance_x, balance_y, pool_state.decimals_x, pool_state.decimals_y);
 
-    let fee_in = fees::get_fee_in_amount(&pool_state.fees, coin_in_amount);
+    let active_fees = if (is_manager_fee_active) &pool_state.manager.fees else &pool_state.fees;
+
+    let fee_in = fees::get_fee_in_amount(active_fees, coin_in_amount);
     let admin_fee_in = fees::get_admin_amount(&pool_state.fees, fee_in);
 
     let coin_in_amount = coin_in_amount - fee_in;
@@ -691,7 +721,7 @@ module amm::interest_protocol_amm {
         )
     };
 
-    let fee_out = fees::get_fee_out_amount(&pool_state.fees, amount_out);
+    let fee_out = fees::get_fee_out_amount(active_fees, amount_out);
     let admin_fee_out = fees::get_admin_amount(&pool_state.fees, fee_out);
 
     let amount_out = amount_out - fee_out;
