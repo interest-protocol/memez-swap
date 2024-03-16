@@ -223,8 +223,8 @@ module amm::interest_protocol_amm {
     let coin_x = coin::take(&mut pool_state.balance_x, coin_x_removed, ctx);
     let coin_y = coin::take(&mut pool_state.balance_y, coin_y_removed, ctx);
 
-      let manager_coin_x_value = fees::get_remove_liquidity_amount(&pool_state.manager.fees, coin_x_removed);
-      let manager_coin_y_value = fees::get_remove_liquidity_amount(&pool_state.manager.fees, coin_y_removed);
+    let manager_coin_x_value = fees::get_remove_liquidity_amount(&pool_state.manager.fees, coin_x_removed);
+    let manager_coin_y_value = fees::get_remove_liquidity_amount(&pool_state.manager.fees, coin_y_removed);
 
     if (are_manager_fees_active_impl(pool_state, clock) && fees::remove_liquidity_fee_percent(&pool_state.manager.fees) != 0) {
       add_manager_fee_x(pool_state, coin::split(&mut coin_x, manager_coin_x_value, ctx));
@@ -243,15 +243,13 @@ module amm::interest_protocol_amm {
       manager_coin_y_value
     );
 
-    (
-      coin_x,
-      coin_y
-    )
+    (coin_x, coin_y)
   }  
 
   // === Auction ===
 
   public fun burn_manager_deposits<CoinX, CoinY, LpCoin>(pool: &mut InterestPool, auction: &mut Auction<LpCoin>, ctx: &mut TxContext): u64 {
+    let pool_address = object::uid_to_address(&pool.id);
     let pool_state = pool_state_mut<CoinX, CoinY, LpCoin>(pool);
 
     let burn_balance = auction::burn_wallet_mut(auction);
@@ -259,6 +257,8 @@ module amm::interest_protocol_amm {
     let admin_amount = fees::get_admin_amount(&pool_state.fees, balance::value(burn_balance));
 
     balance::join(&mut pool_state.admin_lp_coin_balance, balance::split(burn_balance, admin_amount));
+
+    events::manager_burn<LpCoin>(pool_address, balance::value(burn_balance), admin_amount);
 
     coin::burn(&mut pool_state.lp_coin_cap, coin::from_balance(balance::withdraw_all(burn_balance), ctx))
   }
@@ -455,6 +455,30 @@ module amm::interest_protocol_amm {
   public fun previous_k(invoice: &Invoice): u256 {
     invoice.prev_k
   }  
+
+  public fun manager_address<CoinX, CoinY, LpCoin>(pool: &InterestPool, clock: &Clock): address {
+    let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
+
+    pool_state.manager.address
+  }
+
+  public fun manager_start<CoinX, CoinY, LpCoin>(pool: &InterestPool, clock: &Clock): u64 {
+    let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
+
+    pool_state.manager.start
+  }
+
+  public fun manager_end<CoinX, CoinY, LpCoin>(pool: &InterestPool, clock: &Clock): u64 {
+    let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
+
+    pool_state.manager.end
+  }
+
+  public fun manager_fees<CoinX, CoinY, LpCoin>(pool: &InterestPool, clock: &Clock): Fees {
+    let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
+
+    pool_state.manager.fees
+  }
 
   public fun are_manager_fees_active<CoinX, CoinY, LpCoin>(pool: &InterestPool, clock: &Clock): bool {
     let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
