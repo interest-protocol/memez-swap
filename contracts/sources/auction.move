@@ -38,8 +38,7 @@ module amm::auction {
     active_manager: Manager,
     next_manager: Manager,
     minimum_bid_increment: u64,
-    deposits: Table<address, Balance<LpCoin>>,
-    withdrawls: Table<address, Balance<LpCoin>>,
+    accounts: Table<address, ManagerAccount<LpCoin>>,
     burn_wallet: Balance<LpCoin>,
   }
 
@@ -48,6 +47,12 @@ module amm::auction {
     end: u64,
     address: address,
     rent_per_second: u64,
+  }
+
+  struct ManagerAccount<phantom LpCoin>  has store {
+    balance: Balance<LpCoin>,
+    deposit: u64,
+    withdrawable: u64
   }
 
   struct Account has key, store {
@@ -94,9 +99,7 @@ module amm::auction {
       let minimum_increment = fixed_point::mul_up(self.minimum_bid_increment, self.next_manager.rent_per_second);
       assert!(rent_per_second >= self.next_manager.rent_per_second + minimum_increment, errors::invalid_rent_per_second());
 
-      let usurped_balance = balance::withdraw_all(table::borrow_mut(&mut self.deposits, self.next_manager.address));
-
-      add_withdrawls(self, account, usurped_balance);      
+      withdraw_internal(self, account);   
     };
 
     self.next_manager.address = account.address;
@@ -104,7 +107,7 @@ module amm::auction {
     self.next_manager.end = active_manager_end + self.k + duration;
     self.next_manager.rent_per_second = rent_per_second; 
 
-    add_deposits(self, account, deposit);
+    deposit(self, account, deposit);
 
     if (current_timestamp > self.active_manager.end) activate_impl(self);
   }
@@ -119,7 +122,14 @@ module amm::auction {
   }
 
   public fun withdraw<LpCoin>(self: &mut Auction<LpCoin>, account: &Account, ctx: &mut TxContext): Coin<LpCoin> {
-    coin::from_balance(balance::withdraw_all(table::borrow_mut(&mut self.withdrawls, account.address)), ctx)
+    let manager_account = table::borrow_mut(&mut self.accounts, account.address);
+
+    let withdrawable = manager_account.withdrawable;
+    assert!(withdrawable != 0, errors::manager_cannot_withdraw_zero_coin()); 
+
+    manager_account.withdrawable = 0;
+
+    coin::from_balance(balance::split(&mut manager_account.balance, withdrawable), ctx)
   }
 
   // === Public-View Functions ===
@@ -173,11 +183,10 @@ module amm::auction {
       pool_address,
       k: INITLAL_K,
       minimum_bid_increment: INITIAL_MINIMUM_BID_INCREMENT,
-      deposits: table::new(ctx),
+      accounts: table::new(ctx),
       active_manager: no_manager(),
       next_manager: no_manager(),
       burn_wallet: balance::zero(),
-      withdrawls: table::new(ctx)
     };
 
     share_object(auction);
@@ -193,8 +202,10 @@ module amm::auction {
     self.active_manager = self.next_manager;
     self.next_manager = no_manager();    
 
-    let deposit = balance::withdraw_all(table::borrow_mut(&mut self.deposits, self.active_manager.address));
-    balance::join(&mut self.burn_wallet, deposit);
+    let manager_account = table::borrow_mut(&mut self.accounts, self.active_manager.address);
+    manager_account.deposit = 0;
+
+    balance::join(&mut self.burn_wallet, balance::withdraw_all(&mut manager_account.balance));
   }
 
   fun clock_timestamp_s(c: &Clock): u64 {
@@ -210,20 +221,27 @@ module amm::auction {
     }
   }
 
-  fun add_deposits<LpCoin>(self: &mut Auction<LpCoin>, account: &Account, deposit: Coin<LpCoin>) {
-    add_balance(&mut self.deposits, coin::into_balance(deposit), account.address);
+  fun deposit<LpCoin>(self: &mut Auction<LpCoin>, account: &Account, deposit: Coin<LpCoin>) {
+    if (!table::contains(&self.accounts, account.address))
+      table::add(&mut self.accounts, account.address, ManagerAccount {
+        balance: balance::zero(),
+        deposit: 0,
+        withdrawable: 0
+      });
+
+    let deposit_value = coin::value(&deposit);
+    let manager_account = table::borrow_mut(&mut self.accounts, account.address);
+
+    balance::join(&mut manager_account.balance, coin::into_balance(deposit));  
+    manager_account.deposit = manager_account.deposit + deposit_value;  
   }
 
-  fun add_withdrawls<LpCoin>(self: &mut Auction<LpCoin>, account: &Account, balance_in: Balance<LpCoin>) {
-    add_balance(&mut self.withdrawls, balance_in, account.address);
+  fun withdraw_internal<LpCoin>(self: &mut Auction<LpCoin>, account: &Account) {
+    let manager_account = table::borrow_mut(&mut self.accounts, account.address);
+    let deposit_value = manager_account.deposit;
+    manager_account.deposit = 0;
+    manager_account.withdrawable = manager_account.withdrawable + deposit_value;
   }
 
-  fun add_balance<LpCoin>(balance_table: &mut Table<address, Balance<LpCoin>>, balance_in: Balance<LpCoin>, key: address) {
-
-    if (!table::contains(balance_table, key))
-      table::add(balance_table, key, balance::zero<LpCoin>());
-
-    balance::join(table::borrow_mut(balance_table, key), balance_in);
-  }
   // === Test Functions ===  
 }

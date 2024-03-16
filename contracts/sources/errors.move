@@ -21,6 +21,7 @@ module amm::errors {
   const EThereIsAnActiveManager: u64 = 18;
   const EInvalidNextManager: u64 = 19;
   const EInvalidActiveAccount: u64 = 20;
+  const EManagerCannotWithdrawZeroCoin: u64 = 21;
   
   public fun not_enough_funds_to_lend(): u64 {
     ENotEnoughFundsToLend
@@ -104,5 +105,9 @@ module amm::errors {
 
   public fun invalid_active_account(): u64 {
     EInvalidActiveAccount
+  }
+
+  public fun manager_cannot_withdraw_zero_coin(): u64 {
+    EManagerCannotWithdrawZeroCoin
   }
 }

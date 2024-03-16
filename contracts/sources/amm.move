@@ -207,9 +207,6 @@ module amm::interest_protocol_amm {
     let coin_x_removed = mul_div_down(lp_coin_value, balance_x, lp_coin_supply);
     let coin_y_removed = mul_div_down(lp_coin_value, balance_y, lp_coin_supply);
 
-    assert!(coin_x_removed >= coin_x_min_amount, errors::slippage());
-    assert!(coin_y_removed >= coin_y_min_amount, errors::slippage());
-
     balance::decrease_supply(coin::supply_mut(&mut pool_state.lp_coin_cap), coin::into_balance(lp_coin));
 
     let coin_x = coin::take(&mut pool_state.balance_x, coin_x_removed, ctx);
@@ -221,6 +218,9 @@ module amm::interest_protocol_amm {
       add_manager_fee_x(pool_state, coin::split(&mut coin_x, manager_coin_x_value, ctx));
       add_manager_fee_y(pool_state, coin::split(&mut coin_y, manager_coin_y_value, ctx));
     };    
+
+    assert!(coin::value(&coin_x) >= coin_x_min_amount, errors::slippage());
+    assert!(coin::value(&coin_y) >= coin_y_min_amount, errors::slippage());
 
     events::remove_liquidity<CoinX, CoinY>(pool_id, coin::value(&coin_x), coin::value(&coin_y), lp_coin_value);
 
@@ -655,10 +655,16 @@ module amm::interest_protocol_amm {
     );
 
     if (fee_y != 0) {
-      balance::join(&mut pool_state.admin_balance_y, coin::into_balance(coin::split(&mut coin_y, fee_y, ctx)));
+      let fee_coin_y = coin::split(&mut coin_y, fee_y, ctx);
+      if (is_manager_fee_active) {
+        add_manager_fee_y(pool_state, fee_coin_y); 
+      } else {
+        balance::join(&mut pool_state.admin_balance_y, coin::into_balance(fee_coin_y));
+      };
     };
 
     if (fee_x != 0) {
+      let fee_balance_x = balance::split(&mut pool_state.balance_x, fee_x);
       balance::join(&mut pool_state.admin_balance_x, balance::split(&mut pool_state.balance_x, fee_x)); 
     };
 
