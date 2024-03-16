@@ -99,7 +99,7 @@ module amm::auction {
       let minimum_increment = fixed_point::mul_up(self.minimum_bid_increment, self.next_manager.rent_per_second);
       assert!(rent_per_second >= self.next_manager.rent_per_second + minimum_increment, errors::invalid_rent_per_second());
 
-      withdraw_internal(self, account);   
+      withdraw_internal(self, self.next_manager.address);   
     };
 
     self.next_manager.address = account.address;
@@ -236,8 +236,8 @@ module amm::auction {
     manager_account.deposit = manager_account.deposit + deposit_value;  
   }
 
-  fun withdraw_internal<LpCoin>(self: &mut Auction<LpCoin>, account: &Account) {
-    let manager_account = table::borrow_mut(&mut self.accounts, account.address);
+  fun withdraw_internal<LpCoin>(self: &mut Auction<LpCoin>, manager_address: address) {
+    let manager_account = table::borrow_mut(&mut self.accounts, manager_address);
     let deposit_value = manager_account.deposit;
     manager_account.deposit = 0;
     manager_account.withdrawable = manager_account.withdrawable + deposit_value;
