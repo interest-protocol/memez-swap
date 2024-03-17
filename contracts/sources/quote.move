@@ -1,5 +1,7 @@
 module amm::quote {
 
+  use std::option;
+
   use sui::clock::Clock;
 
   use suitears::math64::{min, mul_div_down};
@@ -80,16 +82,31 @@ module amm::quote {
     pool: &InterestPool,
     clock: &Clock,
     amount: u64
-  ): (u64, u64) {
+  ): (u64, u64, u64, u64) {
     let balance_x = interest_protocol_amm::balance_x<CoinX, CoinY, LpCoin>(pool);
     let balance_y = interest_protocol_amm::balance_y<CoinX, CoinY, LpCoin>(pool);
     let supply = interest_protocol_amm::lp_coin_supply<CoinX, CoinY, LpCoin>(pool);
     
-    let are_manager_fees_active = interest_protocol_amm::are_manager_fees_active<CoinX, CoinY, LpCoin>(pool, clock);
+    let manager_fees = interest_protocol_amm::manager_fees<CoinX, CoinY, LpCoin>(pool, clock);
+
+    let amount_x = mul_div_down(amount, balance_x, supply);
+    let amount_y = mul_div_down(amount, balance_y, supply);
+
+    let fee_x = if (option::is_none(&manager_fees)) 
+      0 
+    else 
+      calculate_remove_liquidity_fee_amount(option::borrow(&manager_fees), amount_x);
+      
+    let fee_y = if (option::is_none(&manager_fees)) 
+      0 
+    else 
+      calculate_remove_liquidity_fee_amount(option::borrow(&manager_fees), amount_y);
 
     (
-      mul_div_down(amount, balance_x, supply),
-      mul_div_down(amount, balance_y, supply)
+      amount_x,
+      amount_y,
+      fee_x,
+      fee_y
     )
   }
 
@@ -106,5 +123,9 @@ module amm::quote {
     let decimals_x = interest_protocol_amm::decimals_x<CoinX, CoinY, LpCoin>(pool);
     let decimals_y = interest_protocol_amm::decimals_y<CoinX, CoinY, LpCoin>(pool);
     (balance_x, balance_y, decimals_x, decimals_y, is_volatile, fees)
+  }
+
+  fun calculate_remove_liquidity_fee_amount(fees: &Fees, amount: u64): u64 {
+    fees::get_remove_liquidity_amount(fees, amount) 
   }
 }
