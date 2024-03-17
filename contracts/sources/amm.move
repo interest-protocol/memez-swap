@@ -1,5 +1,6 @@
 module amm::interest_protocol_amm {
   // === Imports ===
+  
   use std::ascii;
   use std::string;
   use std::option::{Self, Option};
@@ -220,16 +221,21 @@ module amm::interest_protocol_amm {
 
     balance::decrease_supply(coin::supply_mut(&mut pool_state.lp_coin_cap), coin::into_balance(lp_coin));
 
-    let coin_x = coin::take(&mut pool_state.balance_x, coin_x_removed, ctx);
-    let coin_y = coin::take(&mut pool_state.balance_y, coin_y_removed, ctx);
+    let are_manager_fees_active = are_manager_fees_active_impl(pool_state, clock) && 
+      fees::remove_liquidity_fee_percent(&pool_state.manager.fees) != 0;
 
-    let manager_coin_x_value = fees::get_remove_liquidity_amount(&pool_state.manager.fees, coin_x_removed);
-    let manager_coin_y_value = fees::get_remove_liquidity_amount(&pool_state.manager.fees, coin_y_removed);
+    let coin_x_remove_fee_value = if (are_manager_fees_active) 
+      fees::get_remove_liquidity_amount(&pool_state.manager.fees, coin_x_removed) 
+    else 
+      0;
 
-    if (are_manager_fees_active_impl(pool_state, clock) && fees::remove_liquidity_fee_percent(&pool_state.manager.fees) != 0) {
-      add_manager_fee_x(pool_state, coin::split(&mut coin_x, manager_coin_x_value, ctx));
-      add_manager_fee_y(pool_state, coin::split(&mut coin_y, manager_coin_y_value, ctx));
-    };    
+    let coin_y_remove_fee_value = if (are_manager_fees_active) 
+      fees::get_remove_liquidity_amount(&pool_state.manager.fees, coin_y_removed) 
+    else 
+      0;
+
+    let coin_x = coin::take(&mut pool_state.balance_x, coin_x_removed - coin_x_remove_fee_value, ctx);
+    let coin_y = coin::take(&mut pool_state.balance_y, coin_y_removed - coin_y_remove_fee_value, ctx);
 
     assert!(coin::value(&coin_x) >= coin_x_min_amount, errors::slippage());
     assert!(coin::value(&coin_y) >= coin_y_min_amount, errors::slippage());
@@ -239,8 +245,8 @@ module amm::interest_protocol_amm {
       coin::value(&coin_x), 
       coin::value(&coin_y), 
       lp_coin_value,
-      manager_coin_x_value,
-      manager_coin_y_value
+      coin_x_remove_fee_value,
+      coin_y_remove_fee_value
     );
 
     (coin_x, coin_y)

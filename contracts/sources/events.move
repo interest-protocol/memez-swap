@@ -32,8 +32,8 @@ module amm::events {
     amount_x: u64,
     amount_y: u64,
     shares: u64,
-    manager_amount_x: u64,
-    manager_amount_y: u64    
+    fee_x_value: u64,
+    fee_y_value: u64    
   }
 
   struct ManagerBurn<phantom LpCoin> has copy, drop {
@@ -97,10 +97,10 @@ module amm::events {
     amount_x: u64,
     amount_y: u64,
     shares: u64,
-    manager_amount_x: u64,
-    manager_amount_y: u64    
+    fee_x_value: u64,
+    fee_y_value: u64  
   ) {
-    emit(RemoveLiquidity<CoinX, CoinY> { pool_address, amount_x, amount_y, shares, manager_amount_x, manager_amount_y });
+    emit(RemoveLiquidity<CoinX, CoinY> { pool_address, amount_x, amount_y, shares, fee_x_value, fee_y_value });
   }
 
   public(friend) fun manager_burn<LpCoin>(pool_address: address, amount: u64, admin_amount: u64) {
