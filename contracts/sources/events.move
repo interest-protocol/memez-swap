@@ -13,6 +13,11 @@ module amm::events {
     amount_y: u64
   }
 
+  struct NewAuction has copy, drop {
+    pool_address: address,
+    auction_address: address
+  }
+
   struct Swap<phantom CoinIn, phantom CoinOut, T: drop + copy + store> has copy, drop {
     pool_address: address,
     amount_in: u64,
@@ -72,6 +77,13 @@ module amm::events {
     amount_y: u64
   ) {
     emit(NewPool<Curve, CoinX, CoinY>{ pool_address, amount_x, amount_y });
+  }
+
+  public(friend) fun new_auction(
+    pool_address: address,
+    auction_address: address,
+  ) {
+    emit(NewAuction { pool_address, auction_address });
   }
 
   public(friend) fun swap<CoinIn, CoinOut, T: copy + drop + store>(

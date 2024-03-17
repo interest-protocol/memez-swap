@@ -194,6 +194,8 @@ module amm::auction {
       burn_wallet: balance::zero(),
     };
 
+    events::new_auction(pool_address, object::uid_to_address(&auction.id));
+
     share_object(auction);
   }
 
