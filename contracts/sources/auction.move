@@ -9,6 +9,7 @@ module amm::auction {
   use sui::transfer::share_object;
   use sui::balance::{Self, Balance};
 
+  use amm::events;
   use amm::admin::Admin;
 
   use suitears::math64;
@@ -92,20 +93,24 @@ module amm::auction {
     
     let current_timestamp = clock_timestamp_s(clock);
 
-    let is_usurping_next_manager = self.next_manager.address != NO_MANAGER;
+    let next_manager_address = self.next_manager.address;
+
+    let is_usurping_next_manager = next_manager_address != NO_MANAGER;
     let active_manager_end = math64::max(self.active_manager.end, current_timestamp);
 
     if (is_usurping_next_manager) {
       let minimum_increment = fixed_point::mul_up(self.minimum_bid_increment, self.next_manager.rent_per_second);
       assert!(rent_per_second >= self.next_manager.rent_per_second + minimum_increment, errors::invalid_rent_per_second());
 
-      withdraw_internal(self, self.next_manager.address);   
+      withdraw_internal(self, next_manager_address);   
     };
 
     self.next_manager.address = account.address;
     self.next_manager.start = active_manager_end + self.k;
     self.next_manager.end = active_manager_end + self.k + duration;
     self.next_manager.rent_per_second = rent_per_second; 
+
+    events::bid(self.pool_address, self.next_manager);
 
     deposit(self, account, deposit);
 
@@ -132,8 +137,6 @@ module amm::auction {
     coin::from_balance(balance::split(&mut manager_account.balance, withdrawable), ctx)
   }
 
-  // === Public-View Functions ===
-
   public fun assert_is_manager_active<LpCoin>(self: &Auction<LpCoin>, clock: &Clock, account: &Account) {
     let current_timestamp = clock_timestamp_s(clock);
 
@@ -144,6 +147,8 @@ module amm::auction {
       errors::invalid_active_account()
     );
   }
+
+  // === Public-View Functions ===
 
   public fun account_address(account: &Account): address {
     account.address
@@ -204,6 +209,8 @@ module amm::auction {
 
     let manager_account = table::borrow_mut(&mut self.accounts, self.active_manager.address);
     manager_account.deposit = 0;
+
+    events::new_manager(self.pool_address, self.next_manager, balance::value(&manager_account.balance));
 
     balance::join(&mut self.burn_wallet, balance::withdraw_all(&mut manager_account.balance));
   }

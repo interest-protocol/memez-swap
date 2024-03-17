@@ -4,6 +4,7 @@ module amm::events {
 
   use amm::fees::Fees;
 
+  friend amm::auction;
   friend amm::interest_protocol_amm;
 
   struct NewPool<phantom Curve, phantom CoinX, phantom CoinY> has copy, drop {
@@ -52,6 +53,17 @@ module amm::events {
   struct UpdateFees has copy, drop {
     pool_address: address,
     fees: Fees    
+  }
+
+  struct Bid<T: store + drop + copy> has copy, drop {
+    pool_address: address,
+    manager: T
+  }
+
+  struct NewManager<T: store + drop> has copy, drop {
+    pool_address: address,
+    manager: T,
+    balance: u64
   }
 
   public(friend) fun new_pool<Curve, CoinX, CoinY>(
@@ -107,5 +119,13 @@ module amm::events {
 
   public(friend) fun update_fees(pool_address: address, fees: Fees) {
     emit(UpdateFees { pool_address, fees });
+  }  
+
+  public(friend)fun bid<T: store + drop + copy>(pool_address: address, manager: T) {
+    emit( Bid<T>{ pool_address, manager });
+  }  
+
+  public(friend) fun new_manager<T: store + drop + copy>(pool_address: address, manager: T, balance: u64) {
+    emit(NewManager<T> { pool_address, manager, balance });
   }  
 }
