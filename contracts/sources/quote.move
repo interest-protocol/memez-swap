@@ -1,4 +1,7 @@
 module amm::quote {
+
+  use sui::clock::Clock;
+
   use suitears::math64::{min, mul_div_down};
 
   use amm::stable;
@@ -75,11 +78,14 @@ module amm::quote {
 
   public fun remove_liquidity<CoinX, CoinY, LpCoin>(
     pool: &InterestPool,
+    clock: &Clock,
     amount: u64
   ): (u64, u64) {
     let balance_x = interest_protocol_amm::balance_x<CoinX, CoinY, LpCoin>(pool);
     let balance_y = interest_protocol_amm::balance_y<CoinX, CoinY, LpCoin>(pool);
     let supply = interest_protocol_amm::lp_coin_supply<CoinX, CoinY, LpCoin>(pool);
+    
+    let are_manager_fees_active = interest_protocol_amm::are_manager_fees_active<CoinX, CoinY, LpCoin>(pool, clock);
 
     (
       mul_div_down(amount, balance_x, supply),

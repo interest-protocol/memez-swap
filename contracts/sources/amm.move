@@ -684,17 +684,14 @@ module amm::interest_protocol_amm {
     };
 
     if (swap_amount.manager_fee_in != 0) {
-      balance::join(
-        &mut table::borrow_mut(&mut pool_state.manager_balances, pool_state.manager.address).balance_x, 
-        coin::into_balance(coin::split(&mut coin_x, swap_amount.manager_fee_in, ctx))
-      );
+      let balance_in = coin::into_balance(coin::split(&mut coin_x, swap_amount.manager_fee_in, ctx));
+      add_manager_fee_x(pool_state, balance_in);
     };
+      
 
     if (swap_amount.manager_fee_out != 0) {
-      balance::join(
-        &mut table::borrow_mut(&mut pool_state.manager_balances, pool_state.manager.address).balance_y, 
-        balance::split(&mut pool_state.balance_y, swap_amount.manager_fee_out)
-      );  
+      let balance_in = balance::split(&mut pool_state.balance_y, swap_amount.manager_fee_out);
+      add_manager_fee_y(pool_state, balance_in);
     };
 
     balance::join(&mut pool_state.balance_x, coin::into_balance(coin_x));
@@ -735,18 +732,16 @@ module amm::interest_protocol_amm {
     };
 
     if (swap_amount.manager_fee_in != 0) {
-      balance::join(
-        &mut table::borrow_mut(&mut pool_state.manager_balances, pool_state.manager.address).balance_y, 
-        coin::into_balance(coin::split(&mut coin_y, swap_amount.manager_fee_in, ctx))
-      );
+      let balance_in = coin::into_balance(coin::split(&mut coin_y, swap_amount.manager_fee_in, ctx));
+      add_manager_fee_y(pool_state, balance_in);
     };
+      
 
     if (swap_amount.manager_fee_out != 0) {
-      balance::join(
-        &mut table::borrow_mut(&mut pool_state.manager_balances, pool_state.manager.address).balance_x, 
-        balance::split(&mut pool_state.balance_x, swap_amount.manager_fee_out)
-      );  
+      let balance_in = balance::split(&mut pool_state.balance_x, swap_amount.manager_fee_out);
+      add_manager_fee_x(pool_state, balance_in); 
     };
+      
 
     balance::join(&mut pool_state.balance_y, coin::into_balance(coin_y));
 
@@ -839,40 +834,38 @@ module amm::interest_protocol_amm {
     }  
   }
 
-  fun add_manager_fee_x<CoinX, CoinY, LpCoin>(pool_state: &mut PoolState<CoinX, CoinY, LpCoin>, coin_x: Coin<CoinX>) {
-    if (!table::contains(&pool_state.manager_balances, pool_state.manager.address)) {
-      table::add(
-        &mut pool_state.manager_balances, 
-        pool_state.manager.address, 
-        ManagerBalances {
-          balance_x: balance::zero(),
-          balance_y: balance::zero()
-        } 
-      )
-    };
+  fun add_manager_fee_x<CoinX, CoinY, LpCoin>(pool_state: &mut PoolState<CoinX, CoinY, LpCoin>, balance_x: Balance<CoinX>) {
+    register_manager(&mut pool_state.manager_balances, pool_state.manager.address);
 
     balance::join(
       &mut table::borrow_mut(&mut pool_state.manager_balances, pool_state.manager.address).balance_x, 
-      coin::into_balance(coin_x)
+      balance_x
     );
   }
 
-  fun add_manager_fee_y<CoinX, CoinY, LpCoin>(pool_state: &mut PoolState<CoinX, CoinY, LpCoin>, coin_y: Coin<CoinY>) {
-    if (!table::contains(&pool_state.manager_balances, pool_state.manager.address)) {
+  fun add_manager_fee_y<CoinX, CoinY, LpCoin>(pool_state: &mut PoolState<CoinX, CoinY, LpCoin>, balance_y: Balance<CoinY>) {
+    register_manager(&mut pool_state.manager_balances, pool_state.manager.address);
+
+    balance::join(
+      &mut table::borrow_mut(&mut pool_state.manager_balances, pool_state.manager.address).balance_y, 
+      balance_y
+    );
+  }
+
+  fun register_manager<CoinX, CoinY>(
+    manager_balances: &mut Table<address, ManagerBalances<CoinX, CoinY>>, 
+    manager_address: address
+  ) {
+    if (!table::contains(manager_balances, manager_address)) {
       table::add(
-        &mut pool_state.manager_balances, 
-        pool_state.manager.address, 
+        manager_balances, 
+        manager_address, 
         ManagerBalances {
           balance_x: balance::zero(),
           balance_y: balance::zero()
         } 
       )
-    };
-
-    balance::join(
-      &mut table::borrow_mut(&mut pool_state.manager_balances, pool_state.manager.address).balance_y, 
-      coin::into_balance(coin_y)
-    );
+    }; 
   }
 
   fun are_manager_fees_active_impl<CoinX, CoinY, LpCoin>(pool_state: &PoolState<CoinX, CoinY, LpCoin>, clock: &Clock): bool {
