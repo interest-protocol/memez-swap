@@ -2,7 +2,7 @@
 
  <p> <img width="50px"height="50px" src="./logo.png" /></p> 
  
- An Auction-Managed AMM on [Sui](https://sui.io/) Network.  
+ An Auction-Managed AMM on [Sui Network](https://sui.io/).  
   
 ## Quick start  
   
