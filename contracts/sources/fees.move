@@ -13,13 +13,15 @@ module amm::fees {
     fee_in_percent: u256,
     fee_out_percent: u256, 
     admin_fee_percent: u256,     
+    remove_liquidity_fee_percent: u256,
   }
 
   public fun new(fee_in_percent: u256, fee_out_percent: u256, admin_fee_percent: u256): Fees {
     Fees {
       fee_in_percent,
       fee_out_percent,
-      admin_fee_percent
+      admin_fee_percent,
+      remove_liquidity_fee_percent: 0
     }
   }
 
@@ -29,6 +31,10 @@ module amm::fees {
 
   public fun fee_out_percent(fees: &Fees): u256 {
     fees.fee_out_percent
+  }
+
+  public fun remove_liquidity_fee_percent(fees: &Fees): u256 {
+    fees.remove_liquidity_fee_percent
   }
 
   public fun admin_fee_percent(fees: &Fees): u256 {
@@ -51,6 +57,14 @@ module amm::fees {
     fee.fee_out_percent = fee_out_percent;
   }
 
+  public fun update_remove_liquidity_fee_percent(fee: &mut Fees, remove_liquidity_fee_percent: Option<u256>) {
+    if (option::is_none(&remove_liquidity_fee_percent)) return;
+    let remove_liquidity_fee_percent = option::extract(&mut remove_liquidity_fee_percent);
+    
+    assert!(MAX_FEE_PERCENT >= remove_liquidity_fee_percent, errors::fee_is_too_high());
+    fee.remove_liquidity_fee_percent = remove_liquidity_fee_percent;
+  }
+
   public fun update_admin_fee_percent(fee: &mut Fees, admin_fee_percent: Option<u256>) {
     if (option::is_none(&admin_fee_percent)) return;
     let admin_fee_percent = option::extract(&mut admin_fee_percent);
@@ -69,6 +83,10 @@ module amm::fees {
 
   public fun get_admin_amount(fees: &Fees, amount: u64): u64 {
     get_fee_amount(amount, fees.admin_fee_percent)
+  }
+
+  public fun get_remove_liquidity_amount(fees: &Fees, amount: u64): u64 {
+    get_fee_amount(amount, fees.remove_liquidity_fee_percent)
   }
 
   public fun get_fee_in_initial_amount(fees: &Fees, amount: u64): u64 {

@@ -16,6 +16,12 @@ module amm::errors {
   const EWrongModuleName: u64 = 13;
   const EInsufficientLiquidity: u64 = 14;
   const EWrongPool: u64 = 15;
+  const EDepositAmountIsTooLow: u64 = 16;
+  const EInvalidRentPerSecond: u64 = 17;
+  const EThereIsAnActiveManager: u64 = 18;
+  const EInvalidNextManager: u64 = 19;
+  const EInvalidActiveAccount: u64 = 20;
+  const EManagerCannotWithdrawZeroCoin: u64 = 21;
   
   public fun not_enough_funds_to_lend(): u64 {
     ENotEnoughFundsToLend
@@ -79,5 +85,29 @@ module amm::errors {
 
   public fun wrong_pool(): u64 {
     EWrongPool
+  }
+
+  public fun deposit_amount_is_too_low(): u64 {
+    EDepositAmountIsTooLow
+  }
+
+  public fun invalid_rent_per_second(): u64 {
+    EInvalidRentPerSecond
+  }
+
+  public fun there_is_an_active_manager(): u64 {
+    EThereIsAnActiveManager
+  }
+
+  public fun invalid_next_manager(): u64 {
+    EInvalidNextManager
+  }
+
+  public fun invalid_active_account(): u64 {
+    EInvalidActiveAccount
+  }
+
+  public fun manager_cannot_withdraw_zero_coin(): u64 {
+    EManagerCannotWithdrawZeroCoin
   }
 }
