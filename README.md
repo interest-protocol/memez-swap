@@ -43,12 +43,13 @@ The DEX supports two types of pools denoted as:
 - **Volatile:** `k = x * y` popularized by [Uniswap](https://uniswap.org/whitepaper.pdf)
 - **Stable:** `k = yx^3 + xy^3` inspired by Curve's algorithm.
 
+The DEX supports the following operations:
+
 - Create Pool: Users can only create volatile & stable pools
 - Add/Remove Liquidity
 - Swap: Pool<BTC, Ether> | Ether -> BTC | BTC -> Ether
 - Flash loans
-- Bid to become a pool manager
-- Update the swap fees
+- An auction to become the pool manager to earn and set the swap fees
 
 ## Contact Us
 
