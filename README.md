@@ -1,4 +1,4 @@
-# [Interest Protocol AMM](https://www.suicoins.com/)
+# [Interest Protocol am-AMM](https://www.suicoins.com/)
 
  <p> <img width="50px"height="50px" src="./logo.png" /></p> 
  
@@ -36,7 +36,7 @@ Make sure you have the latest version of the Sui binaries installed on your mach
 
 ### DEX
 
-The Interest Protocol am-AMM DEX allows users to create pools, add/remove liquidity, and swap. The DEX runs a continuous English auction where "pool managers" can rent the liquidity to have the rights to set and receive all swap fees. Read more about it [here](https://arxiv.org/abs/2403.03367).
+The Interest Protocol am-AMM DEX allows users to create pools, add/remove liquidity, and swap. The DEX runs a continuous English auction where _pool managers_ can rent the DEX liquidity to have the rights to set and receive all swap fees. Read more about it [here](https://arxiv.org/abs/2403.03367).
 
 The DEX supports two types of pools denoted as:
 
