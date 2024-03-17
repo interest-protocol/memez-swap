@@ -465,28 +465,28 @@ module amm::interest_protocol_amm {
     invoice.prev_k
   }  
 
-  public fun manager_address<CoinX, CoinY, LpCoin>(pool: &InterestPool, clock: &Clock): address {
+  public fun manager_address<CoinX, CoinY, LpCoin>(pool: &InterestPool, clock: &Clock): Option<address> {
     let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
 
-    pool_state.manager.address
+    if (are_manager_fees_active_impl(pool_state, clock)) option::some(pool_state.manager.address) else option::none()
   }
 
-  public fun manager_start<CoinX, CoinY, LpCoin>(pool: &InterestPool, clock: &Clock): u64 {
+  public fun manager_start<CoinX, CoinY, LpCoin>(pool: &InterestPool, clock: &Clock): Option<u64> {
     let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
 
-    pool_state.manager.start
+    if (are_manager_fees_active_impl(pool_state, clock)) option::some(pool_state.manager.start) else option::none() 
   }
 
-  public fun manager_end<CoinX, CoinY, LpCoin>(pool: &InterestPool, clock: &Clock): u64 {
+  public fun manager_end<CoinX, CoinY, LpCoin>(pool: &InterestPool, clock: &Clock): Option<u64> {
     let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
 
-    pool_state.manager.end
+    if (are_manager_fees_active_impl(pool_state, clock)) option::some(pool_state.manager.end) else option::none()
   }
 
-  public fun manager_fees<CoinX, CoinY, LpCoin>(pool: &InterestPool, clock: &Clock): Fees {
+  public fun manager_fees<CoinX, CoinY, LpCoin>(pool: &InterestPool, clock: &Clock): Option<Fees> {
     let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
 
-    pool_state.manager.fees
+    if (are_manager_fees_active_impl(pool_state, clock)) option::some(pool_state.manager.fees) else option::none()
   }
 
   public fun are_manager_fees_active<CoinX, CoinY, LpCoin>(pool: &InterestPool, clock: &Clock): bool {
