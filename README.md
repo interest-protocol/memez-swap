@@ -2,23 +2,13 @@
 
  <p> <img width="50px"height="50px" src="./logo.png" /></p> 
  
- AMM DEX on [Sui](https://sui.io/) Network.  
+ An Auction-Managed AMM on [Sui](https://sui.io/) Network.  
   
 ## Quick start  
   
 Make sure you have the latest version of the Sui binaries installed on your machine
 
 [Instructions here](https://docs.sui.io/devnet/build/install)
-
-## Install the Prover
-
-```bash
-  mkdir move_lang && cd move_lang
-  git clone https://github.com/move-language/move.git
-  cd move
-  ./scripts/dev_setup.sh -yp
-  . ~/.profile
-```
 
 ### Run tests
 
@@ -28,15 +18,6 @@ Make sure you have the latest version of the Sui binaries installed on your mach
   cd contracts
   sui move test
 ```
-
-**To run the prover**
-
-```bash
-  cd contracts
-  sui move prove
-```
-
-Only the UniV2 invariant has been formally verified.
 
 ### Publish
 
@@ -55,7 +36,7 @@ Only the UniV2 invariant has been formally verified.
 
 ### DEX
 
-The Interest Protocol AMM DEX allows users to create pools, add/remove liquidity and swap.
+The Interest Protocol am-AMM DEX allows users to create pools, add/remove liquidity, and swap. The DEX runs a continuous English auction where "pool managers" can rent the liquidity to have the rights to set and receive all swap fees. Read more about it [here](https://arxiv.org/abs/2403.03367).
 
 The DEX supports two types of pools denoted as:
 
@@ -66,6 +47,8 @@ The DEX supports two types of pools denoted as:
 - Add/Remove Liquidity
 - Swap: Pool<BTC, Ether> | Ether -> BTC | BTC -> Ether
 - Flash loans
+- Bid to become a pool manager
+- Update the swap fees
 
 ## Contact Us
 
