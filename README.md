@@ -26,12 +26,6 @@ Make sure you have the latest version of the Sui binaries installed on your mach
   sui client publish --gas-budget 500000000
 ```
 
-## Repo Structure
-
-- **invariants:** It contains functions to calculate the invariant and swap amount out and in.
-- **lib** A set of utility modules including math, comparator and string utilities.
-- **test:** It has all test modules
-
 ## Functionality
 
 ### DEX
