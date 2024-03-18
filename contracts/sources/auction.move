@@ -85,25 +85,21 @@ module amm::auction {
     deposit: Coin<LpCoin>, 
     period: u64
   ) {
-    let deposit_value = coin::value(&deposit);
     let duration = period + self.k;
-    let rent_per_second = deposit_value / (period + self.k);
+    let rent_per_second = coin::value(&deposit) / duration;
     
     assert!(rent_per_second != 0, errors::invalid_rent_per_second());
     
     let current_timestamp = clock_timestamp_s(clock);
 
-    let next_manager_address = self.next_manager.address;
-
-    let is_usurping_next_manager = next_manager_address != NO_MANAGER;
-    let active_manager_end = math64::max(self.active_manager.end, current_timestamp);
-
-    if (is_usurping_next_manager) {
+    if (self.next_manager.address != NO_MANAGER) {
       let minimum_increment = fixed_point::mul_up(self.minimum_bid_increment, self.next_manager.rent_per_second);
       assert!(rent_per_second >= self.next_manager.rent_per_second + minimum_increment, errors::invalid_rent_per_second());
 
-      withdraw_internal(self, next_manager_address);   
+      withdraw_internal(self);   
     };
+
+    let active_manager_end = math64::max(self.active_manager.end, current_timestamp);
 
     self.next_manager.address = account.address;
     self.next_manager.start = active_manager_end + self.k;
@@ -118,9 +114,7 @@ module amm::auction {
   }
 
   public fun activate<LpCoin>(self: &mut Auction<LpCoin>, clock: &Clock) {
-    let current_timestamp = clock_timestamp_s(clock);
-
-    assert!(current_timestamp > self.active_manager.end, errors::there_is_an_active_manager());
+    assert!(clock_timestamp_s(clock) > self.active_manager.end, errors::there_is_an_active_manager());
     assert!(self.next_manager.address != NO_MANAGER, errors::invalid_next_manager());
 
     activate_impl(self);
@@ -245,7 +239,8 @@ module amm::auction {
     manager_account.deposit = manager_account.deposit + deposit_value;  
   }
 
-  fun withdraw_internal<LpCoin>(self: &mut Auction<LpCoin>, manager_address: address) {
+  fun withdraw_internal<LpCoin>(self: &mut Auction<LpCoin>) {
+    let manager_address = self.next_manager.address;
     let manager_account = table::borrow_mut(&mut self.accounts, manager_address);
     let deposit_value = manager_account.deposit;
     manager_account.deposit = 0;
