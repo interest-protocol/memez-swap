@@ -643,7 +643,7 @@ module amm::interest_protocol_amm {
 
     df::add(&mut pool.id, PoolStateKey {}, pool_state);
 
-    table::add(&mut registry.pools, registry_key, object::uid_to_address(&pool.id));
+    table::add(&mut registry.pools, registry_key, pool_address);
 
     events::new_pool<Curve, CoinX, CoinY>(pool_address, coin_x_value, coin_y_value);
 
@@ -696,7 +696,7 @@ module amm::interest_protocol_amm {
 
     balance::join(&mut pool_state.balance_x, coin::into_balance(coin_x));
 
-    events::swap<CoinX, CoinY, SwapAmount>(pool_address, coin_in_amount, swap_amount.amount_out, swap_amount);
+    events::swap<CoinX, CoinY, SwapAmount>(pool_address, coin_in_amount, swap_amount);
 
     coin::take(&mut pool_state.balance_y, swap_amount.amount_out, ctx) 
   }
@@ -745,7 +745,7 @@ module amm::interest_protocol_amm {
 
     balance::join(&mut pool_state.balance_y, coin::into_balance(coin_y));
 
-    events::swap<CoinY, CoinX, SwapAmount>(pool_address, coin_in_amount, swap_amount.amount_out, swap_amount);
+    events::swap<CoinY, CoinX, SwapAmount>(pool_address, coin_in_amount,swap_amount);
 
     coin::take(&mut pool_state.balance_x, swap_amount.amount_out, ctx) 
   }  

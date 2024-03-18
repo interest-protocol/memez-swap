@@ -21,8 +21,7 @@ module amm::events {
   struct Swap<phantom CoinIn, phantom CoinOut, T: drop + copy + store> has copy, drop {
     pool_address: address,
     amount_in: u64,
-    amount_out: u64,
-    fees: T
+    swap_amount: T
   }
 
   struct AddLiquidity<phantom CoinX, phantom CoinY> has copy, drop {
@@ -89,10 +88,9 @@ module amm::events {
   public(friend) fun swap<CoinIn, CoinOut, T: copy + drop + store>(
     pool_address: address,
     amount_in: u64,
-    amount_out: u64,
-    fees: T   
+    swap_amount: T   
   ) {
-    emit(Swap<CoinIn, CoinOut, T> { pool_address, amount_in, amount_out, fees });
+    emit(Swap<CoinIn, CoinOut, T> { pool_address, amount_in, swap_amount });
   }
 
   public(friend) fun add_liquidity<CoinX, CoinY>(
