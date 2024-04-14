@@ -43,7 +43,7 @@ module amm::interest_protocol_amm {
   struct Registry has key {
     id: UID,
     pools: Table<TypeName, address>,
-    lp_coins: Table<TypeName, bool>
+    lp_coins: Table<TypeName, address>
   }
   
   struct InterestPool has key {
@@ -402,6 +402,15 @@ module amm::interest_protocol_amm {
       option::none()
   }
 
+  public fun pool_address_from_lp_coin<LpCoin>(registry: &Registry): Option<address> {
+    let lp_coin_key = type_name::get<LpCoin>();
+
+    if (table::contains(&registry.pools, lp_coin_key))
+      option::some(*table::borrow(&registry.pools, lp_coin_key))
+    else
+      option::none()
+  }
+
   public fun lp_coin_exists<LpCoin>(registry: &Registry): bool {
     table::contains(&registry.lp_coins, type_name::get<LpCoin>())   
   }
@@ -650,7 +659,7 @@ module amm::interest_protocol_amm {
     df::add(&mut pool.id, PoolStateKey {}, pool_state);
 
     table::add(&mut registry.pools, registry_key, pool_address);
-    table::add(&mut registry.lp_coins, type_name::get<LpCoin>(), true);
+    table::add(&mut registry.lp_coins, type_name::get<LpCoin>(), pool_address);
 
     events::new_pool<Curve, CoinX, CoinY>(pool_address, coin_x_value, coin_y_value);
 
