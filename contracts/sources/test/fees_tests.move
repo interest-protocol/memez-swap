@@ -1,7 +1,5 @@
 #[test_only]
 module amm::fees_tests {
-  use std::option;
-
   use sui::test_utils::assert_eq;
   use sui::test_scenario::{Self as test, next_tx};
 

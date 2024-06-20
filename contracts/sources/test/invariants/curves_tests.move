@@ -4,7 +4,7 @@ module amm::curves_tests {
 
   use amm::curves::{Self, Volatile, Stable};
 
-  struct Any {}
+  public struct Any {}
 
   #[test]
   fun test_is_volatile() {

@@ -23,9 +23,9 @@ module amm::utils_tests {
     get_optimal_add_liquidity, 
   };
 
-  struct ABC {}
+  public struct ABC {}
 
-  struct CAB {}
+  public struct CAB {}
 
   #[test]
   fun test_are_coins_ordered() {
@@ -275,13 +275,9 @@ module amm::utils_tests {
 
 #[test_only]
 module amm::ipx_btc_eth_wrong_decimals {
-  use std::option;
-
-  use sui::transfer;
   use sui::coin;
-  use sui::tx_context::{Self, TxContext};
 
-  struct IPX_BTC_ETH_WRONG_DECIMALS has drop {}
+  public struct IPX_BTC_ETH_WRONG_DECIMALS has drop {}
 
   #[lint_allow(share_owned)]
   fun init(witness: IPX_BTC_ETH_WRONG_DECIMALS, ctx: &mut TxContext) {

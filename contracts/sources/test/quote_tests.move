@@ -1,8 +1,6 @@
 #[test_only]
 module amm::quote_tests {
-  use std::option;
-
-  use sui::object;
+  
   use sui::clock::{Self, Clock};
   use sui::test_utils::assert_eq;
   use sui::test_scenario::{Self as test, Scenario, next_tx, ctx};

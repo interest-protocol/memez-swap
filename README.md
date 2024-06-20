@@ -1,8 +1,8 @@
-# [Interest Protocol am-AMM](https://www.suicoins.com/)
+# [Interest Protocol AMM](https://www.suicoins.com/)
 
  <p> <img width="50px"height="50px" src="./logo.png" /></p> 
  
- An Auction-Managed AMM on [Sui Network](https://sui.io/).  
+ An AMM on [Sui Network](https://sui.io/).  
   
 ## Quick start  
   
@@ -30,7 +30,7 @@ Make sure you have the latest version of the Sui binaries installed on your mach
 
 ### DEX
 
-The Interest Protocol am-AMM DEX allows users to create pools, add/remove liquidity, and swap. The DEX runs a continuous English auction where _pool managers_ can rent the DEX liquidity to have the rights to set and receive all swap fees. Read more about it [here](https://arxiv.org/abs/2403.03367).
+The Interest Protocol AMM DEX allows users to create pools, add/remove liquidity, and swap. The DEX issues a NFT that accrues trading fees and LpCoins that represent the underlying liquidity to LPs.
 
 The DEX supports two types of pools denoted as:
 

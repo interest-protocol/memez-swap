@@ -1,104 +1,113 @@
 module amm::utils {
-  use std::ascii;
-  use std::type_name;
-  use std::string::{Self, String};
 
-  use sui::coin::{Self, CoinMetadata};
+    use std::{
+        ascii,
+        type_name,
+        string::{Self, String}
+    };
 
-  use suitears::comparator;
-  use suitears::math64::mul_div_up;
+    use sui::coin::CoinMetadata;
 
-  use amm::errors;
-  
-  public fun are_coins_ordered<CoinA, CoinB>(): bool {
-    let coin_a_type_name = type_name::get<CoinA>();
-    let coin_b_type_name = type_name::get<CoinB>();
+    use suitears::{
+        comparator,
+        math64::mul_div_up
+    };
+
+    use amm::errors;
+
+    public fun are_coins_ordered<CoinA, CoinB>(): bool {
+        let coin_a_type_name = type_name::get<CoinA>();
+        let coin_b_type_name = type_name::get<CoinB>();
     
-    assert!(coin_a_type_name != coin_b_type_name, errors::select_different_coins());
+        assert!(coin_a_type_name != coin_b_type_name, errors::select_different_coins());
     
-    comparator::lt(&comparator::compare(&coin_a_type_name, &coin_b_type_name))
-  }
+        comparator::compare(&coin_a_type_name, &coin_b_type_name).lt()
+    }
 
-  public fun is_coin_x<CoinA, CoinB>(): bool {
-    comparator::lt(&comparator::compare(&type_name::get<CoinA>(), &type_name::get<CoinB>()))
-  }
+    public fun is_coin_x<CoinA, CoinB>(): bool {
+        comparator::compare(&type_name::get<CoinA>(), &type_name::get<CoinB>()).lt()
+    }
 
-  public fun get_optimal_add_liquidity(
-    desired_amount_x: u64,
-    desired_amount_y: u64,
-    reserve_x: u64,
-    reserve_y: u64
-  ): (u64, u64) {
+    public fun get_optimal_add_liquidity(
+        desired_amount_x: u64,
+        desired_amount_y: u64,
+        reserve_x: u64,
+        reserve_y: u64
+    ): (u64, u64) {
+        if (reserve_x == 0 && reserve_y == 0) return (desired_amount_x, desired_amount_y);
 
-    if (reserve_x == 0 && reserve_y == 0) return (desired_amount_x, desired_amount_y);
+        let optimal_y_amount = quote_liquidity(desired_amount_x, reserve_x, reserve_y);
+        if (desired_amount_y >= optimal_y_amount) return (desired_amount_x, optimal_y_amount);
 
-    let optimal_y_amount = quote_liquidity(desired_amount_x, reserve_x, reserve_y);
-    if (desired_amount_y >= optimal_y_amount) return (desired_amount_x, optimal_y_amount);
+        let optimal_x_amount = quote_liquidity(desired_amount_y, reserve_y, reserve_x);
+        (optimal_x_amount, desired_amount_y)
+    } 
 
-    let optimal_x_amount = quote_liquidity(desired_amount_y, reserve_y, reserve_x);
-    (optimal_x_amount, desired_amount_y)
-  } 
+    public fun quote_liquidity(amount_a: u64, reserves_a: u64, reserves_b: u64): u64 {
+        mul_div_up(amount_a, reserves_b, reserves_a)
+    }
 
-  public fun quote_liquidity(amount_a: u64, reserves_a: u64, reserves_b: u64): u64 {
-    mul_div_up(amount_a, reserves_b, reserves_a)
-  }
+    public fun get_lp_coin_name<CoinX, CoinY>(
+        coin_x_metadata: &CoinMetadata<CoinX>,
+        coin_y_metadata: &CoinMetadata<CoinY>,  
+        volatile: bool
+    ): String {
+        let coin_x_name = coin_x_metadata.get_name();
+        let coin_y_name = coin_y_metadata.get_name();
 
-  public fun get_lp_coin_name<CoinX, CoinY>(
-    coin_x_metadata: &CoinMetadata<CoinX>,
-    coin_y_metadata: &CoinMetadata<CoinY>,  
-    volatile: bool
-  ): String {
-    let coin_x_name = coin::get_name(coin_x_metadata);
-    let coin_y_name = coin::get_name(coin_y_metadata);
+        let mut expected_lp_coin_name = string::utf8(b"");
 
-    let expected_lp_coin_name = string::utf8(b"");
-    string::append_utf8(&mut expected_lp_coin_name, b"ipx ");
-    string::append_utf8(&mut expected_lp_coin_name, if (volatile) b"volatile " else b"stable ");
-    string::append_utf8(&mut expected_lp_coin_name, *string::bytes(&coin_x_name));
-    string::append_utf8(&mut expected_lp_coin_name, b" ");
-    string::append_utf8(&mut expected_lp_coin_name, *string::bytes(&coin_y_name));
-    string::append_utf8(&mut expected_lp_coin_name, b" Lp Coin");
-    expected_lp_coin_name
-  }
+        expected_lp_coin_name.append_utf8(b"ipx ");
+        expected_lp_coin_name.append_utf8(if (volatile) b"volatile " else b"stable ");
+        expected_lp_coin_name.append_utf8(*coin_x_name.bytes());
+        expected_lp_coin_name.append_utf8(b" ");
+        expected_lp_coin_name.append_utf8(*coin_y_name.bytes());
+        expected_lp_coin_name.append_utf8(b" Lp Coin");
 
-  public fun get_lp_coin_symbol<CoinX, CoinY>(
-    coin_x_metadata: &CoinMetadata<CoinX>,
-    coin_y_metadata: &CoinMetadata<CoinY>,
-    volatile: bool  
-  ): ascii::String {
-    let coin_x_symbol = coin::get_symbol(coin_x_metadata);
-    let coin_y_symbol = coin::get_symbol(coin_y_metadata);
+        expected_lp_coin_name
+    }
 
-    let expected_lp_coin_symbol = string::utf8(b"");
-    string::append_utf8(&mut expected_lp_coin_symbol, b"ipx-");
-    string::append_utf8(&mut expected_lp_coin_symbol, if (volatile) b"v-" else b"s-");
-    string::append_utf8(&mut expected_lp_coin_symbol, ascii::into_bytes(coin_x_symbol));
-    string::append_utf8(&mut expected_lp_coin_symbol, b"-");
-    string::append_utf8(&mut expected_lp_coin_symbol, ascii::into_bytes(coin_y_symbol));
-    string::to_ascii(expected_lp_coin_symbol)
-  }
+    public fun get_lp_coin_symbol<CoinX, CoinY>(
+        coin_x_metadata: &CoinMetadata<CoinX>,
+        coin_y_metadata: &CoinMetadata<CoinY>,
+        volatile: bool  
+    ): ascii::String {
+        let coin_x_symbol = coin_x_metadata.get_symbol();
+        let coin_y_symbol = coin_y_metadata.get_symbol();
 
-  public fun assert_lp_coin_integrity<CoinX, CoinY, LpCoin>(lp_coin_metadata: &CoinMetadata<LpCoin>, volatile: bool) {
-     assert!(coin::get_decimals(lp_coin_metadata) == 9, errors::lp_coins_must_have_9_decimals());
-     assert_lp_coin_otw<CoinX, CoinY, LpCoin>(volatile)
-  }
+        let mut expected_lp_coin_symbol = string::utf8(b"");
 
-  fun assert_lp_coin_otw<CoinX, CoinY, LpCoin>(volatile: bool) {
-    assert!(are_coins_ordered<CoinX, CoinY>(), errors::coins_must_be_ordered());
-    let coin_x_module_name = type_name::get_module(&type_name::get<CoinX>());
-    let coin_y_module_name = type_name::get_module(&type_name::get<CoinY>());
-    let lp_coin_module_name = type_name::get_module(&type_name::get<LpCoin>());
+        expected_lp_coin_symbol.append_utf8(b"ipx-");
+        expected_lp_coin_symbol.append_utf8(if (volatile) b"v-" else b"s-");
+        expected_lp_coin_symbol.append_utf8(ascii::into_bytes(coin_x_symbol));
+        expected_lp_coin_symbol.append_utf8(b"-");
+        expected_lp_coin_symbol.append_utf8(coin_y_symbol.into_bytes());
 
-    let expected_lp_coin_module_name = string::utf8(b"");
-    string::append_utf8(&mut expected_lp_coin_module_name, b"ipx_");
-    string::append_utf8(&mut expected_lp_coin_module_name, if (volatile) b"v_" else b"s_");
-    string::append_utf8(&mut expected_lp_coin_module_name, ascii::into_bytes(coin_x_module_name));
-    string::append_utf8(&mut expected_lp_coin_module_name, b"_");
-    string::append_utf8(&mut expected_lp_coin_module_name, ascii::into_bytes(coin_y_module_name));
+        expected_lp_coin_symbol.to_ascii()
+    }
 
-    assert!(
-      comparator::eq(&comparator::compare(&lp_coin_module_name, &string::to_ascii(expected_lp_coin_module_name))), 
-      errors::wrong_module_name()
-    );
+    public fun assert_lp_coin_integrity<CoinX, CoinY, LpCoin>(lp_coin_metadata: &CoinMetadata<LpCoin>, volatile: bool) {
+        assert!(lp_coin_metadata.get_decimals() == 9, errors::lp_coins_must_have_9_decimals());
+        assert_lp_coin_otw<CoinX, CoinY, LpCoin>(volatile)
+    }
+
+    fun assert_lp_coin_otw<CoinX, CoinY, LpCoin>(volatile: bool) {
+        assert!(are_coins_ordered<CoinX, CoinY>(), errors::coins_must_be_ordered());
+        let coin_x_module_name = type_name::get<CoinX>().get_module();
+        let coin_y_module_name = type_name::get<CoinY>().get_module();
+        let lp_coin_module_name = type_name::get<LpCoin>().get_module();
+
+        let mut expected_lp_coin_module_name = string::utf8(b"");
+
+        expected_lp_coin_module_name.append_utf8(b"ipx_");
+        expected_lp_coin_module_name.append_utf8(if (volatile) b"v_" else b"s_");
+        expected_lp_coin_module_name.append_utf8(coin_x_module_name.into_bytes());
+        expected_lp_coin_module_name.append_utf8(b"_");
+        expected_lp_coin_module_name.append_utf8(coin_y_module_name.into_bytes());
+
+        assert!(
+            comparator::compare(&lp_coin_module_name, &expected_lp_coin_module_name.to_ascii()).eq(), 
+            errors::wrong_module_name()
+        );
   }
 }

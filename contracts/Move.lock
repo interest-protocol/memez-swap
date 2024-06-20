@@ -2,7 +2,7 @@
 
 [move]
 version = 0
-manifest_digest = "36BB801654CD85A14358DAC7C286CD2676F738EAE521A5213A03524293A09713"
+manifest_digest = "72476C1CB845E2A1438105A5D5381356D3B3BEAA1C7190D3D37A5C64533F0E9F"
 deps_digest = "060AD7E57DFB13104F21BE5F5C3759D03F0553FC3229247D9A7A6B45F50D03A3"
 
 dependencies = [
@@ -25,7 +25,7 @@ dependencies = [
 
 [[move.package]]
 name = "SuiTears"
-source = { git = "https://github.com/interest-protocol/suitears.git", rev = "testnet", subdir = "contracts" }
+source = { git = "https://github.com/interest-protocol/suitears.git", rev = "develop", subdir = "contracts" }
 
 dependencies = [
   { name = "MoveStdlib" },
@@ -33,6 +33,14 @@ dependencies = [
 ]
 
 [move.toolchain-version]
-compiler-version = "1.18.0"
+compiler-version = "1.24.1"
 edition = "legacy"
 flavor = "sui"
+
+[env]
+
+[env.devnet-m2]
+chain-id = "ba63bf7f"
+original-published-id = "0x096e99cfb6d4443ea673745081d268a00e982652e4b8d836218e4452fd0bdc3d"
+latest-published-id = "0x096e99cfb6d4443ea673745081d268a00e982652e4b8d836218e4452fd0bdc3d"
+published-version = "1"
