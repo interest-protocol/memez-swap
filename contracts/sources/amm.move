@@ -134,7 +134,7 @@ module amm::interest_protocol_amm {
         coin_min_value: u64,
         ctx: &mut TxContext    
     ): Coin<CoinOut> {
-        assert!(coin::value(&coin_in) != 0, errors::no_zero_coin());
+        assert!(coin_in.value() != 0, errors::no_zero_coin());
 
         if (utils::is_coin_x<CoinIn, CoinOut>()) 
             swap_coin_x<CoinIn, CoinOut, LpCoin>(pool, coin_in, coin_min_value, ctx)
@@ -144,8 +144,8 @@ module amm::interest_protocol_amm {
 
     public fun add_liquidity<CoinX, CoinY, LpCoin>(
         pool: &mut InterestPool,
-        coin_x: Coin<CoinX>,
-        coin_y: Coin<CoinY>,
+        mut coin_x: Coin<CoinX>,
+        mut coin_y: Coin<CoinY>,
         lp_coin_min_amount: u64,
         ctx: &mut TxContext 
     ): (Coin<LpCoin>, Coin<CoinX>, Coin<CoinY>) {
@@ -248,7 +248,7 @@ module amm::interest_protocol_amm {
         assert!(balance_x >= amount_x && balance_y >= amount_y, errors::not_enough_funds_to_lend());
 
         let coin_x = pool_state.balance_x.split(amount_x).into_coin(ctx);
-        let coin_y = coin::take(&mut pool_state.balance_y, amount_y, ctx);
+        let coin_y = pool_state.balance_y.split(amount_y).into_coin(ctx);
 
         let invoice = Invoice { 
             pool_address: pool.id.uid_to_address(),  
@@ -467,7 +467,7 @@ module amm::interest_protocol_amm {
         registry: &mut Registry,
         coin_x: Coin<CoinX>,
         coin_y: Coin<CoinY>,
-        lp_coin_cap: TreasuryCap<LpCoin>,
+        mut lp_coin_cap: TreasuryCap<LpCoin>,
         decimals_x: u64,
         decimals_y: u64,
         volatile: bool,
@@ -493,7 +493,7 @@ module amm::interest_protocol_amm {
             MINIMUM_LIQUIDITY
         );
     
-        let sender_balance = coin::mint(&mut lp_coin_cap, shares, ctx);
+        let sender_balance = lp_coin_cap.mint(shares, ctx);
 
         let pool_state = PoolState {
             lp_coin_cap,
@@ -510,7 +510,7 @@ module amm::interest_protocol_amm {
             admin_lp_coin_balance: balance::zero()
         };
 
-        let pool = InterestPool {
+        let mut pool = InterestPool {
             id: object::new(ctx)
         };
 
@@ -530,7 +530,7 @@ module amm::interest_protocol_amm {
 
     fun swap_coin_x<CoinX, CoinY, LpCoin>(
         pool: &mut InterestPool,
-        coin_x: Coin<CoinX>,
+        mut coin_x: Coin<CoinX>,
         coin_y_min_value: u64,
         ctx: &mut TxContext
     ): Coin<CoinY> {
@@ -538,7 +538,7 @@ module amm::interest_protocol_amm {
         let pool_state = pool_state_mut<CoinX, CoinY, LpCoin>(pool);
         assert!(!pool_state.locked, errors::pool_is_locked());
 
-        let coin_in_amount = coin::value(&coin_x);
+        let coin_in_amount = coin_x.value();
     
         let swap_amount = swap_amounts(
             pool_state, 
@@ -555,16 +555,16 @@ module amm::interest_protocol_amm {
             pool_state.admin_balance_y.join(pool_state.balance_y.split(swap_amount.admin_fee_out));  
         };
 
-        balance::join(&mut pool_state.balance_x, coin::into_balance(coin_x));
+        pool_state.balance_x.join(coin_x.into_balance());
 
         events::swap<CoinX, CoinY, SwapAmount>(pool_address, coin_in_amount, swap_amount);
 
-        coin::take(&mut pool_state.balance_y, swap_amount.amount_out, ctx) 
+        pool_state.balance_y.split(swap_amount.amount_out).into_coin(ctx) 
     }
 
     fun swap_coin_y<CoinX, CoinY, LpCoin>(
         pool: &mut InterestPool,
-        coin_y: Coin<CoinY>,
+        mut coin_y: Coin<CoinY>,
         coin_x_min_value: u64,
         ctx: &mut TxContext
     ): Coin<CoinX> {

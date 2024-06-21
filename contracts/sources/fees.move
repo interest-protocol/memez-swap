@@ -34,7 +34,7 @@ module amm::fees {
         fees.admin_fee_percent
     }
 
-    public fun update_fee_in_percent(fee: &mut Fees, fee_in_percent: Option<u256>) {
+    public fun update_fee_in_percent(fee: &mut Fees, mut fee_in_percent: Option<u256>) {
         if (option::is_none(&fee_in_percent)) return;
         let fee_in_percent = option::extract(&mut fee_in_percent);
     
@@ -42,7 +42,7 @@ module amm::fees {
         fee.fee_in_percent = fee_in_percent;
     }
 
-    public fun update_fee_out_percent(fee: &mut Fees, fee_out_percent: Option<u256>) {
+    public fun update_fee_out_percent(fee: &mut Fees, mut fee_out_percent: Option<u256>) {
         if (option::is_none(&fee_out_percent)) return;
         let fee_out_percent = option::extract(&mut fee_out_percent);
     
@@ -50,7 +50,7 @@ module amm::fees {
         fee.fee_out_percent = fee_out_percent;
     }
 
-    public fun update_admin_fee_percent(fee: &mut Fees, admin_fee_percent: Option<u256>) {
+    public fun update_admin_fee_percent(fee: &mut Fees, mut admin_fee_percent: Option<u256>) {
         if (option::is_none(&admin_fee_percent)) return;
         let admin_fee_percent = option::extract(&mut admin_fee_percent);
 

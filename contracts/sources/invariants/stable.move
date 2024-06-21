@@ -91,7 +91,7 @@ module amm::stable {
         ((y * if (is_x) { decimals_y } else { decimals_x }) / PRECISION as u64)   
     } 
 
-    fun y(x0: u256, xy: u256, y: u256): u256 {
+    fun y(x0: u256, xy: u256, mut y: u256): u256 {
         let mut i = 0;
         while (255 > i) {
             let y_prev = y;
