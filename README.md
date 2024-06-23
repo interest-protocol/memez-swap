@@ -32,10 +32,7 @@ Make sure you have the latest version of the Sui binaries installed on your mach
 
 The Interest Protocol AMM DEX allows users to create pools, add/remove liquidity, and swap. The DEX issues a NFT that accrues trading fees and LpCoins that represent the underlying liquidity to LPs.
 
-The DEX supports two types of pools denoted as:
-
-- **Volatile:** `k = x * y` popularized by [Uniswap](https://uniswap.org/whitepaper.pdf)
-- **Stable:** `k = yx^3 + xy^3` inspired by Curve's algorithm.
+The DEX uses the famous `k = x * y` popularized by [Uniswap](https://uniswap.org/whitepaper.pdf).
 
 The DEX supports the following operations:
 
@@ -43,7 +40,6 @@ The DEX supports the following operations:
 - Add/Remove Liquidity
 - Swap: Pool<BTC, Ether> | Ether -> BTC | BTC -> Ether
 - Flash loans
-- An auction to become the pool manager to earn and set the swap fees
 
 ## Contact Us
 
