@@ -1,9 +1,11 @@
 #[test_only]
 module amm::fees_tests {
-    use sui::test_utils::assert_eq;
-    use sui::test_scenario::{Self as test, next_tx};
+    use sui::{
+        test_utils::assert_eq,
+        test_scenario::{Self as test, next_tx}
+    };
 
-    use amm::fees;
+    use amm::interest_amm_fees as fees;
   
     use amm::deploy_utils::{people, scenario};
 
@@ -112,7 +114,7 @@ module amm::fees_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = amm::errors::EFeeIsTooHigh, location = amm::fees)]  
+    #[expected_failure(abort_code = amm::interest_amm_errors::EFeeIsTooHigh, location = amm::interest_amm_fees)]  
     fun aborts_max_fee_in() {
         let mut scenario = scenario();
         let (alice, _) = people();
@@ -129,7 +131,7 @@ module amm::fees_tests {
     }  
 
     #[test]
-    #[expected_failure(abort_code = amm::errors::EFeeIsTooHigh, location = amm::fees)]  
+    #[expected_failure(abort_code = amm::interest_amm_errors::EFeeIsTooHigh, location = amm::interest_amm_fees)]  
     fun aborts_max_fee_out() {
         let mut scenario = scenario();
         let (alice, _) = people();
@@ -146,7 +148,7 @@ module amm::fees_tests {
     }   
 
     #[test]
-    #[expected_failure(abort_code = amm::errors::EFeeIsTooHigh, location = amm::fees)]  
+    #[expected_failure(abort_code = amm::interest_amm_errors::EFeeIsTooHigh, location = amm::interest_amm_fees)]  
     fun aborts_max_admin_fee() {
         let mut scenario = scenario();
         let (alice, _) = people();

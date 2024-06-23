@@ -1,4 +1,4 @@
-module amm::interest_protocol_amm {
+module amm::interest_amm {
     // === Imports ===
   
     use std::{
@@ -8,7 +8,6 @@ module amm::interest_protocol_amm {
     };
 
     use sui::{
-        math::pow,
         dynamic_field as df,
         table::{Self, Table},
         transfer::share_object,
@@ -22,21 +21,18 @@ module amm::interest_protocol_amm {
     }; 
 
     use amm::{
-        utils,
-        errors,
-        events,
-        stable,
-        volatile,
-        admin::Admin,
-        fees::{Self, Fees},
-        curves::{Self, Volatile, Stable}
+        interest_amm_admin::Admin,
+        interest_amm_utils as utils,
+        interest_amm_errors as errors,
+        interest_amm_events as events,
+        interest_amm_fees::{Self as fees, Fees},    
+        interest_amm_invariant::{invariant_, get_amount_out},
     };
 
     // === Constants ===
 
     const PRECISION: u256 = 1_000_000_000_000_000_000;
     const MINIMUM_LIQUIDITY: u64 = 100;
-    const INITIAL_STABLE_FEE_PERCENT: u256 = 250_000_000_000_000; // 0.025%
     const INITIAL_VOLATILE_FEE_PERCENT: u256 = 3_000_000_000_000_000; // 0.3%
     const INITIAL_ADMIN_FEE: u256 = 200_000_000_000_000_000; // 20%
     const FLASH_LOAN_FEE_PERCENT: u256 = 5_000_000_000_000_000; //0.5% 
@@ -53,7 +49,7 @@ module amm::interest_protocol_amm {
         id: UID 
     }
 
-    public struct RegistryKey<phantom Curve, phantom CoinX, phantom CoinY> has drop {}
+    public struct RegistryKey<phantom CoinX, phantom CoinY> has drop {}
 
     public struct PoolStateKey has drop, copy, store {}
 
@@ -61,14 +57,10 @@ module amm::interest_protocol_amm {
         lp_coin_cap: TreasuryCap<LpCoin>,
         balance_x: Balance<CoinX>,
         balance_y: Balance<CoinY>,
-        decimals_x: u64,
-        decimals_y: u64,
         admin_balance_x: Balance<CoinX>,
         admin_balance_y: Balance<CoinY>,
         seed_liquidity: Balance<LpCoin>,
-        admin_lp_coin_balance: Balance<LpCoin>,
         fees: Fees,
-        volatile: bool,
         locked: bool     
     } 
 
@@ -111,21 +103,14 @@ module amm::interest_protocol_amm {
         coin_x_metadata: &CoinMetadata<CoinX>,
         coin_y_metadata: &CoinMetadata<CoinY>,  
         lp_coin_metadata: &mut CoinMetadata<LpCoin>,
-        volatile: bool,
         ctx: &mut TxContext    
     ): Coin<LpCoin> {
-        utils::assert_lp_coin_integrity<CoinX, CoinY, LpCoin>(lp_coin_metadata, volatile);
+        utils::assert_lp_coin_integrity<CoinX, CoinY, LpCoin>(lp_coin_metadata);
     
-        lp_coin_cap.update_name(lp_coin_metadata, utils::get_lp_coin_name(coin_x_metadata, coin_y_metadata, volatile));
-        lp_coin_cap.update_symbol(lp_coin_metadata, utils::get_lp_coin_symbol(coin_x_metadata, coin_y_metadata, volatile));
+        lp_coin_cap.update_name(lp_coin_metadata, utils::get_lp_coin_name(coin_x_metadata, coin_y_metadata));
+        lp_coin_cap.update_symbol(lp_coin_metadata, utils::get_lp_coin_symbol(coin_x_metadata, coin_y_metadata));
 
-        let decimals_x = pow(10, coin_x_metadata.get_decimals());
-        let decimals_y = pow(10, coin_y_metadata.get_decimals());
-
-        if (volatile)
-            new_pool_internal<Volatile, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, lp_coin_cap, decimals_x, decimals_y, true, ctx)
-        else 
-            new_pool_internal<Stable, CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, lp_coin_cap, decimals_x, decimals_y, false, ctx)
+        new_pool_internal<CoinX, CoinY, LpCoin>(registry, coin_x, coin_y, lp_coin_cap, ctx)
     }
 
     public fun swap<CoinIn, CoinOut, LpCoin>(
@@ -240,10 +225,7 @@ module amm::interest_protocol_amm {
 
         let (balance_x, balance_y, _) = amounts(pool_state);
 
-        let prev_k = if (pool_state.volatile) 
-            volatile::invariant_(balance_x, balance_y) 
-        else 
-            stable::invariant_(balance_x, balance_y, pool_state.decimals_x, pool_state.decimals_y);
+        let prev_k = invariant_(balance_x, balance_y);
 
         assert!(balance_x >= amount_x && balance_y >= amount_y, errors::not_enough_funds_to_lend());
 
@@ -279,10 +261,7 @@ module amm::interest_protocol_amm {
 
         let (balance_x, balance_y, _) = amounts(pool_state);
 
-        let k = if (pool_state.volatile) 
-            volatile::invariant_(balance_x, balance_y) 
-        else 
-            stable::invariant_(balance_x, balance_y, pool_state.decimals_x, pool_state.decimals_y);
+        let k = invariant_(balance_x, balance_y);
 
         assert!(k > prev_k, errors::invalid_invariant());
     
@@ -295,8 +274,8 @@ module amm::interest_protocol_amm {
         &registry.pools
     }
 
-    public fun pool_address<Curve, CoinX, CoinY>(registry: &Registry): Option<address> {
-        let registry_key = type_name::get<RegistryKey<Curve, CoinX, CoinY>>();
+    public fun pool_address<CoinX, CoinY>(registry: &Registry): Option<address> {
+        let registry_key = type_name::get<RegistryKey<CoinX, CoinY>>();
 
         if (registry.pools.contains(registry_key))
             option::some(*registry.pools.borrow(registry_key))
@@ -317,8 +296,8 @@ module amm::interest_protocol_amm {
         registry.lp_coins.contains(type_name::get<LpCoin>())   
     }
 
-    public fun exists_<Curve, CoinX, CoinY>(registry: &Registry): bool {
-        registry.pools.contains(type_name::get<RegistryKey<Curve, CoinX, CoinY>>())   
+    public fun exists_<CoinX, CoinY>(registry: &Registry): bool {
+        registry.pools.contains(type_name::get<RegistryKey<CoinX, CoinY>>())   
     }
 
     public fun lp_coin_supply<CoinX, CoinY, LpCoin>(pool: &InterestPool): u64 {
@@ -334,26 +313,6 @@ module amm::interest_protocol_amm {
     public fun balance_y<CoinX, CoinY, LpCoin>(pool: &InterestPool): u64 {
         let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
         pool_state.balance_y.value()
-    }
-
-    public fun decimals_x<CoinX, CoinY, LpCoin>(pool: &InterestPool): u64 {
-        let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
-        pool_state.decimals_x
-    }
-
-    public fun decimals_y<CoinX, CoinY, LpCoin>(pool: &InterestPool): u64 {
-        let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
-        pool_state.decimals_y
-    }
-
-    public fun stable<CoinX, CoinY, LpCoin>(pool: &InterestPool): bool {
-        let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
-        !pool_state.volatile
-    }
-
-    public fun volatile<CoinX, CoinY, LpCoin>(pool: &InterestPool): bool {
-        let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
-        pool_state.volatile
     }
 
     public fun fees<CoinX, CoinY, LpCoin>(pool: &InterestPool): Fees {
@@ -411,11 +370,10 @@ module amm::interest_protocol_amm {
         _: &Admin,
         pool: &mut InterestPool,
         ctx: &mut TxContext
-    ): (Coin<LpCoin>, Coin<CoinX>, Coin<CoinY>) {
+    ): (Coin<CoinX>, Coin<CoinY>) {
         let pool_state = pool_state_mut<CoinX, CoinY, LpCoin>(pool);
 
         (
-            pool_state.admin_lp_coin_balance.withdraw_all().into_coin(ctx),
             pool_state.admin_balance_x.withdraw_all().into_coin(ctx),
             pool_state.admin_balance_y.withdraw_all().into_coin(ctx),    
         )
@@ -463,14 +421,11 @@ module amm::interest_protocol_amm {
 
     // === Private Functions ===    
 
-    fun new_pool_internal<Curve, CoinX, CoinY, LpCoin>(
+    fun new_pool_internal<CoinX, CoinY, LpCoin>(
         registry: &mut Registry,
         coin_x: Coin<CoinX>,
         coin_y: Coin<CoinY>,
         mut lp_coin_cap: TreasuryCap<LpCoin>,
-        decimals_x: u64,
-        decimals_y: u64,
-        volatile: bool,
         ctx: &mut TxContext
     ): Coin<LpCoin> {
         assert!(
@@ -483,7 +438,7 @@ module amm::interest_protocol_amm {
 
         assert!(coin_x_value != 0 && coin_y_value != 0, errors::provide_both_coins());
 
-        let registry_key = type_name::get<RegistryKey<Curve, CoinX, CoinY>>();
+        let registry_key = type_name::get<RegistryKey<CoinX, CoinY>>();
 
         assert!(!registry.pools.contains(registry_key), errors::pool_already_deployed());
 
@@ -499,15 +454,11 @@ module amm::interest_protocol_amm {
             lp_coin_cap,
             balance_x: coin_x.into_balance(),
             balance_y: coin_y.into_balance(),
-            decimals_x,
-            decimals_y,
-            volatile,
             seed_liquidity,
-            fees: new_fees<Curve>(),
+            fees: new_fees(),
             locked: false,
             admin_balance_x: balance::zero(),
             admin_balance_y: balance::zero(),
-            admin_lp_coin_balance: balance::zero()
         };
 
         let mut pool = InterestPool {
@@ -521,7 +472,7 @@ module amm::interest_protocol_amm {
         registry.pools.add(registry_key, pool_address);
         registry.lp_coins.add(type_name::get<LpCoin>(), pool_address);
 
-        events::new_pool<Curve, CoinX, CoinY>(pool_address, coin_x_value, coin_y_value);
+        events::new_pool<CoinX, CoinY>(pool_address, coin_x_value, coin_y_value);
 
         share_object(pool);
     
@@ -597,11 +548,8 @@ module amm::interest_protocol_amm {
         pool_state.balance_x.split(swap_amount.amount_out).into_coin(ctx) 
     }  
 
-    fun new_fees<Curve>(): Fees {
-        if (curves::is_volatile<Curve>())
-            fees::new(INITIAL_VOLATILE_FEE_PERCENT, INITIAL_VOLATILE_FEE_PERCENT, INITIAL_ADMIN_FEE)
-        else
-            fees::new(INITIAL_STABLE_FEE_PERCENT, INITIAL_STABLE_FEE_PERCENT, INITIAL_ADMIN_FEE)
+    fun new_fees(): Fees {
+        fees::new(INITIAL_VOLATILE_FEE_PERCENT, INITIAL_VOLATILE_FEE_PERCENT, INITIAL_ADMIN_FEE)
     }
 
     fun amounts<CoinX, CoinY, LpCoin>(state: &PoolState<CoinX, CoinY, LpCoin>): (u64, u64, u64) {
@@ -620,31 +568,17 @@ module amm::interest_protocol_amm {
     ): SwapAmount {
         let (balance_x, balance_y, _) = amounts(pool_state);
 
-        let prev_k = if (pool_state.volatile) 
-            volatile::invariant_(balance_x, balance_y) 
-        else 
-            stable::invariant_(balance_x, balance_y, pool_state.decimals_x, pool_state.decimals_y);
+        let prev_k = invariant_(balance_x, balance_y);
 
         let standard_fee_in = pool_state.fees.get_fee_in_amount(coin_in_amount);
         let admin_fee_in =  pool_state.fees.get_admin_amount(standard_fee_in);
 
         let coin_in_amount = coin_in_amount - standard_fee_in;
 
-        let amount_out = if (pool_state.volatile) {
-            if (is_x) 
-                volatile::get_amount_out(coin_in_amount, balance_x, balance_y)
+        let amount_out =  if (is_x) 
+                get_amount_out(coin_in_amount, balance_x, balance_y)
             else 
-                volatile::get_amount_out(coin_in_amount, balance_y, balance_x)
-        } else {
-            stable::get_amount_out(
-                coin_in_amount, 
-                balance_x, 
-                balance_y, 
-                pool_state.decimals_x, 
-                pool_state.decimals_y, 
-                is_x
-            )
-        };
+                get_amount_out(coin_in_amount, balance_y, balance_x);
 
         let standard_fee_out = pool_state.fees.get_fee_out_amount(amount_out);
         let admin_fee_out = pool_state.fees.get_admin_amount(standard_fee_out);
@@ -653,17 +587,10 @@ module amm::interest_protocol_amm {
 
         assert!(amount_out >= coin_out_min_value, errors::slippage());
 
-        let new_k = if (pool_state.volatile) {
-            if (is_x)
-                volatile::invariant_(balance_x + coin_in_amount + standard_fee_in - admin_fee_in, balance_y - amount_out - admin_fee_out)
+        let new_k = if (is_x)
+                invariant_(balance_x + coin_in_amount + standard_fee_in - admin_fee_in, balance_y - amount_out - admin_fee_out)
             else
-                volatile::invariant_(balance_x - amount_out - admin_fee_out, balance_y + coin_in_amount + standard_fee_in - admin_fee_in)
-        } else {
-            if (is_x) 
-                stable::invariant_(balance_x + coin_in_amount + standard_fee_in - admin_fee_in, balance_y - amount_out - admin_fee_out, pool_state.decimals_x, pool_state.decimals_y)
-            else
-                stable::invariant_(balance_x - amount_out - admin_fee_out, balance_y + standard_fee_in + coin_in_amount - admin_fee_in, pool_state.decimals_x, pool_state.decimals_y)
-        };
+                invariant_(balance_x - amount_out - admin_fee_out, balance_y + coin_in_amount + standard_fee_in - admin_fee_in);
 
         assert!(new_k >= prev_k, errors::invalid_invariant());
 

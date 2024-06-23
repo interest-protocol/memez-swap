@@ -1,4 +1,4 @@
-module amm::utils {
+module amm::interest_amm_utils {
 
     use std::{
         ascii,
@@ -13,7 +13,7 @@ module amm::utils {
         math64::mul_div_up
     };
 
-    use amm::errors;
+    use amm::interest_amm_errors as errors;
 
     public fun are_coins_ordered<CoinA, CoinB>(): bool {
         let coin_a_type_name = type_name::get<CoinA>();
@@ -50,15 +50,13 @@ module amm::utils {
     public fun get_lp_coin_name<CoinX, CoinY>(
         coin_x_metadata: &CoinMetadata<CoinX>,
         coin_y_metadata: &CoinMetadata<CoinY>,  
-        volatile: bool
     ): String {
         let coin_x_name = coin_x_metadata.get_name();
         let coin_y_name = coin_y_metadata.get_name();
 
         let mut expected_lp_coin_name = string::utf8(b"");
 
-        expected_lp_coin_name.append_utf8(b"ipx ");
-        expected_lp_coin_name.append_utf8(if (volatile) b"volatile " else b"stable ");
+        expected_lp_coin_name.append_utf8(b"Interest AMM ");
         expected_lp_coin_name.append_utf8(*coin_x_name.bytes());
         expected_lp_coin_name.append_utf8(b" ");
         expected_lp_coin_name.append_utf8(*coin_y_name.bytes());
@@ -70,7 +68,6 @@ module amm::utils {
     public fun get_lp_coin_symbol<CoinX, CoinY>(
         coin_x_metadata: &CoinMetadata<CoinX>,
         coin_y_metadata: &CoinMetadata<CoinY>,
-        volatile: bool  
     ): ascii::String {
         let coin_x_symbol = coin_x_metadata.get_symbol();
         let coin_y_symbol = coin_y_metadata.get_symbol();
@@ -78,7 +75,6 @@ module amm::utils {
         let mut expected_lp_coin_symbol = string::utf8(b"");
 
         expected_lp_coin_symbol.append_utf8(b"ipx-");
-        expected_lp_coin_symbol.append_utf8(if (volatile) b"v-" else b"s-");
         expected_lp_coin_symbol.append_utf8(ascii::into_bytes(coin_x_symbol));
         expected_lp_coin_symbol.append_utf8(b"-");
         expected_lp_coin_symbol.append_utf8(coin_y_symbol.into_bytes());
@@ -86,12 +82,12 @@ module amm::utils {
         expected_lp_coin_symbol.to_ascii()
     }
 
-    public fun assert_lp_coin_integrity<CoinX, CoinY, LpCoin>(lp_coin_metadata: &CoinMetadata<LpCoin>, volatile: bool) {
+    public fun assert_lp_coin_integrity<CoinX, CoinY, LpCoin>(lp_coin_metadata: &CoinMetadata<LpCoin>) {
         assert!(lp_coin_metadata.get_decimals() == 9, errors::lp_coins_must_have_9_decimals());
-        assert_lp_coin_otw<CoinX, CoinY, LpCoin>(volatile)
+        assert_lp_coin_otw<CoinX, CoinY, LpCoin>()
     }
 
-    fun assert_lp_coin_otw<CoinX, CoinY, LpCoin>(volatile: bool) {
+    fun assert_lp_coin_otw<CoinX, CoinY, LpCoin>() {
         assert!(are_coins_ordered<CoinX, CoinY>(), errors::coins_must_be_ordered());
         let coin_x_module_name = type_name::get<CoinX>().get_module();
         let coin_y_module_name = type_name::get<CoinY>().get_module();
@@ -100,7 +96,6 @@ module amm::utils {
         let mut expected_lp_coin_module_name = string::utf8(b"");
 
         expected_lp_coin_module_name.append_utf8(b"ipx_");
-        expected_lp_coin_module_name.append_utf8(if (volatile) b"v_" else b"s_");
         expected_lp_coin_module_name.append_utf8(coin_x_module_name.into_bytes());
         expected_lp_coin_module_name.append_utf8(b"_");
         expected_lp_coin_module_name.append_utf8(coin_y_module_name.into_bytes());

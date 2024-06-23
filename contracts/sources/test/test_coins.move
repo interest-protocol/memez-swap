@@ -83,42 +83,14 @@ module amm::usdc {
 }
 
 #[test_only]
-module amm::usdt {
+module amm::ipx_btc_eth {
     use sui::coin;
 
-    public struct USDT has drop {}
+    public struct IPX_BTC_ETH has drop {}
 
     #[lint_allow(share_owned)]
-    fun init(witness: USDT, ctx: &mut TxContext) {
-        let (treasury_cap, metadata) = coin::create_currency<USDT>(
-            witness, 
-            9, 
-            b"USDT",
-            b"USD Tether", 
-            b"Stable coin", 
-            option::none(), 
-            ctx
-        );
-
-        transfer::public_transfer(treasury_cap, tx_context::sender(ctx));
-        transfer::public_share_object(metadata);
-    }
-
-    #[test_only]
-    public fun init_for_testing(ctx: &mut TxContext) {
-        init(USDT {}, ctx);
-    }
-}
-
-#[test_only]
-module amm::ipx_v_btc_eth {
-    use sui::coin;
-
-    public struct IPX_V_BTC_ETH has drop {}
-
-    #[lint_allow(share_owned)]
-    fun init(witness: IPX_V_BTC_ETH, ctx: &mut TxContext) {
-        let (treasury_cap, metadata) = coin::create_currency<IPX_V_BTC_ETH>(
+    fun init(witness: IPX_BTC_ETH, ctx: &mut TxContext) {
+        let (treasury_cap, metadata) = coin::create_currency<IPX_BTC_ETH>(
             witness, 
             9, 
             b"",
@@ -134,19 +106,19 @@ module amm::ipx_v_btc_eth {
 
     #[test_only]
     public fun init_for_testing(ctx: &mut TxContext) {
-        init(IPX_V_BTC_ETH {}, ctx);
+        init(IPX_BTC_ETH {}, ctx);
     }  
 }
 
 #[test_only]
-module amm::ipx_v_eth_usdc {
+module amm::ipx_eth_usdc {
     use sui::coin;
 
-    public struct IPX_V_ETH_USDC has drop {}
+    public struct IPX_ETH_USDC has drop {}
     
     #[lint_allow(share_owned)]
-    fun init(witness: IPX_V_ETH_USDC, ctx: &mut TxContext) {
-        let (treasury_cap, metadata) = coin::create_currency<IPX_V_ETH_USDC>(
+    fun init(witness: IPX_ETH_USDC, ctx: &mut TxContext) {
+        let (treasury_cap, metadata) = coin::create_currency<IPX_ETH_USDC>(
             witness, 
             9, 
             b"",
@@ -162,35 +134,7 @@ module amm::ipx_v_eth_usdc {
 
     #[test_only]
     public fun init_for_testing(ctx: &mut TxContext) {
-        init(IPX_V_ETH_USDC {}, ctx);
-    }  
-}
-
-#[test_only]
-module amm::ipx_s_usdc_usdt {
-    use sui::coin;
-
-    public struct IPX_S_USDC_USDT has drop {}
-
-    #[lint_allow(share_owned)]
-    fun init(witness: IPX_S_USDC_USDT, ctx: &mut TxContext) {
-        let (treasury_cap, metadata) = coin::create_currency<IPX_S_USDC_USDT>(
-            witness, 
-            9, 
-            b"",
-            b"", 
-            b"", 
-            option::none(), 
-            ctx
-        );
-
-        transfer::public_transfer(treasury_cap, tx_context::sender(ctx));
-        transfer::public_share_object(metadata);
-    }
-
-    #[test_only]
-    public fun init_for_testing(ctx: &mut TxContext) {
-        init(IPX_S_USDC_USDT {}, ctx);
+        init(IPX_ETH_USDC {}, ctx);
     }  
 }
 

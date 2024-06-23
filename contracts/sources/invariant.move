@@ -1,8 +1,8 @@
-module amm::volatile {
+module amm::interest_amm_invariant {
 
     use suitears::math256::div_up;
 
-    use amm::errors;
+    use amm::interest_amm_errors as errors;
 
     public fun invariant_(x: u64, y: u64): u256 {
         (x as u256) * (y as u256)

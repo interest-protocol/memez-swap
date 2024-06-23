@@ -1,4 +1,4 @@
-module amm::errors {
+module amm::interest_amm_errors {
 
     const ENotEnoughFundsToLend: u64 = 0;
     const EFeeIsTooHigh: u64 = 1;

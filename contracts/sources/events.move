@@ -1,16 +1,15 @@
-module amm::events {
+module amm::interest_amm_events {
 
     use std::type_name::{Self, TypeName};
 
     use sui::event::emit;
 
-    use amm::fees::Fees;
+    use amm::interest_amm_fees::Fees;
 
     public struct NewPool has copy, drop {
         pool_address: address,
         amount_x: u64,
         amount_y: u64,
-        curve: TypeName,
         coin_x: TypeName,
         coin_y: TypeName
     }
@@ -45,12 +44,12 @@ module amm::events {
         fees: Fees    
     }
 
-    public(package) fun new_pool<Curve, CoinX, CoinY>(
+    public(package) fun new_pool<CoinX, CoinY>(
         pool_address: address,
         amount_x: u64,
         amount_y: u64
     ) {
-        emit(NewPool{ pool_address, amount_x, amount_y, curve: type_name::get<Curve>(), coin_x: type_name::get<CoinX>(), coin_y: type_name::get<CoinY>() });
+        emit(NewPool{ pool_address, amount_x, amount_y, coin_x: type_name::get<CoinX>(), coin_y: type_name::get<CoinY>() });
     }
 
     public(package) fun new_auction(

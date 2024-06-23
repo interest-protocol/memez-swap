@@ -1,5 +1,5 @@
 [package]
-name = "AMM"
+name = "InterestAMM"
 edition = "2024.beta"
 license = "MIT"
 authors = ["Jose Cerqueira (jose@interestprotocol.com)"]

@@ -2,25 +2,29 @@
 module amm::utils_tests {
     use std::string::{utf8, to_ascii};
 
-    use sui::sui::SUI;  
-    use sui::coin::CoinMetadata;
-    use sui::test_utils::assert_eq;
-    use sui::test_scenario::{Self as test, next_tx, ctx};
+    use sui::{
+        sui::SUI,
+        coin::CoinMetadata,
+        test_utils::assert_eq,
+        test_scenario::{Self as test, next_tx, ctx}
+    };
 
-    use amm::btc::BTC;
-    use amm::eth::ETH;
-    use amm::ipx_v_btc_eth::{Self, IPX_V_BTC_ETH};
-    use amm::ipx_btce_eth::{Self, IPX_BTCE_ETH};
-    use amm::ipx_btc_eth_wrong_decimals::{Self, IPX_BTC_ETH_WRONG_DECIMALS};
-    use amm::deploy_utils::{scenario, people, deploy_coins};
-    use amm::utils::{
-        is_coin_x, 
-        quote_liquidity,
-        get_lp_coin_name,
-        are_coins_ordered, 
-        get_lp_coin_symbol,
-        assert_lp_coin_integrity,
-        get_optimal_add_liquidity, 
+    use amm::{
+        btc::BTC,
+        eth::ETH,
+        ipx_btce_eth::{Self, IPX_BTCE_ETH},
+        ipx_btc_eth::{Self, IPX_BTC_ETH},
+        deploy_utils::{scenario, people, deploy_coins},
+        ipx_btc_eth_wrong_decimals::{Self, IPX_BTC_ETH_WRONG_DECIMALS},
+        interest_amm_utils::{
+            is_coin_x, 
+            quote_liquidity,
+            get_lp_coin_name,
+            are_coins_ordered, 
+            get_lp_coin_symbol,
+            assert_lp_coin_integrity,
+            get_optimal_add_liquidity, 
+        }
     };
 
     public struct ABC {}
@@ -103,17 +107,8 @@ module amm::utils_tests {
             get_lp_coin_name<BTC, ETH>(
                 &btc_metadata,
                 &eth_metadata,
-                true
             ),
-            utf8(b"ipx volatile Bitcoin Ether Lp Coin")
-        );
-
-        assert_eq(get_lp_coin_name<BTC, ETH>(
-                &btc_metadata,
-                &eth_metadata,
-                false
-            ),
-            utf8(b"ipx stable Bitcoin Ether Lp Coin")
+            utf8(b"Interest AMM Bitcoin Ether Lp Coin")
         );
 
         test::return_shared(btc_metadata);
@@ -142,18 +137,8 @@ module amm::utils_tests {
                 get_lp_coin_symbol<BTC, ETH>(
                     &btc_metadata,
                     &eth_metadata,
-                    true
                 ),
-                to_ascii(utf8(b"ipx-v-BTC-ETH"))
-            );
-
-            assert_eq(
-                get_lp_coin_symbol<BTC, ETH>(
-                    &btc_metadata,
-                    &eth_metadata,
-                    false
-                ),
-                to_ascii(utf8(b"ipx-s-BTC-ETH"))
+                to_ascii(utf8(b"ipx-BTC-ETH"))
             );
 
             test::return_shared(btc_metadata);
@@ -174,14 +159,14 @@ module amm::utils_tests {
 
         next_tx(test, alice);
         {
-            ipx_v_btc_eth::init_for_testing(ctx(test));
+            ipx_btc_eth::init_for_testing(ctx(test));
         };
 
         next_tx(test, alice); 
         {
-            let metadata = test::take_shared<CoinMetadata<IPX_V_BTC_ETH>>(test);
+            let metadata = test::take_shared<CoinMetadata<IPX_BTC_ETH>>(test);
 
-            assert_lp_coin_integrity<BTC, ETH, IPX_V_BTC_ETH>(&metadata, true);
+            assert_lp_coin_integrity<BTC, ETH, IPX_BTC_ETH>(&metadata);
 
             test::return_shared(metadata);
         };
@@ -190,7 +175,7 @@ module amm::utils_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = amm::errors::ELpCoinsMustHave9Decimals, location = amm::utils)]
+    #[expected_failure(abort_code = amm::interest_amm_errors::ELpCoinsMustHave9Decimals, location = amm::interest_amm_utils)]
     fun test_assert_lp_coin_integrity_wrong_decimal() {
         let mut scenario = scenario();
         let (alice, _) = people();
@@ -208,7 +193,7 @@ module amm::utils_tests {
         {
             let metadata = test::take_shared<CoinMetadata<IPX_BTC_ETH_WRONG_DECIMALS>>(test);
 
-        assert_lp_coin_integrity<BTC, ETH, IPX_BTC_ETH_WRONG_DECIMALS>(&metadata, true);
+        assert_lp_coin_integrity<BTC, ETH, IPX_BTC_ETH_WRONG_DECIMALS>(&metadata);
 
         test::return_shared(metadata);
         };
@@ -217,7 +202,7 @@ module amm::utils_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = amm::errors::ECoinsMustBeOrdered, location = amm::utils)]
+    #[expected_failure(abort_code = amm::interest_amm_errors::ECoinsMustBeOrdered, location = amm::interest_amm_utils)]
     fun test_assert_lp_coin_integrity_wrong_coin_order() {
         let mut scenario = scenario();
         let (alice, _) = people();
@@ -235,7 +220,7 @@ module amm::utils_tests {
         {
         let metadata = test::take_shared<CoinMetadata<BTC>>(test);
 
-        assert_lp_coin_integrity<ETH, BTC, BTC>(&metadata, true);
+        assert_lp_coin_integrity<ETH, BTC, BTC>(&metadata);
 
         test::return_shared(metadata);
         };
@@ -244,7 +229,7 @@ module amm::utils_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = amm::errors::EWrongModuleName, location = amm::utils)]
+    #[expected_failure(abort_code = amm::interest_amm_errors::EWrongModuleName, location = amm::interest_amm_utils)]
     fun test_assert_lp_coin_integrity_wrong_lp_module_name() {
         let mut scenario = scenario();
         let (alice, _) = people();
@@ -262,7 +247,7 @@ module amm::utils_tests {
         {
             let metadata = test::take_shared<CoinMetadata<IPX_BTCE_ETH>>(test);
 
-            assert_lp_coin_integrity<BTC, ETH, IPX_BTCE_ETH>(&metadata, true);
+            assert_lp_coin_integrity<BTC, ETH, IPX_BTCE_ETH>(&metadata);
 
             test::return_shared(metadata);
         };

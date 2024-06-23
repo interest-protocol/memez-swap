@@ -1,8 +1,8 @@
-module amm::fees {
+module amm::interest_amm_fees {
 
     use suitears::math256::mul_div_up;
 
-    use amm::errors;
+    use amm::interest_amm_errors as errors;
 
     const PRECISION: u256 = 1_000_000_000_000_000_000;
     const MAX_FEE_PERCENT: u256 = 20_000_000_000_000_000; // 2%
