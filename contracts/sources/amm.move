@@ -30,9 +30,8 @@ module amm::interest_amm {
     };
 
     // === Constants ===
-
-    const PRECISION: u256 = 1_000_000_000_000_000_000;
     const MINIMUM_LIQUIDITY: u64 = 100;
+    const PRECISION: u256 = 1_000_000_000_000_000_000;
     const INITIAL_VOLATILE_FEE_PERCENT: u256 = 3_000_000_000_000_000; // 0.3%
     const INITIAL_ADMIN_FEE: u256 = 200_000_000_000_000_000; // 20%
     const FLASH_LOAN_FEE_PERCENT: u256 = 5_000_000_000_000_000; //0.5% 
@@ -57,12 +56,32 @@ module amm::interest_amm {
         lp_coin_cap: TreasuryCap<LpCoin>,
         balance_x: Balance<CoinX>,
         balance_y: Balance<CoinY>,
+        // @dev Fees per coin are scaled by 1e9
+        total_fees_x_per_coin: u256,
+        // @dev Fees per coin are scaled by 1e9
+        total_fees_y_per_coin: u256,
         admin_balance_x: Balance<CoinX>,
         admin_balance_y: Balance<CoinY>,
         seed_liquidity: Balance<LpCoin>,
         fees: Fees,
-        locked: bool     
+        locked: bool
     } 
+
+    public struct BurnProof has key, store {
+        id: UID,
+        pool: address,
+        amount: u64,
+        // @dev Fees per coin are scaled by 1e9
+        total_fees_x_per_coin: u256,
+        // @dev Fees per coin are scaled by 1e9
+        total_fees_y_per_coin: u256,
+    }
+
+    // TODO - can set fees and lock add_liquidity
+    public struct PoolAdmin has key, store {
+        id: UID,
+        pool: address
+    }
 
     public struct SwapAmount has store, drop, copy {
         amount_out: u64,
@@ -207,7 +226,52 @@ module amm::interest_amm {
         );
 
         (coin_x, coin_y)
+    }
+
+    public fun burn_lp_coin<CoinX, CoinY, LpCoin>(pool: &mut InterestPool, lp_coin: Coin<LpCoin>, ctx: &mut TxContext): BurnProof {
+        let lp_coin_value = lp_coin.value();
+
+        assert!(lp_coin_value != 0, errors::no_zero_coin());
+
+        let pool_address = pool.id.uid_to_address();
+        let pool_state = pool_state_mut<CoinX, CoinY, LpCoin>(pool);
+
+        // Burn the LpCoin
+        transfer::public_transfer(lp_coin, @0x0);        
+
+        BurnProof {
+            id: object::new(ctx),
+            pool: pool_address,
+            amount: lp_coin_value,
+            total_fees_x_per_coin: pool_state.total_fees_x_per_coin,
+            total_fees_y_per_coin: pool_state.total_fees_y_per_coin,            
+        }
     }  
+
+    public fun take_burn_proof_fees<CoinX, CoinY, LpCoin>(
+        burn_proof: &mut BurnProof,
+        pool: &mut InterestPool,
+        ctx: &mut TxContext
+    ): (Coin<CoinX>, Coin<CoinY>) {
+        let pool_address = pool.id.uid_to_address();
+        assert!(burn_proof.pool == pool_address, errors::wrong_pool());
+
+        let pool_state = pool_state_mut<CoinX, CoinY, LpCoin>(pool);
+
+        let total_fees_x_acc_per_coin = (pool_state.total_fees_x_per_coin - burn_proof.total_fees_x_per_coin);
+        let total_fees_y_acc_per_coin = (pool_state.total_fees_x_per_coin - burn_proof.total_fees_x_per_coin);
+
+        let total_amount_x = total_fees_x_acc_per_coin * (burn_proof.amount as u256) / PRECISION;
+        let total_amount_y = total_fees_y_acc_per_coin * (burn_proof.amount as u256) / PRECISION;
+
+        burn_proof.total_fees_x_per_coin =pool_state.total_fees_x_per_coin;
+        burn_proof.total_fees_y_per_coin =pool_state.total_fees_y_per_coin;
+
+        (
+            pool_state.balance_x.split((total_amount_x as u64)).into_coin(ctx),
+            pool_state.balance_y.split((total_amount_y as u64)).into_coin(ctx)
+        )
+    }
 
     // === Flash Loans ===
 
@@ -314,6 +378,36 @@ module amm::interest_amm {
         let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
         pool_state.balance_y.value()
     }
+
+    public fun total_fees_x_per_coin<CoinX, CoinY, LpCoin>(pool: &InterestPool): u256 {
+        let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
+        pool_state.total_fees_x_per_coin
+    }
+
+    public fun total_fees_y_per_coin<CoinX, CoinY, LpCoin>(pool: &InterestPool): u256 {
+        let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
+        pool_state.total_fees_y_per_coin
+    }
+
+    public use fun burn_proof_pool as BurnProof.pool;
+    public fun burn_proof_pool(burn_proof: &BurnProof): address {
+        burn_proof.pool
+    }
+
+    public use fun burn_proof_amount as BurnProof.amount;
+    public fun burn_proof_amount(burn_proof: &BurnProof): address {
+        burn_proof.pool
+    }    
+
+    public use fun burn_proof_total_fees_x_per_coin as BurnProof.total_fees_x_per_coin;
+    public fun burn_proof_total_fees_x_per_coin(burn_proof: &BurnProof): u256 {
+        burn_proof.total_fees_x_per_coin
+    }   
+
+    public use fun burn_proof_total_fees_y_per_coin as BurnProof.total_fees_y_per_coin;
+    public fun burn_proof_total_fees_y_per_coin(burn_proof: &BurnProof): u256 {
+        burn_proof.total_fees_x_per_coin
+    }   
 
     public fun fees<CoinX, CoinY, LpCoin>(pool: &InterestPool): Fees {
         let pool_state = pool_state<CoinX, CoinY, LpCoin>(pool);
@@ -459,6 +553,8 @@ module amm::interest_amm {
             locked: false,
             admin_balance_x: balance::zero(),
             admin_balance_y: balance::zero(),
+            total_fees_x_per_coin: 0,
+            total_fees_y_per_coin: 0
         };
 
         let mut pool = InterestPool {
@@ -490,6 +586,7 @@ module amm::interest_amm {
         assert!(!pool_state.locked, errors::pool_is_locked());
 
         let coin_in_amount = coin_x.value();
+        let lp_coin_amount = pool_state.lp_coin_cap.total_supply();
     
         let swap_amount = swap_amounts(
             pool_state, 
@@ -504,6 +601,16 @@ module amm::interest_amm {
 
         if (swap_amount.admin_fee_out != 0) {
             pool_state.admin_balance_y.join(pool_state.balance_y.split(swap_amount.admin_fee_out));  
+        };
+
+        if (swap_amount.standard_fee_in != 0) {
+            let amount = mul_div_down(swap_amount.standard_fee_in - swap_amount.admin_fee_in, (PRECISION as u64), lp_coin_amount);
+            pool_state.total_fees_x_per_coin = pool_state.total_fees_x_per_coin + (amount as u256);
+        };
+
+        if (swap_amount.standard_fee_out != 0) {
+            let amount = mul_div_down(swap_amount.standard_fee_out - swap_amount.admin_fee_out, (PRECISION as u64), lp_coin_amount);
+            pool_state.total_fees_y_per_coin = pool_state.total_fees_y_per_coin + (amount as u256);
         };
 
         pool_state.balance_x.join(coin_x.into_balance());
@@ -524,7 +631,8 @@ module amm::interest_amm {
         assert!(!pool_state.locked, errors::pool_is_locked());
 
         let coin_in_amount = coin_y.value();
-
+        let lp_coin_amount = pool_state.lp_coin_cap.total_supply();
+        
         let swap_amount = swap_amounts(
             pool_state, 
             coin_in_amount, 
@@ -540,6 +648,16 @@ module amm::interest_amm {
             pool_state.admin_balance_x.join(pool_state.balance_x.split(swap_amount.admin_fee_out)); 
         };
       
+
+        if (swap_amount.standard_fee_in != 0) {
+            let amount = mul_div_down(swap_amount.standard_fee_in - swap_amount.admin_fee_in, (PRECISION as u64), lp_coin_amount);
+            pool_state.total_fees_y_per_coin = pool_state.total_fees_y_per_coin + (amount as u256);
+        };
+
+        if (swap_amount.standard_fee_out != 0) {
+            let amount = mul_div_down(swap_amount.standard_fee_out - swap_amount.admin_fee_out, (PRECISION as u64), lp_coin_amount);
+            pool_state.total_fees_x_per_coin = pool_state.total_fees_x_per_coin + (amount as u256);
+        };
 
         pool_state.balance_y.join(coin_y.into_balance());
 
