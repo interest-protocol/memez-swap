@@ -5,80 +5,110 @@ module amm::interest_amm_fees {
     use amm::interest_amm_errors as errors;
 
     const PRECISION: u256 = 1_000_000_000_000_000_000;
-    const MAX_FEE_PERCENT: u256 = 20_000_000_000_000_000; // 2%
-    const MAX_ADMIN_FEE: u256 = 200_000_000_000_000_000; // 20%
+    const MAX_BURN_FEE: u256 = 500_000_000_000_000_000; // 50%
+    const MAX_SWAP_FEE: u256 = 15_000_000_000_000_000; // 1.5%
+    const MAX_ADMIN_FEE: u256 = 10_000_000_000_000_000; // 1%
+    const MAX_LIQUIDITY_FEE: u256 = 50_000_000_000_000_000; // 5%
 
     public struct Fees has store, copy, drop {
+        swap: u256,   
         burn: u256,
         admin: u256,  
-        swap_in: u256,
-        swap_out: u256,    
         liquidity: u256,
     }
 
-    public fun new(fee_in_percent: u256, fee_out_percent: u256, admin_fee_percent: u256): Fees {
+    public fun new(
+        swap: u256,
+        burn: u256,
+        admin: u256,
+        liquidity: u256
+    ): Fees {
         Fees {
-            fee_in_percent,
-            fee_out_percent,
-            admin_fee_percent,
-            liquidity_fee_percent: 0
+            swap,
+            burn,
+            admin, 
+            liquidity
         }
     }
 
-    public fun fee_in_percent(fees: &Fees): u256 {
-        fees.fee_in_percent
+    public(package) fun swap(self: &Fees): u256 {
+        self.swap
     }
 
-    public fun fee_out_percent(fees: &Fees): u256 {
-        fees.fee_out_percent
+    public(package) fun burn(self: &Fees): u256 {
+        self.burn
     }
 
-    public fun admin_fee_percent(fees: &Fees): u256 {
-        fees.admin_fee_percent
+    public(package) fun admin(self: &Fees): u256 {
+        self.admin
     }
 
-    public fun update_fee_in_percent(fee: &mut Fees, mut fee_in_percent: Option<u256>) {
-        if (option::is_none(&fee_in_percent)) return;
-        let fee_in_percent = option::extract(&mut fee_in_percent);
+    public(package) fun liquidity(self: &Fees): u256 {
+        self.liquidity
+    }
+
+    public(package) fun update_swap(self: &mut Fees, mut fee: Option<u256>) {
+        if (option::is_none(&fee)) return;
+        let fee = option::extract(&mut fee);
     
-        assert!(MAX_FEE_PERCENT >= fee_in_percent, errors::fee_is_too_high());
-        fee.fee_in_percent = fee_in_percent;
+        assert!(MAX_SWAP_FEE >= fee, errors::fee_is_too_high());
+        self.swap = fee;
     }
 
-    public fun update_fee_out_percent(fee: &mut Fees, mut fee_out_percent: Option<u256>) {
-        if (option::is_none(&fee_out_percent)) return;
-        let fee_out_percent = option::extract(&mut fee_out_percent);
+    public(package) fun update_burn(self: &mut Fees, mut fee: Option<u256>) {
+        if (option::is_none(&fee)) return;
+        let fee = option::extract(&mut fee);
     
-        assert!(MAX_FEE_PERCENT >= fee_out_percent, errors::fee_is_too_high());
-        fee.fee_out_percent = fee_out_percent;
+        assert!(MAX_BURN_FEE >= fee, errors::fee_is_too_high());
+       self.burn = fee;
     }
 
-    public fun update_admin_fee_percent(fee: &mut Fees, mut admin_fee_percent: Option<u256>) {
-        if (option::is_none(&admin_fee_percent)) return;
-        let admin_fee_percent = option::extract(&mut admin_fee_percent);
-
-        assert!(MAX_ADMIN_FEE >= admin_fee_percent, errors::fee_is_too_high());
-        fee.admin_fee_percent = admin_fee_percent;
+    public(package) fun update_admin(self: &mut Fees, mut fee: Option<u256>) {
+        if (option::is_none(&fee)) return;
+        let fee = option::extract(&mut fee);
+    
+        assert!(MAX_ADMIN_FEE >= fee, errors::fee_is_too_high());
+       self.admin = fee;
     }
 
-    public fun get_fee_in_amount(fees: &Fees, amount: u64): u64 {
-        get_fee_amount(amount, fees.fee_in_percent)
+    public(package) fun update_liquidity(self: &mut Fees, mut fee: Option<u256>) {
+        if (option::is_none(&fee)) return;
+        let fee = option::extract(&mut fee);
+    
+        assert!(MAX_LIQUIDITY_FEE >= fee, errors::fee_is_too_high());
+       self.liquidity = fee;
     }
 
-    public fun get_fee_out_amount(fees: &Fees, amount: u64): u64 {
-        get_fee_amount(amount, fees.fee_out_percent)
+    public(package) fun get_swap_amount(self: &Fees, amount: u64): u64 {
+        get_fee_amount(amount, self.swap)
     }
 
-    public fun get_admin_amount(fees: &Fees, amount: u64): u64 {
-        get_fee_amount(amount, fees.admin_fee_percent)
+    public(package) fun get_burn_amount(self: &Fees, amount: u64): u64 {
+        get_fee_amount(amount, self.burn)
     }
 
-    public fun get_fee_in_initial_amount(fees: &Fees, amount: u64): u64 {
-        get_initial_amount(amount, fees.fee_in_percent)
+    public(package) fun get_admin_amount(self: &Fees, amount: u64): u64 {
+        get_fee_amount(amount, self.admin)
     }
 
-    public fun get_fee_out_initial_amount(fees: &Fees, amount: u64): u64 {
-        get_initial_amount(amount, fees.fee_out_percent)
+    public(package) fun get_liquidity_amount(self: &Fees, amount: u64): u64 {
+        get_fee_amount(amount, self.liquidity)
+    }
+
+    public(package) fun get_swap_amount_initial_amount(self: &Fees, amount: u64): u64 {
+        get_initial_amount(amount, self.swap)
+    }
+
+    public(package) fun get_burn_amount_initial_amount(self: &Fees, amount: u64): u64 {
+        get_initial_amount(amount, self.burn)
+    }
+
+    public(package) fun get_admin_amount_initial_amount(self: &Fees, amount: u64): u64 {
+        get_initial_amount(amount, self.admin)
+    }
+
+    public(package) fun get_liquidity_amount_initial_amount(self: &Fees, amount: u64): u64 {
+        get_initial_amount(amount, self.liquidity)
     }
 
     fun get_fee_amount(x: u64, percent: u256): u64 {

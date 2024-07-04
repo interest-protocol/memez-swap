@@ -6,7 +6,7 @@ module amm::interest_amm_utils {
 
     use amm::interest_amm_errors as errors;
 
-    public fun are_coins_ordered<CoinA, CoinB>(): bool {
+    public(package) fun are_coins_ordered<CoinA, CoinB>(): bool {
         let coin_a_type_name = type_name::get<CoinA>();
         let coin_b_type_name = type_name::get<CoinB>();
     
@@ -15,7 +15,7 @@ module amm::interest_amm_utils {
         comparator::compare(&coin_a_type_name, &coin_b_type_name).lt()
     }
 
-    public fun is_coin_x<CoinA, CoinB>(): bool {
+    public(package) fun is_coin_x<CoinA, CoinB>(): bool {
         comparator::compare(&type_name::get<CoinA>(), &type_name::get<CoinB>()).lt()
     }
 }

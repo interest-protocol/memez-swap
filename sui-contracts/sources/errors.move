@@ -6,17 +6,13 @@ module amm::interest_amm_errors {
     const EProvideBothCoins: u64 = 3;
     const ECoinsMustBeOrdered: u64 = 4;
     const EPoolAlreadyDeployed: u64 = 5;
-    const ESupplyMustHaveZeroValue: u64 = 6;
-    const ELpCoinsMustHave9Decimals: u64 = 7;
-    const ESlippage: u64 = 8;
-    const ENoZeroCoin: u64 = 9;
-    const EInvalidInvariant: u64 = 10;
-    const EPoolIsLocked: u64 = 11;
-    const EWrongRepayAmount: u64 = 12;
-    const EWrongModuleName: u64 = 13;
-    const EInsufficientLiquidity: u64 = 14;
-    const EWrongPool: u64 = 15;
-    const EDepositAmountIsTooLow: u64 = 16;
+    const ESlippage: u64 = 6;
+    const ENoZeroCoin: u64 = 7;
+    const EInvalidInvariant: u64 = 8;
+    const EPoolIsLocked: u64 = 9;
+    const EWrongRepayAmount: u64 = 10;
+    const EInsufficientLiquidity: u64 = 11;
+    const EWrongPool: u64 = 12;
   
     public fun not_enough_funds_to_lend(): u64 {
         ENotEnoughFundsToLend
@@ -42,14 +38,6 @@ module amm::interest_amm_errors {
         EPoolAlreadyDeployed
     }
 
-    public fun supply_must_have_zero_value(): u64 {
-        ESupplyMustHaveZeroValue
-    }
-
-    public fun lp_coins_must_have_9_decimals(): u64 {
-        ELpCoinsMustHave9Decimals
-    }
-
     public fun slippage(): u64 {
         ESlippage
     }
@@ -70,19 +58,11 @@ module amm::interest_amm_errors {
         EWrongRepayAmount
     }
 
-    public fun wrong_module_name(): u64 {
-        EWrongModuleName
-    }
-
     public fun insufficient_liquidity(): u64 {
         EInsufficientLiquidity
     }
 
     public fun wrong_pool(): u64 {
         EWrongPool
-    }
-
-    public fun deposit_amount_is_too_low(): u64 {
-        EDepositAmountIsTooLow
     }
 }
