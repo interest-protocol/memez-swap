@@ -9,16 +9,19 @@ module amm::interest_amm_fees {
     const MAX_ADMIN_FEE: u256 = 200_000_000_000_000_000; // 20%
 
     public struct Fees has store, copy, drop {
-        fee_in_percent: u256,
-        fee_out_percent: u256, 
-        admin_fee_percent: u256,     
+        burn: u256,
+        admin: u256,  
+        swap_in: u256,
+        swap_out: u256,    
+        liquidity: u256,
     }
 
     public fun new(fee_in_percent: u256, fee_out_percent: u256, admin_fee_percent: u256): Fees {
         Fees {
             fee_in_percent,
             fee_out_percent,
-            admin_fee_percent
+            admin_fee_percent,
+            liquidity_fee_percent: 0
         }
     }
 
