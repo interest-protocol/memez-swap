@@ -250,7 +250,7 @@ module amm::memez_amm {
         invoice.prev_k
     }  
 
-    // === Creator Functions ===
+    // === Deployer Functions ===
 
     public fun take_deployer_fees<CoinX, CoinY>(
         deployer: &Deployer,
@@ -280,6 +280,8 @@ module amm::memez_amm {
         _: &Admin,
         pool: &mut MemezPool,
     ) {
+        let pool_address = pool.id.uid_to_address();
+
         assert!(
             type_name::get<CoinX>() == type_name::get<BurnCoin>() ||
             type_name::get<CoinY>() == type_name::get<BurnCoin>(),
@@ -289,15 +291,20 @@ module amm::memez_amm {
         let pool_state = pool_state_mut<CoinX, CoinY>(pool);
 
         pool_state.burn_coin.fill(type_name::get<BurnCoin>());
+
+        events::add_burn_coin(pool_address, type_name::get<BurnCoin>());
     }
 
     public fun remove_burn_coin<CoinX, CoinY>(
         _: &Admin,
         pool: &mut MemezPool,
     ) {
+        let pool_address = pool.id.uid_to_address();
+
         let pool_state = pool_state_mut<CoinX, CoinY>(pool);
 
         pool_state.burn_coin = option::none();
+        events::remove_burn_coin(pool_address);
     }
 
     public fun update_fees<CoinX, CoinY>(

@@ -38,6 +38,15 @@ module amm::memez_amm_events {
         amount_y: u64
     }
 
+    public struct AddBurnCoin has copy, drop {
+        pool: address,
+        burn_coin: TypeName
+    }
+
+    public struct RemoveBurnCoin has copy, drop {
+        pool: address
+    }
+
     public(package) fun new_pool<CoinX, CoinY>(
         pool: address,
         deployer: address,
@@ -65,5 +74,13 @@ module amm::memez_amm_events {
 
     public(package) fun take_deployer_fees(pool: address, amount_x: u64, amount_y: u64) {
         emit(TakeDeployerFees { pool, amount_x, amount_y });
+    }  
+
+    public(package) fun add_burn_coin(pool: address, burn_coin: TypeName) {
+        emit(AddBurnCoin { pool, burn_coin });
+    }  
+
+    public(package) fun remove_burn_coin(pool: address) {
+        emit(RemoveBurnCoin { pool });
     }  
 }
