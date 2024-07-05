@@ -1,45 +1,28 @@
-# [Interest Protocol AMM](https://www.suicoins.com/)
+# [Memez Swap](https://www.memez.gg/)
 
  <p> <img width="50px"height="50px" src="./logo.png" /></p> 
  
- An AMM on [Sui Network](https://sui.io/).  
-  
-## Quick start  
-  
-Make sure you have the latest version of the Sui binaries installed on your machine
-
-[Instructions here](https://docs.sui.io/devnet/build/install)
-
-### Run tests
-
-**To run the tests on the dex directory**
-
-```bash
-  cd contracts
-  sui move test
-```
-
-### Publish
-
-```bash
-  cd contracts
-  sui client publish --gas-budget 500000000
-```
+ An AMM designed to safely pump Meme coins.
 
 ## Functionality
 
-### DEX
+### Memez Swap
 
-The Interest Protocol AMM DEX allows users to create pools, add/remove liquidity, and swap. The DEX issues a NFT that accrues trading fees and LpCoins that represent the underlying liquidity to LPs.
+The Memez Swap allows users to deploy Meme Pools and earn trading fees. The pools only support swapping. They do not expose liquidity management functions. This means that it is impossible to rug as there is no LpCoin. The liquidity is always locked forever at deployment. In addition, the deployer earns all the trading fees, and no one else can add liquidity.
 
 The DEX uses the famous `k = x * y` popularized by [Uniswap](https://uniswap.org/whitepaper.pdf).
 
-The DEX supports the following operations:
+It supports the following operations:
 
-- Create Pool: Users can only create volatile & stable pools
-- Add/Remove Liquidity
-- Swap: Pool<BTC, Ether> | Ether -> BTC | BTC -> Ether
-- Flash loans
+- Create Pool
+- Swap
+- Flash loans for extra fees.
+
+Thats it!!
+
+## Contracts
+
+- Sui: Contracts(./sui)
 
 ## Contact Us
 

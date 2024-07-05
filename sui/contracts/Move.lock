@@ -2,11 +2,10 @@
 
 [move]
 version = 0
-manifest_digest = "72476C1CB845E2A1438105A5D5381356D3B3BEAA1C7190D3D37A5C64533F0E9F"
-deps_digest = "060AD7E57DFB13104F21BE5F5C3759D03F0553FC3229247D9A7A6B45F50D03A3"
+manifest_digest = "DBF3D8765309D3F5D1C382FB1A643D0D5CCADB266AA5F4663D39BAAE33FAF6E0"
+deps_digest = "3C4103934B1E040BB6B23F1D610B4EF9F2F1166A50A104EADCF77467C004C600"
 
 dependencies = [
-  { name = "MoveStdlib" },
   { name = "Sui" },
   { name = "SuiTears" },
 ]
@@ -33,8 +32,8 @@ dependencies = [
 ]
 
 [move.toolchain-version]
-compiler-version = "1.24.1"
-edition = "legacy"
+compiler-version = "1.27.2"
+edition = "2024.beta"
 flavor = "sui"
 
 [env]
