@@ -22,7 +22,7 @@ Thats it!!
 
 ## Contracts
 
-- [Sui contracts](https://sui.io/): [sui-contracts](./sui-contracts)
+- [Sui](https://sui.io/): [Contracts](./sui-contracts)
 
 ## Sui Contracts
 
