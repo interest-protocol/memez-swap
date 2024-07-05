@@ -13,6 +13,7 @@ module amm::memez_amm_errors {
     const EWrongRepayAmount: u64 = 10;
     const EInsufficientLiquidity: u64 = 11;
     const EWrongPool: u64 = 12;
+    const EInvalidBurnCoin: u64 = 13;
   
     public(package) fun not_enough_funds_to_lend(): u64 {
         ENotEnoughFundsToLend
@@ -64,5 +65,9 @@ module amm::memez_amm_errors {
 
     public(package) fun wrong_pool(): u64 {
         EWrongPool
+    }
+
+    public(package) fun burn_coin(): u64 {
+        EInvalidBurnCoin
     }
 }

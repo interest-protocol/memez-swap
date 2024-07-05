@@ -37,7 +37,7 @@ module amm::memez_amm {
         pools: Table<TypeName, address>,
     }
   
-    public struct InterestPool has key {
+    public struct MemezPool has key {
         id: UID 
     }
 
@@ -46,14 +46,15 @@ module amm::memez_amm {
     public struct PoolStateKey has drop, copy, store {}
 
     public struct PoolState<phantom CoinX, phantom CoinY> has store {
+        fees: Fees,
+        locked: bool,
         balance_x: Balance<CoinX>,
         balance_y: Balance<CoinY>,
-        deployer_balance_x: Balance<CoinX>,
-        deployer_balance_y: Balance<CoinY>,
+        burn_coin: Option<TypeName>,
         admin_balance_x: Balance<CoinX>,
         admin_balance_y: Balance<CoinY>,
-        fees: Fees,
-        locked: bool
+        deployer_balance_x: Balance<CoinX>,
+        deployer_balance_y: Balance<CoinY>,
     } 
 
     // TODO - can set fees and lock add_liquidity
@@ -103,7 +104,7 @@ module amm::memez_amm {
     }
 
     public fun swap<CoinIn, CoinOut>(
-        pool: &mut InterestPool, 
+        pool: &mut MemezPool, 
         coin_in: Coin<CoinIn>,
         coin_min_value: u64,
         ctx: &mut TxContext    
@@ -119,7 +120,7 @@ module amm::memez_amm {
     // === Flash Loans ===
 
     public fun flash_loan<CoinX, CoinY>(
-        pool: &mut InterestPool,
+        pool: &mut MemezPool,
         amount_x: u64,
         amount_y: u64,
         ctx: &mut TxContext
@@ -150,7 +151,7 @@ module amm::memez_amm {
     }  
 
     public fun repay_flash_loan<CoinX, CoinY>(
-        pool: &mut InterestPool,
+        pool: &mut MemezPool,
         invoice: Invoice,
         coin_x: Coin<CoinX>,
         coin_y: Coin<CoinY>
@@ -203,32 +204,37 @@ module amm::memez_amm {
         registry.pools.contains(type_name::get<RegistryKey<CoinX, CoinY>>())   
     }
 
-    public fun balance_x<CoinX, CoinY>(pool: &InterestPool): u64 {
+    public fun burn_coin<CoinX, CoinY>(pool: &MemezPool): Option<TypeName> {
+        let pool_state = pool_state<CoinX, CoinY>(pool);
+        pool_state.burn_coin
+    }
+
+    public fun balance_x<CoinX, CoinY>(pool: &MemezPool): u64 {
         let pool_state = pool_state<CoinX, CoinY>(pool);
         pool_state.balance_x.value()
     }
 
-    public fun balance_y<CoinX, CoinY>(pool: &InterestPool): u64 {
+    public fun balance_y<CoinX, CoinY>(pool: &MemezPool): u64 {
         let pool_state = pool_state<CoinX, CoinY>(pool);
         pool_state.balance_y.value()
     }
 
-    public fun fees<CoinX, CoinY>(pool: &InterestPool): Fees {
+    public fun fees<CoinX, CoinY>(pool: &MemezPool): Fees {
         let pool_state = pool_state<CoinX, CoinY>(pool);
         pool_state.fees
     }
 
-    public fun locked<CoinX, CoinY>(pool: &InterestPool): bool {
+    public fun locked<CoinX, CoinY>(pool: &MemezPool): bool {
         let pool_state = pool_state<CoinX, CoinY>(pool);
         pool_state.locked
     }
 
-    public fun admin_balance_x<CoinX, CoinY>(pool: &InterestPool): u64 {
+    public fun admin_balance_x<CoinX, CoinY>(pool: &MemezPool): u64 {
         let pool_state = pool_state<CoinX, CoinY>(pool);
         pool_state.admin_balance_x.value()
     }
 
-    public fun admin_balance_y<CoinX, CoinY>(pool: &InterestPool): u64 {
+    public fun admin_balance_y<CoinX, CoinY>(pool: &MemezPool): u64 {
         let pool_state = pool_state<CoinX, CoinY>(pool);
         pool_state.admin_balance_y.value()
     }
@@ -249,7 +255,7 @@ module amm::memez_amm {
 
     public fun take_deployer_fees<CoinX, CoinY>(
         deployer: &Deployer,
-        pool: &mut InterestPool,
+        pool: &mut MemezPool,
         ctx: &mut TxContext
     ): (Coin<CoinX>, Coin<CoinY>) {
         let pool_address = pool.id.uid_to_address();
@@ -271,9 +277,33 @@ module amm::memez_amm {
 
     // === Admin Functions ===
 
+    public fun add_burn_coin<CoinX, CoinY, BurnCoin>(
+        _: &Admin,
+        pool: &mut MemezPool,
+    ) {
+        assert!(
+            type_name::get<CoinX>() == type_name::get<BurnCoin>() ||
+            type_name::get<CoinY>() == type_name::get<BurnCoin>(),
+            errors::burn_coin()
+        );
+
+        let pool_state = pool_state_mut<CoinX, CoinY>(pool);
+
+        pool_state.burn_coin.fill(type_name::get<BurnCoin>());
+    }
+
+    public fun remove_burn_coin<CoinX, CoinY>(
+        _: &Admin,
+        pool: &mut MemezPool,
+    ) {
+        let pool_state = pool_state_mut<CoinX, CoinY>(pool);
+
+        pool_state.burn_coin = option::none();
+    }
+
     public fun update_fees<CoinX, CoinY>(
         _: &Admin,
-        pool: &mut InterestPool,
+        pool: &mut MemezPool,
         swap: Option<u256>,
         burn: Option<u256>, 
         admin: Option<u256>,
@@ -292,7 +322,7 @@ module amm::memez_amm {
 
     public fun take_admin_fees<CoinX, CoinY>(
         _: &Admin,
-        pool: &mut InterestPool,
+        pool: &mut MemezPool,
         ctx: &mut TxContext
     ): (Coin<CoinX>, Coin<CoinY>) {
         let pool_address = pool.id.uid_to_address();
@@ -332,13 +362,14 @@ module amm::memez_amm {
             balance_y: coin_y.into_balance(),
             fees: new_fees(),
             locked: false,
+            burn_coin: option::none(),
             deployer_balance_x: balance::zero(),
             deployer_balance_y: balance::zero(),
             admin_balance_x: balance::zero(),
             admin_balance_y: balance::zero(),
         };
 
-        let mut pool = InterestPool {
+        let mut pool = MemezPool {
             id: object::new(ctx)
         };
 
@@ -361,7 +392,7 @@ module amm::memez_amm {
     }
 
     fun swap_coin_x<CoinX, CoinY>(
-        pool: &mut InterestPool,
+        pool: &mut MemezPool,
         mut coin_x: Coin<CoinX>,
         coin_y_min_value: u64,
         ctx: &mut TxContext
@@ -400,7 +431,7 @@ module amm::memez_amm {
     }
 
     fun swap_coin_y<CoinX, CoinY>(
-        pool: &mut InterestPool,
+        pool: &mut MemezPool,
         mut coin_y: Coin<CoinY>,
         coin_x_min_value: u64,
         ctx: &mut TxContext
@@ -463,8 +494,16 @@ module amm::memez_amm {
         let (balance_x, balance_y) = amounts(pool_state);
 
         let prev_k = invariant_(balance_x, balance_y);
+
+        let is_burn_coin = if (pool_state.burn_coin.is_some())
+            {
+                let coin_in_type = if (is_x) type_name::get<CoinX>() else type_name::get<CoinY>();
+                coin_in_type == *pool_state.burn_coin.borrow()
+            }
+        else 
+            false;
         
-        let burn_fee = pool_state.fees.get_burn_amount(coin_in_amount);
+        let burn_fee = if (is_burn_coin) pool_state.fees.get_burn_amount(coin_in_amount) else 0;
         let swap_fee = pool_state.fees.get_swap_amount(coin_in_amount - burn_fee);
 
         let liquidity_fee = pool_state.fees.get_liquidity_amount(swap_fee);
@@ -497,11 +536,11 @@ module amm::memez_amm {
         }  
     }
 
-    fun pool_state<CoinX, CoinY>(pool: &InterestPool): &PoolState<CoinX, CoinY> {
+    fun pool_state<CoinX, CoinY>(pool: &MemezPool): &PoolState<CoinX, CoinY> {
         df::borrow(&pool.id, PoolStateKey {})
     }
 
-    fun pool_state_mut<CoinX, CoinY>(pool: &mut InterestPool): &mut PoolState<CoinX, CoinY> {
+    fun pool_state_mut<CoinX, CoinY>(pool: &mut MemezPool): &mut PoolState<CoinX, CoinY> {
         df::borrow_mut(&mut pool.id, PoolStateKey {})
     }
 
