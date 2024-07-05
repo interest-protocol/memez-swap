@@ -57,7 +57,6 @@ module amm::memez_amm {
         deployer_balance_y: Balance<CoinY>,
     } 
 
-    // TODO - can set fees and lock add_liquidity
     public struct Deployer has key, store {
         id: UID,
         pool: address
