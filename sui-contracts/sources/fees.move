@@ -1,18 +1,20 @@
-module amm::interest_amm_fees {
+module amm::memez_amm_fees {
 
     use suitears::math256::mul_div_up;
 
-    use amm::interest_amm_errors as errors;
+    use amm::memez_amm_errors as errors;
 
     const PRECISION: u256 = 1_000_000_000_000_000_000;
     const MAX_BURN_FEE: u256 = 500_000_000_000_000_000; // 50%
-    const MAX_SWAP_FEE: u256 = 15_000_000_000_000_000; // 1.5%
-    const MAX_ADMIN_FEE: u256 = 10_000_000_000_000_000; // 1%
-    const MAX_LIQUIDITY_FEE: u256 = 50_000_000_000_000_000; // 5%
+    const MAX_SWAP_FEE: u256 = 25_000_000_000_000_000; // 2.5%
+    const MAX_ADMIN_FEE: u256 = 300_000_000_000_000_000; // 30%
+    const MAX_LIQUIDITY_FEE: u256 = 300_000_000_000_000_000; // 30%
 
     public struct Fees has store, copy, drop {
         swap: u256,   
+        // Applied before the swap fee
         burn: u256,
+        // They are a % of the swap fee
         admin: u256,  
         liquidity: u256,
     }
@@ -101,14 +103,6 @@ module amm::interest_amm_fees {
 
     public(package) fun get_burn_amount_initial_amount(self: &Fees, amount: u64): u64 {
         get_initial_amount(amount, self.burn)
-    }
-
-    public(package) fun get_admin_amount_initial_amount(self: &Fees, amount: u64): u64 {
-        get_initial_amount(amount, self.admin)
-    }
-
-    public(package) fun get_liquidity_amount_initial_amount(self: &Fees, amount: u64): u64 {
-        get_initial_amount(amount, self.liquidity)
     }
 
     fun get_fee_amount(x: u64, percent: u256): u64 {

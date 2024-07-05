@@ -1,4 +1,4 @@
-module amm::interest_amm {
+module amm::memez_amm {
     // === Imports ===
   
     use std::type_name::{Self, TypeName};
@@ -14,25 +14,27 @@ module amm::interest_amm {
     use suitears::math256::mul_div_up; 
 
     use amm::{
-        interest_amm_admin::Admin,
-        interest_amm_utils as utils,
-        interest_amm_errors as errors,
-        interest_amm_events as events,
-        interest_amm_fees::{Self as fees, Fees},    
-        interest_amm_invariant::{invariant_, get_amount_out},
+        memez_amm_admin::Admin,
+        memez_amm_utils as utils,
+        memez_amm_errors as errors,
+        memez_amm_events as events,
+        memez_amm_fees::{Self as fees, Fees},    
+        memez_amm_invariant::{invariant_, get_amount_out},
     };
 
     // === Constants ===
     const PRECISION: u256 = 1_000_000_000_000_000_000;
-    const INITIAL_VOLATILE_FEE_PERCENT: u256 = 3_000_000_000_000_000; // 0.3%
+    const INITIAL_SWAP_FEE: u256 = 1_000_000_000_000_000; // 1%
     const INITIAL_ADMIN_FEE: u256 = 200_000_000_000_000_000; // 20%
+    const INITIAL_LIQUIDITY_FEE: u256 = 500_000_000_000_000_000; // 50%
     const FLASH_LOAN_FEE_PERCENT: u256 = 5_000_000_000_000_000; //0.5% 
+    const BURN_WALLET: address = @0x0;
 
     // === Structs ===
 
     public struct Registry has key {
         id: UID,
-        pools: Table<TypeName, address>
+        pools: Table<TypeName, address>,
     }
   
     public struct InterestPool has key {
@@ -46,8 +48,8 @@ module amm::interest_amm {
     public struct PoolState<phantom CoinX, phantom CoinY> has store {
         balance_x: Balance<CoinX>,
         balance_y: Balance<CoinY>,
-        creator_balance_x: Balance<CoinX>,
-        creator_balance_y: Balance<CoinY>,
+        deployer_balance_x: Balance<CoinX>,
+        deployer_balance_y: Balance<CoinY>,
         admin_balance_x: Balance<CoinX>,
         admin_balance_y: Balance<CoinY>,
         fees: Fees,
@@ -62,10 +64,11 @@ module amm::interest_amm {
 
     public struct SwapAmount has store, drop, copy {
         amount_out: u64,
-        admin_fee_in: u64,
-        admin_fee_out: u64,
-        standard_fee_in: u64,
-        standard_fee_out: u64,
+        burn_fee: u64,
+        admin_fee: u64,
+        swap_fee: u64,
+        liquidity_fee: u64,
+        creator_fee: u64
     }
 
     public struct Invoice {
@@ -95,8 +98,8 @@ module amm::interest_amm {
         coin_x: Coin<CoinX>,
         coin_y: Coin<CoinY>,
         ctx: &mut TxContext    
-    ) {
-        new_pool_internal<CoinX, CoinY>(registry, coin_x, coin_y, ctx);
+    ): Deployer {
+        new_pool_internal<CoinX, CoinY>(registry, coin_x, coin_y, ctx)
     }
 
     public fun swap<CoinIn, CoinOut>(
@@ -242,31 +245,63 @@ module amm::interest_amm {
         invoice.prev_k
     }  
 
+    // === Creator Functions ===
+
+    public fun take_deployer_fees<CoinX, CoinY>(
+        deployer: &Deployer,
+        pool: &mut InterestPool,
+        ctx: &mut TxContext
+    ): (Coin<CoinX>, Coin<CoinY>) {
+        let pool_address = pool.id.uid_to_address();
+
+        assert!(deployer.pool == pool_address, errors::wrong_pool());
+
+        let pool_state = pool_state_mut<CoinX, CoinY>(pool);
+
+        let amount_x = pool_state.deployer_balance_x.value();
+        let amount_y = pool_state.deployer_balance_y.value();
+
+        events::take_deployer_fees(pool_address, amount_x, amount_y);
+
+        (
+            pool_state.deployer_balance_x.withdraw_all().into_coin(ctx),
+            pool_state.deployer_balance_y.withdraw_all().into_coin(ctx),    
+        )
+    }
+
     // === Admin Functions ===
 
     public fun update_fees<CoinX, CoinY>(
         _: &Admin,
         pool: &mut InterestPool,
-        fee_in_percent: Option<u256>,
-        fee_out_percent: Option<u256>, 
-        admin_fee_percent: Option<u256>,  
+        swap: Option<u256>,
+        burn: Option<u256>, 
+        admin: Option<u256>,
+        liquidity: Option<u256>,  
     ) {
         let pool_address = pool.id.uid_to_address();
         let pool_state = pool_state_mut<CoinX, CoinY>(pool);
 
-        pool_state.fees.update_fee_in_percent(fee_in_percent);
-        pool_state.fees.update_fee_out_percent(fee_out_percent);  
-        pool_state.fees.update_admin_fee_percent(admin_fee_percent);
+        pool_state.fees.update_swap(swap);
+        pool_state.fees.update_burn(burn);  
+        pool_state.fees.update_admin(admin);
+        pool_state.fees.update_liquidity(liquidity);
 
         events::update_fees(pool_address, pool_state.fees);
     }
 
-    public fun take_fees<CoinX, CoinY>(
+    public fun take_admin_fees<CoinX, CoinY>(
         _: &Admin,
         pool: &mut InterestPool,
         ctx: &mut TxContext
     ): (Coin<CoinX>, Coin<CoinY>) {
+        let pool_address = pool.id.uid_to_address();
         let pool_state = pool_state_mut<CoinX, CoinY>(pool);
+
+        let amount_x = pool_state.admin_balance_x.value();
+        let amount_y = pool_state.admin_balance_y.value();
+
+        events::take_admin_fees(pool_address, amount_x, amount_y);
 
         (
             pool_state.admin_balance_x.withdraw_all().into_coin(ctx),
@@ -281,7 +316,7 @@ module amm::interest_amm {
         coin_x: Coin<CoinX>,
         coin_y: Coin<CoinY>,
         ctx: &mut TxContext
-    ) {
+    ): Deployer {
         assert!(utils::are_coins_ordered<CoinX, CoinY>(), errors::coins_must_be_ordered());
         let coin_x_value = coin_x.value();
         let coin_y_value = coin_y.value();
@@ -297,8 +332,8 @@ module amm::interest_amm {
             balance_y: coin_y.into_balance(),
             fees: new_fees(),
             locked: false,
-            creator_balance_x: balance::zero(),
-            creator_balance_y: balance::zero(),
+            deployer_balance_x: balance::zero(),
+            deployer_balance_y: balance::zero(),
             admin_balance_x: balance::zero(),
             admin_balance_y: balance::zero(),
         };
@@ -313,9 +348,16 @@ module amm::interest_amm {
 
         registry.pools.add(registry_key, pool_address);
 
-        events::new_pool<CoinX, CoinY>(pool_address, coin_x_value, coin_y_value);
+        let deployer = Deployer {
+            id: object::new(ctx),
+            pool: pool_address
+        };
+
+        events::new_pool<CoinX, CoinY>(pool_address, deployer.id.uid_to_address(), coin_x_value, coin_y_value);
 
         share_object(pool);
+
+        deployer
     }
 
     fun swap_coin_x<CoinX, CoinY>(
@@ -337,12 +379,17 @@ module amm::interest_amm {
             true,
         );
 
-        if (swap_amount.admin_fee_in != 0) {
-            pool_state.admin_balance_x.join(coin_x.split(swap_amount.admin_fee_in, ctx).into_balance());
+        if (swap_amount.burn_fee != 0) {
+            let burn_coin = coin_x.split(swap_amount.burn_fee, ctx);
+            transfer::public_transfer(burn_coin, BURN_WALLET);
         };
 
-        if (swap_amount.admin_fee_out != 0) {
-            pool_state.admin_balance_y.join(pool_state.balance_y.split(swap_amount.admin_fee_out));  
+        if (swap_amount.admin_fee != 0) {
+            pool_state.admin_balance_x.join(coin_x.split(swap_amount.admin_fee, ctx).into_balance());  
+        };
+
+        if (swap_amount.creator_fee != 0) {
+            pool_state.deployer_balance_x.join(coin_x.split(swap_amount.creator_fee, ctx).into_balance());  
         };
 
         pool_state.balance_x.join(coin_x.into_balance());
@@ -371,12 +418,17 @@ module amm::interest_amm {
             false
         );
 
-        if (swap_amount.admin_fee_in != 0) {
-            pool_state.admin_balance_y.join(coin_y.split(swap_amount.admin_fee_in, ctx).into_balance());
+        if (swap_amount.burn_fee != 0) {
+            let burn_coin = coin_y.split(swap_amount.burn_fee, ctx);
+            transfer::public_transfer(burn_coin, BURN_WALLET);
         };
 
-        if (swap_amount.admin_fee_out != 0) {
-            pool_state.admin_balance_x.join(pool_state.balance_x.split(swap_amount.admin_fee_out)); 
+        if (swap_amount.admin_fee != 0) {
+            pool_state.admin_balance_y.join(coin_y.split(swap_amount.admin_fee, ctx).into_balance());  
+        };
+
+        if (swap_amount.creator_fee != 0) {
+            pool_state.deployer_balance_y.join(coin_y.split(swap_amount.creator_fee, ctx).into_balance());  
         };
 
         pool_state.balance_y.join(coin_y.into_balance());
@@ -387,7 +439,12 @@ module amm::interest_amm {
     }  
 
     fun new_fees(): Fees {
-        fees::new(INITIAL_VOLATILE_FEE_PERCENT, INITIAL_VOLATILE_FEE_PERCENT, INITIAL_ADMIN_FEE)
+        fees::new(
+            INITIAL_SWAP_FEE, 
+            0,
+            INITIAL_ADMIN_FEE, 
+            INITIAL_LIQUIDITY_FEE
+        )
     }
 
     fun amounts<CoinX, CoinY>(state: &PoolState<CoinX, CoinY>): (u64, u64) {
@@ -406,37 +463,37 @@ module amm::interest_amm {
         let (balance_x, balance_y) = amounts(pool_state);
 
         let prev_k = invariant_(balance_x, balance_y);
+        
+        let burn_fee = pool_state.fees.get_burn_amount(coin_in_amount);
+        let swap_fee = pool_state.fees.get_swap_amount(coin_in_amount - burn_fee);
 
-        let standard_fee_in = pool_state.fees.get_fee_in_amount(coin_in_amount);
-        let admin_fee_in =  pool_state.fees.get_admin_amount(standard_fee_in);
+        let liquidity_fee = pool_state.fees.get_liquidity_amount(swap_fee);
+        let admin_fee = pool_state.fees.get_admin_amount(swap_fee);
+        let creator_fee = swap_fee - admin_fee - liquidity_fee;
 
-        let coin_in_amount = coin_in_amount - standard_fee_in;
+        let coin_in_amount = coin_in_amount - burn_fee - swap_fee;
 
         let amount_out =  if (is_x) 
                 get_amount_out(coin_in_amount, balance_x, balance_y)
             else 
                 get_amount_out(coin_in_amount, balance_y, balance_x);
 
-        let standard_fee_out = pool_state.fees.get_fee_out_amount(amount_out);
-        let admin_fee_out = pool_state.fees.get_admin_amount(standard_fee_out);
-
-        let amount_out = amount_out - standard_fee_out;
-
         assert!(amount_out >= coin_out_min_value, errors::slippage());
 
         let new_k = if (is_x)
-                invariant_(balance_x + coin_in_amount + standard_fee_in - admin_fee_in, balance_y - amount_out - admin_fee_out)
+                invariant_(balance_x + coin_in_amount + liquidity_fee, balance_y - amount_out)
             else
-                invariant_(balance_x - amount_out - admin_fee_out, balance_y + coin_in_amount + standard_fee_in - admin_fee_in);
+                invariant_(balance_x - amount_out, balance_y + coin_in_amount + liquidity_fee);
 
         assert!(new_k >= prev_k, errors::invalid_invariant());
 
         SwapAmount {
             amount_out,
-            standard_fee_in,
-            standard_fee_out,
-            admin_fee_in,
-            admin_fee_out,
+            swap_fee,
+            burn_fee,
+            admin_fee,
+            liquidity_fee,
+            creator_fee
         }  
     }
 

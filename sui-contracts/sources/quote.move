@@ -1,24 +1,22 @@
-module amm::interest_amm_quote {
+module amm::memez_amm_quote {
 
     use amm::{
-        interest_amm_invariant,
-        interest_amm_fees::Fees,
-        interest_amm::InterestPool,
-        interest_amm_utils::is_coin_x
+        memez_amm_invariant,
+        memez_amm_fees::Fees,
+        memez_amm::InterestPool,
+        memez_amm_utils::is_coin_x
     };
 
     public fun amount_out<CoinIn, CoinOut>(pool: &InterestPool, amount_in: u64): u64 { 
 
         if (is_coin_x<CoinIn, CoinOut>()) {
             let (balance_x, balance_y, fees) = get_pool_data<CoinIn, CoinOut>(pool);
-            let amount_in = amount_in - fees.get_fee_in_amount(amount_in);
 
-            get_amount_out(fees, interest_amm_invariant::get_amount_out(amount_in, balance_x, balance_y))
+            memez_amm_invariant::get_amount_out(sub_fees_out(fees, amount_in), balance_x, balance_y)
         } else {
             let (balance_x, balance_y, fees) = get_pool_data<CoinOut, CoinIn>(pool);
-            let amount_in = amount_in - fees.get_fee_in_amount(amount_in);
 
-            get_amount_out(fees, interest_amm_invariant::get_amount_out(amount_in, balance_y, balance_x))
+            memez_amm_invariant::get_amount_out(sub_fees_out(fees, amount_in), balance_x, balance_y)
         }
   }
 
@@ -26,20 +24,25 @@ module amm::interest_amm_quote {
 
         if (is_coin_x<CoinIn, CoinOut>()) {
             let (balance_x, balance_y, fees) = get_pool_data<CoinIn, CoinOut>(pool);
-            let amount_out = fees.get_fee_out_initial_amount(amount_out);
-
-            fees.get_fee_in_initial_amount(interest_amm_invariant::get_amount_in(amount_out, balance_x, balance_y))
+            
+            sub_fees_in(fees, memez_amm_invariant::get_amount_in(amount_out, balance_y, balance_x))
         } else {
             let (balance_x, balance_y, fees) = get_pool_data<CoinOut, CoinIn>(pool);
-            let amount_out = fees.get_fee_out_initial_amount(amount_out);
-
-            fees.get_fee_in_initial_amount(interest_amm_invariant::get_amount_in(amount_out, balance_y, balance_x))
+            
+            sub_fees_in(fees, memez_amm_invariant::get_amount_in(amount_out, balance_y, balance_x))
         }
     }
 
-    fun get_amount_out(fees: Fees, amount_out: u64): u64 {
-        let fee_amount = fees.get_fee_out_amount(amount_out);
-        amount_out - fee_amount
+    fun sub_fees_in(fees: Fees, amount: u64): u64 {
+        fees.get_burn_amount_initial_amount(
+            fees.get_swap_amount_initial_amount(amount)
+        )
+    }
+
+    fun sub_fees_out(fees: Fees, amount: u64): u64 {
+        let burn_fee = fees.get_burn_amount(amount);
+        let swap_fee = fees.get_swap_amount(amount - burn_fee);
+        amount - burn_fee - swap_fee
     }
 
     fun get_pool_data<CoinX, CoinY>(pool: &InterestPool): (u64, u64, Fees) {

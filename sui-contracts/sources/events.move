@@ -1,13 +1,14 @@
-module amm::interest_amm_events {
+module amm::memez_amm_events {
 
     use std::type_name::{Self, TypeName};
 
     use sui::event::emit;
 
-    use amm::interest_amm_fees::Fees;
+    use amm::memez_amm_fees::Fees;
 
     public struct NewPool has copy, drop {
         pool: address,
+        deployer: address,
         amount_x: u64,
         amount_y: u64,
         coin_x: TypeName,
@@ -25,13 +26,13 @@ module amm::interest_amm_events {
         fees: Fees    
     }
 
-    public struct AdminTakeFees has copy, drop {
+    public struct TakeAdminFees has copy, drop {
         pool: address,
         amount_x: u64,
         amount_y: u64
     }
 
-    public struct DeployerTakeFees has copy, drop {
+    public struct TakeDeployerFees has copy, drop {
         pool: address,
         amount_x: u64,
         amount_y: u64
@@ -39,10 +40,11 @@ module amm::interest_amm_events {
 
     public(package) fun new_pool<CoinX, CoinY>(
         pool: address,
+        deployer: address,
         amount_x: u64,
         amount_y: u64
     ) {
-        emit(NewPool{ pool, amount_x, amount_y, coin_x: type_name::get<CoinX>(), coin_y: type_name::get<CoinY>() });
+        emit(NewPool{ pool, deployer, amount_x, amount_y, coin_x: type_name::get<CoinX>(), coin_y: type_name::get<CoinY>() });
     }
 
     public(package) fun swap<CoinIn, CoinOut, T: copy + drop + store>(
@@ -55,5 +57,13 @@ module amm::interest_amm_events {
 
     public(package) fun update_fees(pool: address, fees: Fees) {
         emit(UpdateFees { pool, fees });
+    } 
+
+    public(package) fun take_admin_fees(pool: address, amount_x: u64, amount_y: u64) {
+        emit(TakeAdminFees { pool, amount_x, amount_y });
+    } 
+
+    public(package) fun take_deployer_fees(pool: address, amount_x: u64, amount_y: u64) {
+        emit(TakeDeployerFees { pool, amount_x, amount_y });
     }  
 }

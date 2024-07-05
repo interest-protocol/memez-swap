@@ -1,10 +1,10 @@
-module amm::interest_amm_utils {
+module amm::memez_amm_utils {
 
     use std::type_name;
 
     use suitears::comparator;
 
-    use amm::interest_amm_errors as errors;
+    use amm::memez_amm_errors as errors;
 
     public(package) fun are_coins_ordered<CoinA, CoinB>(): bool {
         let coin_a_type_name = type_name::get<CoinA>();

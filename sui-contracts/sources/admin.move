@@ -1,4 +1,4 @@
-module amm::interest_amm_admin {
+module amm::memez_amm_admin {
 
     public struct Admin has key, store {
         id: UID
