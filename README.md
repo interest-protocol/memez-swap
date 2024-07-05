@@ -8,7 +8,7 @@
 
 ### Memez Swap
 
-The Memez Swap allows users to deploy Meme Pools and earn trading fees. The pools only support swapping. They do not expose liquidity management functions. This means that it is impossible to rug as there is no LpCoin. The liquidity is always locked forever at deployment. In addition, the deployer earns all the trading fees, and no one else can add liquidity.
+The Memez Swap allows users to deploy Meme Pools and earn trading fees. The pools only support swapping. They do not expose liquidity management functions. This means that it is impossible to rug as there is no LpCoin. The liquidity is always locked forever at deployment.
 
 The DEX uses the famous `k = x * y` popularized by [Uniswap](https://uniswap.org/whitepaper.pdf).
 
@@ -19,6 +19,26 @@ It supports the following operations:
 - Flash loans for extra fees.
 
 Thats it!!
+
+### Fees
+
+Swap fees play a crucial role in Memez Swap. Fees are configurable per pool by the protocol admin.
+
+#### Liquidity Fee
+
+The pool takes a liquidity fee to ensure that base liquidity increases over time. This is to ensure pumps and dumps do not hitler the chart.
+
+#### Burn Fee
+
+The pool can burn a % of a coin in every swap to increase its market cap. We send the coin to the 0x0 address instead of shrinking the coin supply for pumpnomics.
+
+#### Admin Fee
+
+The protocol takes a small percentage in each swap to fund development to deploy more degen dApps.
+
+#### Deployer Fee
+
+The deployer of the pool earns trading fees eternally. Since he is the only liquidity provider, this can fund the `dev` to keep cooking and buy pay KOLs and shillers.
 
 ## Contracts
 
