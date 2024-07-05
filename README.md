@@ -22,31 +22,7 @@ Thats it!!
 
 ## Contracts
 
-- [Sui](https://sui.io/): [Contracts](./sui-contracts)
-
-## Sui Contracts
-
-### Quick Start
-
-Make sure you have the latest version of the Sui binaries installed on your machine
-
-[Instructions here](https://docs.sui.io/devnet/build/install)
-
-#### Run tests
-
-**To run the tests on the dex directory**
-
-```bash
-  cd sui-contracts
-  sui move test
-```
-
-### Publish
-
-```bash
-  cd sui-contracts
-  sui client publish --gas-budget 500000000
-```
+- Sui: Contracts(./sui)
 
 ## Contact Us
 
