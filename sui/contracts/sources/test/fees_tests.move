@@ -1,165 +1,220 @@
-// #[test_only]
-// module amm::fees_tests {
-//     use sui::{
-//         test_utils::assert_eq,
-//         test_scenario::{Self as test, next_tx}
-//     };
+#[test_only]
+module amm::fees_tests {
+    use sui::{
+        test_utils::assert_eq,
+        test_scenario::{Self as test, next_tx}
+    };
 
-//     use amm::interest_amm_fees as fees;
+    use amm::memez_amm_fees as fees;
   
-//     use amm::deploy_utils::{people, scenario};
+    use amm::deploy_utils::{people, scenario};
 
-//     const INITIAL_FEE_PERCENT: u256 = 250000000000000; // 0.025%
-//     const MAX_FEE_PERCENT: u256 = 20000000000000000; // 2%
-//     const MAX_ADMIN_FEE: u256 = 200000000000000000; // 20%
+    const MAX_BURN_FEE: u256 = 500_000_000_000_000_000; // 50%
+    const MAX_SWAP_FEE: u256 = 25_000_000_000_000_000; // 2.5%
+    const MAX_ADMIN_FEE: u256 = 300_000_000_000_000_000; // 30%
+    const MAX_LIQUIDITY_FEE: u256 = 300_000_000_000_000_000; // 30%
+    const ONE_PER_CENT: u256 = 10_000_000_000_000_000;
 
-//     #[test]
-//     fun sets_initial_state_correctly() {
-//         let mut scenario = scenario();
-//         let (alice, _) = people();
+    #[test]
+    fun sets_initial_state_correctly() {
+        let mut scenario = scenario();
+        let (alice, _) = people();
 
-//         let test = &mut scenario;
+        let test = &mut scenario;
     
-//         next_tx(test, alice);
-//         {
+        next_tx(test, alice);
+        {
       
-//             let fees = fees::new(INITIAL_FEE_PERCENT, INITIAL_FEE_PERCENT + 1, INITIAL_FEE_PERCENT + 2);
+            let fees = fees::new(
+                ONE_PER_CENT * 2,
+                ONE_PER_CENT * 20,
+                ONE_PER_CENT * 30,
+                ONE_PER_CENT * 25
+            );
 
-//             let fee_in = fees::fee_in_percent(&fees);
-//             let fee_out = fees::fee_out_percent(&fees);
-//             let fee_admin = fees::admin_fee_percent(&fees);
+            assert_eq(fees.swap(), ONE_PER_CENT * 2);
+            assert_eq(fees.burn(), ONE_PER_CENT * 20);
+            assert_eq(fees.admin(), ONE_PER_CENT * 30);
+            assert_eq(fees.liquidity(), ONE_PER_CENT * 25);
 
-//             assert_eq(fee_in, INITIAL_FEE_PERCENT);
-//             assert_eq(fee_out, INITIAL_FEE_PERCENT + 1);
-//             assert_eq(fee_admin, INITIAL_FEE_PERCENT + 2);
-//         };
-//         test::end(scenario);      
-//     }
+        };
+        test::end(scenario);      
+    }
 
-//     #[test]
-//     fun updates_fees_correctly() {
-//         let mut scenario = scenario();
-//         let (alice, _) = people();
+    #[test]
+    fun updates_fees_correctly() {
+        let mut scenario = scenario();
+        let (alice, _) = people();
 
-//         let test = &mut scenario;
+        let test = &mut scenario;
 
-//         next_tx(test, alice);
-//         {
-//             let mut fees = fees::new(INITIAL_FEE_PERCENT, INITIAL_FEE_PERCENT + 1, INITIAL_FEE_PERCENT + 2);
+        next_tx(test, alice);
+        {
+            let mut fees = fees::new(
+                ONE_PER_CENT * 2,
+                ONE_PER_CENT * 20,
+                ONE_PER_CENT * 30,
+                ONE_PER_CENT * 25
+            );
 
-//             fees::update_fee_in_percent(&mut fees, option::some(MAX_FEE_PERCENT));
-//             fees::update_fee_out_percent(&mut fees, option::some(MAX_FEE_PERCENT));
-//             fees::update_admin_fee_percent(&mut fees, option::some(1));
+            fees::update_swap(&mut fees, option::some(MAX_SWAP_FEE));
+            fees::update_burn(&mut fees, option::some(MAX_BURN_FEE));
+            fees::update_admin(&mut fees, option::some(MAX_ADMIN_FEE));
+            fees::update_liquidity(&mut fees, option::some(MAX_LIQUIDITY_FEE));
 
-//             let fee_in = fees::fee_in_percent(&fees);
-//             let fee_out = fees::fee_out_percent(&fees);
-//             let fee_admin = fees::admin_fee_percent(&fees);
 
-//             assert_eq(fee_in, MAX_FEE_PERCENT);
-//             assert_eq(fee_out, MAX_FEE_PERCENT);
-//             assert_eq(fee_admin, 1);
+            assert_eq(fees.swap(), MAX_SWAP_FEE);
+            assert_eq(fees.burn(), MAX_BURN_FEE);
+            assert_eq(fees.admin(), MAX_ADMIN_FEE);
+            assert_eq(fees.liquidity(), MAX_LIQUIDITY_FEE);
 
-//             fees::update_fee_in_percent(&mut fees, option::none());
-//             fees::update_fee_out_percent(&mut fees, option::none());
-//             fees::update_admin_fee_percent(&mut fees, option::none());
+            fees::update_swap(&mut fees, option::none());
+            fees::update_burn(&mut fees, option::none());
+            fees::update_admin(&mut fees, option::none());
+            fees::update_liquidity(&mut fees, option::none());
 
-//             let fee_in = fees::fee_in_percent(&fees);
-//             let fee_out = fees::fee_out_percent(&fees);
-//             let fee_admin = fees::admin_fee_percent(&fees);
+            assert_eq(fees.swap(), MAX_SWAP_FEE);
+            assert_eq(fees.burn(), MAX_BURN_FEE);
+            assert_eq(fees.admin(), MAX_ADMIN_FEE);
+            assert_eq(fees.liquidity(), MAX_LIQUIDITY_FEE);
 
-//             assert_eq(fee_in, MAX_FEE_PERCENT);
-//             assert_eq(fee_out, MAX_FEE_PERCENT);
-//             assert_eq(fee_admin, 1);
+            fees::update_swap(&mut fees, option::some(0));
+            fees::update_burn(&mut fees, option::some(0));
+            fees::update_admin(&mut fees, option::some(0));
+            fees::update_liquidity(&mut fees, option::some(0));
 
-//             fees::update_fee_in_percent(&mut fees, option::some(0));
-//             fees::update_fee_out_percent(&mut fees, option::some(0));
-//             fees::update_admin_fee_percent(&mut fees, option::some(0));
+            assert_eq(fees.swap(), 0);
+            assert_eq(fees.burn(), 0);
+            assert_eq(fees.admin(), 0);
+            assert_eq(fees.liquidity(), 0);
 
-//             let fee_in = fees::fee_in_percent(&fees);
-//             let fee_out = fees::fee_out_percent(&fees);
-//             let fee_admin = fees::admin_fee_percent(&fees);
+           fees::update_swap(&mut fees, option::some(1));
+            fees::update_burn(&mut fees, option::some(2));
+            fees::update_admin(&mut fees, option::some(3));
+            fees::update_liquidity(&mut fees, option::some(4));
 
-//             assert_eq(fee_in, 0);
-//             assert_eq(fee_out, 0);
-//             assert_eq(fee_admin, 0);
-//         };
-//         test::end(scenario);
-//     }
+            assert_eq(fees.swap(), 1);
+            assert_eq(fees.burn(), 2);
+            assert_eq(fees.admin(), 3);
+            assert_eq(fees.liquidity(), 4);
+        };
+        test::end(scenario);
+    }
 
-//     #[test]
-//     fun calculates_fees_properly() {
-//         let mut scenario = scenario();
-//         let (alice, _) = people();
+    #[test]
+    fun calculates_fees_properly() {
+        let mut scenario = scenario();
+        let (alice, _) = people();
 
-//         let test = &mut scenario;
+        let test = &mut scenario;
 
-//         next_tx(test, alice);
-//         {
-//             let mut fees = fees::new(0, 0, 0);
+        next_tx(test, alice);
+        {
+            let fees = fees::new(
+                ONE_PER_CENT * 10,
+                ONE_PER_CENT * 20,
+                ONE_PER_CENT * 30,
+                ONE_PER_CENT * 25
+            );
 
-//             fees::update_fee_in_percent(&mut fees, option::some(MAX_FEE_PERCENT)); // 2%
-//             fees::update_fee_out_percent(&mut fees, option::some(MAX_FEE_PERCENT / 2)); // 1%
-//             fees::update_admin_fee_percent(&mut fees, option::some(MAX_FEE_PERCENT * 2)); // 4%
+            let amount = 100;
 
-//             let amount = 100;
+            assert_eq(fees::get_swap_amount(&fees, amount), 10);
+            assert_eq(fees::get_burn_amount(&fees, amount), 20);
+            assert_eq(fees::get_admin_amount(&fees, amount), 30);
+            assert_eq(fees::get_liquidity_amount(&fees, amount), 25);
 
-//             assert_eq(fees::get_fee_in_amount(&fees, amount), 2);
-//             assert_eq(fees::get_fee_out_amount(&fees, amount), 1);
-//             assert_eq(fees::get_admin_amount(&fees, amount), 4);
+            assert_eq(fees::get_swap_amount_initial_amount(&fees, amount), 112); // rounds up
+            assert_eq(fees::get_burn_amount_initial_amount(&fees, amount), 125); // rounds up
+        };
+        test::end(scenario);
+    }
 
-//             assert_eq(fees::get_fee_in_initial_amount(&fees, amount), 103); // rounds up
-//             assert_eq(fees::get_fee_out_initial_amount(&fees, amount), 102); // rounds up
-//         };
-//         test::end(scenario);
-//     }
+    #[test]
+    #[expected_failure(abort_code = amm::memez_amm_errors::EFeeIsTooHigh, location = amm::memez_amm_fees)]  
+    fun aborts_max_swap_fee() {
+        let mut scenario = scenario();
+        let (alice, _) = people();
 
-//     #[test]
-//     #[expected_failure(abort_code = amm::interest_amm_errors::EFeeIsTooHigh, location = amm::interest_amm_fees)]  
-//     fun aborts_max_fee_in() {
-//         let mut scenario = scenario();
-//         let (alice, _) = people();
+        let test = &mut scenario;
 
-//         let test = &mut scenario;
+        next_tx(test, alice);
+        {
+            let mut fees = fees::new(
+                ONE_PER_CENT * 10,
+                ONE_PER_CENT * 20,
+                ONE_PER_CENT * 30,
+                ONE_PER_CENT * 25
+            );
 
-//         next_tx(test, alice);
-//         {
-//             let mut fees = fees::new(0, 0, 0);
+            fees.update_swap(option::some(MAX_SWAP_FEE + 1));
+        };
+        test::end(scenario);
+    }  
 
-//             fees::update_fee_in_percent(&mut fees, option::some(MAX_FEE_PERCENT + 1));
-//         };
-//         test::end(scenario);
-//     }  
+    #[test]
+    #[expected_failure(abort_code = amm::memez_amm_errors::EFeeIsTooHigh, location = amm::memez_amm_fees)]  
+    fun aborts_max_burn_fee() {
+        let mut scenario = scenario();
+        let (alice, _) = people();
 
-//     #[test]
-//     #[expected_failure(abort_code = amm::interest_amm_errors::EFeeIsTooHigh, location = amm::interest_amm_fees)]  
-//     fun aborts_max_fee_out() {
-//         let mut scenario = scenario();
-//         let (alice, _) = people();
+        let test = &mut scenario;
 
-//         let test = &mut scenario;
+        next_tx(test, alice);
+        {
+            let mut fees = fees::new(
+                ONE_PER_CENT * 10,
+                ONE_PER_CENT * 20,
+                ONE_PER_CENT * 30,
+                ONE_PER_CENT * 25
+            );
 
-//         next_tx(test, alice);
-//         {
-//             let mut fees = fees::new(0, 0, 0);
+            fees.update_burn(option::some(MAX_BURN_FEE + 1));
+        };
+        test::end(scenario);
+    }   
 
-//             fees::update_fee_out_percent(&mut fees, option::some(MAX_FEE_PERCENT + 1));
-//         };
-//         test::end(scenario);
-//     }   
+    #[test]
+    #[expected_failure(abort_code = amm::memez_amm_errors::EFeeIsTooHigh, location = amm::memez_amm_fees)]  
+    fun aborts_max_admin_fee() {
+        let mut scenario = scenario();
+        let (alice, _) = people();
 
-//     #[test]
-//     #[expected_failure(abort_code = amm::interest_amm_errors::EFeeIsTooHigh, location = amm::interest_amm_fees)]  
-//     fun aborts_max_admin_fee() {
-//         let mut scenario = scenario();
-//         let (alice, _) = people();
-
-//         let test = &mut scenario;
+        let test = &mut scenario;
    
-//         next_tx(test, alice);
-//         {
-//             let mut fees = fees::new(0, 0, 0);
-//             fees::update_admin_fee_percent(&mut fees, option::some(MAX_ADMIN_FEE + 1));
-//         };
-//         test::end(scenario);
-//     }  
-// }
+        next_tx(test, alice);
+        {
+            let mut fees = fees::new(
+                ONE_PER_CENT * 10,
+                ONE_PER_CENT * 20,
+                ONE_PER_CENT * 30,
+                ONE_PER_CENT * 25
+            );
+
+            fees.update_admin(option::some(MAX_ADMIN_FEE + 1));
+        };
+        test::end(scenario);
+    }  
+
+    #[test]
+    #[expected_failure(abort_code = amm::memez_amm_errors::EFeeIsTooHigh, location = amm::memez_amm_fees)]  
+    fun aborts_max_liquidity_fee() {
+        let mut scenario = scenario();
+        let (alice, _) = people();
+
+        let test = &mut scenario;
+   
+        next_tx(test, alice);
+        {
+            let mut fees = fees::new(
+                ONE_PER_CENT * 10,
+                ONE_PER_CENT * 20,
+                ONE_PER_CENT * 30,
+                ONE_PER_CENT * 25
+            );
+
+            fees.update_liquidity(option::some(MAX_ADMIN_FEE + 1));
+        };
+        test::end(scenario);
+    } 
+}
