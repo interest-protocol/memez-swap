@@ -12,7 +12,7 @@ module amm::fees_tests {
     const MAX_BURN_FEE: u256 = 500_000_000_000_000_000; // 50%
     const MAX_SWAP_FEE: u256 = 25_000_000_000_000_000; // 2.5%
     const MAX_ADMIN_FEE: u256 = 300_000_000_000_000_000; // 30%
-    const MAX_LIQUIDITY_FEE: u256 = 300_000_000_000_000_000; // 30%
+    const MAX_LIQUIDITY_FEE: u256 = 500_000_000_000_000_000; // 30%
     const ONE_PER_CENT: u256 = 10_000_000_000_000_000;
 
     #[test]

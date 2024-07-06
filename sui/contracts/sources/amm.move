@@ -190,15 +190,6 @@ module amm::memez_amm {
             option::none()
     }
 
-    public fun pool_address_from_lp_coin<LpCoin>(registry: &Registry): Option<address> {
-        let lp_coin_key = type_name::get<LpCoin>();
-
-        if (registry.pools.contains(lp_coin_key))
-            option::some(*registry.pools.borrow(lp_coin_key))
-        else
-        option::none()
-    }
-
     public fun exists_<CoinX, CoinY>(registry: &Registry): bool {
         registry.pools.contains(type_name::get<RegistryKey<CoinX, CoinY>>())   
     }
@@ -236,6 +227,16 @@ module amm::memez_amm {
     public fun admin_balance_y<CoinX, CoinY>(pool: &MemezPool): u64 {
         let pool_state = pool_state<CoinX, CoinY>(pool);
         pool_state.admin_balance_y.value()
+    }
+
+    public fun deployer_balance_x<CoinX, CoinY>(pool: &MemezPool): u64 {
+        let pool_state = pool_state<CoinX, CoinY>(pool);
+        pool_state.deployer_balance_x.value()
+    }
+
+    public fun deployer_balance_y<CoinX, CoinY>(pool: &MemezPool): u64 {
+        let pool_state = pool_state<CoinX, CoinY>(pool);
+        pool_state.deployer_balance_y.value()
     }
 
     public fun repay_amount_x(invoice: &Invoice): u64 {

@@ -51,7 +51,7 @@ The deployer of the pool earns trading fees eternally. Since he is the only liqu
 
 ## Contracts
 
-- Sui: Contracts(./sui)
+- [Sui Contracts](./sui)
 
 ## Contact Us
 
