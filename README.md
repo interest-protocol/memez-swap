@@ -2,7 +2,7 @@
 
  <p> <img width="50px"height="50px" src="./logo.png" /></p> 
  
- An AMM designed to safely pump Meme coins.
+A DEX for shillers and Meme coins.
 
 ## Functionality
 
@@ -18,6 +18,7 @@ It supports the following operations:
 - Swap to retire or jeet.
 - Referrals to pump together.
 - Flash loans for extra bling bling!
+- Dynamic Fees for max profitability.
 
 Thats it!!
 
@@ -31,15 +32,15 @@ The more apes the better. Memez has a native referral system. Degens can refer o
 
 ### Fees
 
-Swap fees play a crucial role in Memez Swap. Fees are configurable per pool by the protocol admin.
+Swap fees play a crucial role in Memez Swap. Fees are configurable per pool by the protocol admin. The pool applies a dynamic to trades based on the on-chain volume. This allows to maximize profitability and trading. Periods of high volume incur higher trading fees while low volume periods do not.
 
 #### Liquidity Fee
 
 The pool takes a liquidity fee to ensure that base liquidity increases over time. This is to ensure pumps and dumps do not hitler the chart.
 
-#### Burn Fee
+#### Sell/Burn Fee
 
-The pool can burn a % of a coin in every swap to increase its market cap. We send the coin to the 0x0 address instead of shrinking the coin supply for pumpnomics.
+The pool can burn a % of a coin in every swap to increase its market cap. This fee is only applied when the jeet is selling the coin. We send the coin to the 0x0 address instead of shrinking the coin supply for pumpnomics.
 
 #### Admin Fee
 

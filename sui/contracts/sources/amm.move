@@ -18,6 +18,7 @@ module amm::memez_amm {
         memez_amm_utils as utils,
         memez_amm_errors as errors,
         memez_amm_events as events,
+        memez_amm_shill::{Shillers, Shill},
         memez_amm_fees::{Self as fees, Fees},    
         memez_amm_invariant::{invariant_, get_amount_out},
     };
@@ -26,6 +27,7 @@ module amm::memez_amm {
     const PRECISION: u256 = 1_000_000_000_000_000_000;
     const INITIAL_SWAP_FEE: u256 = 1_000_000_000_000_000; // 1%
     const INITIAL_ADMIN_FEE: u256 = 200_000_000_000_000_000; // 20%
+    const INITIAL_SHILLER_FEE: u256 = 100_000_000_000_000_000; // 10%
     const INITIAL_LIQUIDITY_FEE: u256 = 500_000_000_000_000_000; // 50%
     const FLASH_LOAN_FEE_PERCENT: u256 = 5_000_000_000_000_000; //0.5% 
     const BURN_WALLET: address = @0x0;
@@ -68,7 +70,8 @@ module amm::memez_amm {
         admin_fee: u64,
         swap_fee: u64,
         liquidity_fee: u64,
-        creator_fee: u64
+        creator_fee: u64,
+        shiller_fee: u64
     }
 
     public struct Invoice {
@@ -114,6 +117,23 @@ module amm::memez_amm {
             swap_coin_x<CoinIn, CoinOut>(pool, coin_in, coin_min_value, ctx)
         else 
             swap_coin_y<CoinOut, CoinIn>(pool, coin_in, coin_min_value, ctx)
+    }
+
+    public fun shilled_swap<CoinIn, CoinOut>(
+        pool: &mut MemezPool, 
+        shillers: &Shillers,
+        shill: Shill,
+        coin_in: Coin<CoinIn>,
+        coin_min_value: u64,
+        ctx: &mut TxContext   
+    ): Coin<CoinOut> {
+        assert!(coin_in.value() != 0, errors::no_zero_coin());
+        assert!(type_name::get<CoinIn>() == shill.coin(), errors::invalid_shilled_coin());
+
+        if (utils::is_coin_x<CoinIn, CoinOut>()) 
+            shilled_swap_coin_x<CoinIn, CoinOut>(pool, shillers, shill, coin_in, coin_min_value, ctx)
+        else 
+            shilled_swap_coin_y<CoinOut, CoinIn>(pool, shillers, shill, coin_in, coin_min_value, ctx)
     }
 
     // === Flash Loans ===
@@ -415,6 +435,7 @@ module amm::memez_amm {
             coin_in_amount, 
             coin_y_min_value, 
             true,
+            false
         );
 
         if (swap_amount.burn_fee != 0) {
@@ -453,6 +474,7 @@ module amm::memez_amm {
             pool_state, 
             coin_in_amount, 
             coin_x_min_value, 
+            false,
             false
         );
 
@@ -476,12 +498,107 @@ module amm::memez_amm {
         pool_state.balance_x.split(swap_amount.amount_out).into_coin(ctx) 
     }  
 
+    fun shilled_swap_coin_x<CoinX, CoinY>(
+        pool: &mut MemezPool, 
+        shillers: &Shillers,
+        shill: Shill,
+        coin_in: Coin<CoinIn>,
+        coin_min_value: u64,
+        ctx: &mut TxContext  
+    ): Coin<CoinY> {
+        let pool_address = object::uid_to_address(&pool.id);
+        let pool_state = pool_state_mut<CoinX, CoinY>(pool);
+        assert!(!pool_state.locked, errors::pool_is_locked());
+
+        let coin_in_amount = coin_x.value();
+    
+        let swap_amount = swap_amounts(
+            pool_state, 
+            coin_in_amount, 
+            coin_y_min_value, 
+            true,
+            true
+        );
+
+        if (swap_amount.burn_fee != 0) {
+            let burn_coin = coin_x.split(swap_amount.burn_fee, ctx);
+            transfer::public_transfer(burn_coin, BURN_WALLET);
+        };
+
+        if (swap_amount.shiller_fee != 0) {
+            transfer::public_transfer(coin_x.split(swap_amount.shiller_fee, ctx), shill.shiller());
+            shill.destroy(shillers);
+        };
+
+        if (swap_amount.admin_fee != 0) {
+            pool_state.admin_balance_x.join(coin_x.split(swap_amount.admin_fee, ctx).into_balance());  
+        };
+
+        if (swap_amount.creator_fee != 0) {
+            pool_state.deployer_balance_x.join(coin_x.split(swap_amount.creator_fee, ctx).into_balance());  
+        };
+
+        pool_state.balance_x.join(coin_x.into_balance());
+
+        events::swap<CoinX, CoinY, SwapAmount>(pool_address, coin_in_amount, swap_amount);
+
+        pool_state.balance_y.split(swap_amount.amount_out).into_coin(ctx) 
+    }
+
+    fun shilled_swap_coin_y<CoinX, CoinY>(
+        pool: &mut MemezPool, 
+        shillers: &Shillers,
+        shill: Shill,
+        coin_in: Coin<CoinIn>,
+        coin_min_value: u64,
+        ctx: &mut TxContext  
+    ): Coin<CoinX> {
+        let pool_address = pool.id.uid_to_address();
+        let pool_state = pool_state_mut<CoinX, CoinY>(pool);
+        assert!(!pool_state.locked, errors::pool_is_locked());
+
+        let coin_in_amount = coin_y.value();
+        
+        let swap_amount = swap_amounts(
+            pool_state, 
+            coin_in_amount, 
+            coin_x_min_value, 
+            false,
+            true
+        );
+
+        if (swap_amount.burn_fee != 0) {
+            let burn_coin = coin_y.split(swap_amount.burn_fee, ctx);
+            transfer::public_transfer(burn_coin, BURN_WALLET);
+        };
+
+        if (swap_amount.shiller_fee != 0) {
+            transfer::public_transfer(coin_y.split(swap_amount.shiller_fee, ctx), shill.shiller());
+            shill.destroy(shillers);
+        };
+
+        if (swap_amount.admin_fee != 0) {
+            pool_state.admin_balance_y.join(coin_y.split(swap_amount.admin_fee, ctx).into_balance());  
+        };
+
+        if (swap_amount.creator_fee != 0) {
+            pool_state.deployer_balance_y.join(coin_y.split(swap_amount.creator_fee, ctx).into_balance());  
+        };
+
+        pool_state.balance_y.join(coin_y.into_balance());
+
+        events::swap<CoinY, CoinX, SwapAmount>(pool_address, coin_in_amount,swap_amount);
+
+        pool_state.balance_x.split(swap_amount.amount_out).into_coin(ctx) 
+    }  
+
     fun new_fees(): Fees {
         fees::new(
             INITIAL_SWAP_FEE, 
             0,
             INITIAL_ADMIN_FEE, 
-            INITIAL_LIQUIDITY_FEE
+            INITIAL_LIQUIDITY_FEE,
+            INITIAL_SHILLER_FEE
         )
     }
 
@@ -496,7 +613,8 @@ module amm::memez_amm {
         pool_state: &PoolState<CoinX, CoinY>,
         coin_in_amount: u64,
         coin_out_min_value: u64,
-        is_x: bool
+        is_x: bool,
+        is_shilled: bool
     ): SwapAmount {
         let (balance_x, balance_y) = amounts(pool_state);
 
@@ -512,10 +630,11 @@ module amm::memez_amm {
         
         let burn_fee = if (is_burn_coin) pool_state.fees.get_burn_amount(coin_in_amount) else 0;
         let swap_fee = pool_state.fees.get_swap_amount(coin_in_amount - burn_fee);
-
+        
+        let shiller_fee = if (is_shilled) pool_state.fees.get_liquidity_amount(swap_fee) else 0;
         let liquidity_fee = pool_state.fees.get_liquidity_amount(swap_fee);
         let admin_fee = pool_state.fees.get_admin_amount(swap_fee);
-        let creator_fee = swap_fee - admin_fee - liquidity_fee;
+        let creator_fee = swap_fee - admin_fee - liquidity_fee - shiller_fee;
 
         let coin_in_amount = coin_in_amount - burn_fee - swap_fee;
 
@@ -539,7 +658,8 @@ module amm::memez_amm {
             burn_fee,
             admin_fee,
             liquidity_fee,
-            creator_fee
+            creator_fee,
+            shiller_fee
         }  
     }
 

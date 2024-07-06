@@ -9,6 +9,7 @@ module amm::memez_amm_fees {
     const MAX_SWAP_FEE: u256 = 25_000_000_000_000_000; // 2.5%
     const MAX_ADMIN_FEE: u256 = 300_000_000_000_000_000; // 30%
     const MAX_LIQUIDITY_FEE: u256 = 500_000_000_000_000_000; // 50%
+    const MAX_SHILLER_FEE: u256 = 300_000_000_000_000_000; // 30%
 
     public struct Fees has store, copy, drop {
         swap: u256,   
@@ -17,19 +18,22 @@ module amm::memez_amm_fees {
         // They are a % of the swap fee
         admin: u256,  
         liquidity: u256,
+        shiller: u256
     }
 
     public fun new(
         swap: u256,
         burn: u256,
         admin: u256,
-        liquidity: u256
+        liquidity: u256,
+        shiller: u256
     ): Fees {
         Fees {
             swap,
             burn,
             admin, 
-            liquidity
+            liquidity,
+            shiller
         }
     }
 
@@ -48,6 +52,10 @@ module amm::memez_amm_fees {
     public(package) fun liquidity(self: &Fees): u256 {
         self.liquidity
     }
+
+    public(package) fun shiller(self: &Fees): u256 {
+        self.shiller
+    }    
 
     public(package) fun update_swap(self: &mut Fees, mut fee: Option<u256>) {
         if (option::is_none(&fee)) return;
@@ -81,6 +89,14 @@ module amm::memez_amm_fees {
        self.liquidity = fee;
     }
 
+    public(package) fun update_shiller(self: &mut Fees, mut fee: Option<u256>) {
+        if (option::is_none(&fee)) return;
+        let fee = option::extract(&mut fee);
+    
+        assert!(MAX_SHILLER_FEE >= fee, errors::fee_is_too_high());
+       self.shiller = fee;
+    }
+
     public(package) fun get_swap_amount(self: &Fees, amount: u64): u64 {
         get_fee_amount(amount, self.swap)
     }
@@ -95,6 +111,10 @@ module amm::memez_amm_fees {
 
     public(package) fun get_liquidity_amount(self: &Fees, amount: u64): u64 {
         get_fee_amount(amount, self.liquidity)
+    }
+
+    public(package) fun get_shiller_amount(self: &Fees, amount: u64): u64 {
+        get_fee_amount(amount, self.shiller)
     }
 
     public(package) fun get_swap_amount_initial_amount(self: &Fees, amount: u64): u64 {

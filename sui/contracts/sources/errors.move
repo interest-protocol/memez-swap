@@ -14,6 +14,9 @@ module amm::memez_amm_errors {
     const EInsufficientLiquidity: u64 = 11;
     const EWrongPool: u64 = 12;
     const EInvalidBurnCoin: u64 = 13;
+    const EYouAreNotAShiller: u64 = 14;
+    const ECannotSkillYourself: u64 = 15;
+    const EInvalidShilledCoin: u64 = 16;
   
     public(package) fun not_enough_funds_to_lend(): u64 {
         ENotEnoughFundsToLend
@@ -69,5 +72,17 @@ module amm::memez_amm_errors {
 
     public(package) fun burn_coin(): u64 {
         EInvalidBurnCoin
+    }
+
+    public(package) fun you_are_not_a_shiller(): u64 {
+        EYouAreNotAShiller
+    }
+
+    public(package) fun cannot_shill_yourself(): u64 {
+        ECannotSkillYourself
+    }
+
+    public(package) fun invalid_shilled_coin(): u64 {
+        EInvalidShilledCoin
     }
 }
