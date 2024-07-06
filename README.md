@@ -14,9 +14,9 @@ The DEX uses the famous `k = x * y` popularized by [Uniswap](https://uniswap.org
 
 It supports the following operations:
 
-- Create Pool
-- Swap
-- Referrals
+- Create Pool to get the fun going.
+- Swap to retire or jeet.
+- Referrals to pump together.
 - Flash loans for extra bling bling!
 
 Thats it!!
