@@ -10,7 +10,6 @@ module amm::memez_amm_quote {
     };
 
     public fun amount_out<CoinIn, CoinOut>(pool: &MemezPool, amount_in: u64): u64 { 
-
         if (is_coin_x<CoinIn, CoinOut>()) {
             let (balance_x, balance_y, fees, burn_coin) = get_pool_data<CoinIn, CoinOut>(pool);
 
@@ -30,7 +29,7 @@ module amm::memez_amm_quote {
             sub_fees_in<CoinIn>(fees, memez_amm_invariant::get_amount_in(amount_out, balance_x, balance_y), burn_coin)
         } else {
             let (balance_x, balance_y, fees, burn_coin) = get_pool_data<CoinOut, CoinIn>(pool);
-            
+
             sub_fees_in<CoinIn>(fees, memez_amm_invariant::get_amount_in(amount_out, balance_y, balance_x), burn_coin)
         }
     }

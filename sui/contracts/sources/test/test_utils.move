@@ -78,7 +78,7 @@ module amm::deploy_utils {
 
              let mut pool = test.take_shared<MemezPool>();
 
-            pool.update_fees<ETH, USDC>(&admin, option::none(), option::some(BURN_FEE), option::none(), option::none());
+            pool.update_fees<BTC, ETH>(&admin, option::none(), option::some(BURN_FEE), option::none(), option::none());
 
             test.return_to_sender(admin);
             test::return_shared(pool);

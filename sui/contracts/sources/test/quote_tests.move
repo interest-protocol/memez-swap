@@ -1,15 +1,17 @@
 #[test_only]
 module amm::quote_tests {
-  
+
     use sui::{
         test_utils::assert_eq,
         test_scenario::{Self as test, Scenario, next_tx, ctx}
     };
 
     use amm::{
+        btc::BTC,
         eth::ETH,
         usdc::USDC,
         memez_amm_invariant,
+        memez_amm_admin::Admin,
         memez_amm_quote as quote,
         memez_amm_fees::{Self as fees, Fees},
         memez_amm::{Self, Registry, MemezPool},
@@ -98,6 +100,7 @@ module amm::quote_tests {
             let amount_in_before_swap_fee = fees::get_swap_amount_initial_amount(&request.pool_fees, amount_in);
             let amount_in_before_burn_fee = fees::get_burn_amount_initial_amount(&request.pool_fees, amount_in_before_swap_fee);
 
+            assert_eq(amount_in_before_burn_fee, amount_in_before_swap_fee);
             assert_eq(quote::amount_in<USDC, ETH>(&request.pool, amount_out), amount_in_before_burn_fee);
 
             destroy_request(request);
@@ -114,35 +117,85 @@ module amm::quote_tests {
         let scenario_mut = &mut scenario;
 
         set_up_test(scenario_mut);
-        deploy_btc_eth_pool(scenario_mut, 15 * ETH_DECIMAL_SCALAR, 37500 * USDC_DECIMAL_SCALAR);
+        deploy_btc_eth_pool(scenario_mut, 3 * BTC_DECIMAL_SCALAR, 15 * ETH_DECIMAL_SCALAR);
 
         next_tx(scenario_mut, alice);
         {
-            let request = request<ETH, USDC>(scenario_mut);
+            let mut request = request<BTC, ETH>(scenario_mut);
+
+            let admin = test::take_from_sender<Admin>(scenario_mut);
+
+            memez_amm::add_burn_coin<BTC, ETH, BTC>(&mut request.pool, &admin);
 
             let amount_in = 3 * ETH_DECIMAL_SCALAR;
-            let burn_fee = fees::get_burn_amount(&request.pool_fees, amount_in);
-            let swap_fee = fees::get_swap_amount(&request.pool_fees, amount_in - burn_fee);
+            let swap_fee = fees::get_swap_amount(&request.pool_fees, amount_in);
 
-            let expected_amount_out = memez_amm_invariant::get_amount_out(amount_in - burn_fee - swap_fee, 15 * ETH_DECIMAL_SCALAR, 37500 * USDC_DECIMAL_SCALAR);
+            let expected_amount_out = memez_amm_invariant::get_amount_out(amount_in - swap_fee, 15 * ETH_DECIMAL_SCALAR, 3 * BTC_DECIMAL_SCALAR);
 
-            assert_eq(quote::amount_out<ETH, USDC>(&request.pool, amount_in), expected_amount_out);
+            assert_eq(quote::amount_out<ETH, BTC>(&request.pool, amount_in), expected_amount_out);
 
+            test::return_to_sender(scenario_mut, admin);
             destroy_request(request);
         };
 
         next_tx(scenario_mut, alice);
         {
-            let request = request<ETH, USDC>(scenario_mut);
+            let request = request<BTC, ETH>(scenario_mut);
 
-            let amount_in = 14637 * USDC_DECIMAL_SCALAR;
+            let amount_in = 1 * BTC_DECIMAL_SCALAR / 10;
 
             let burn_fee = fees::get_burn_amount(&request.pool_fees, amount_in);
             let swap_fee = fees::get_swap_amount(&request.pool_fees, amount_in - burn_fee);
 
-            let expected_amount_out = memez_amm_invariant::get_amount_out(amount_in - burn_fee - swap_fee, 37500 * USDC_DECIMAL_SCALAR, 15 * ETH_DECIMAL_SCALAR);
+            let expected_amount_out = memez_amm_invariant::get_amount_out(amount_in - burn_fee - swap_fee, 3 * BTC_DECIMAL_SCALAR, 15 * ETH_DECIMAL_SCALAR);
 
-            assert_eq(quote::amount_out<USDC, ETH>(&request.pool, amount_in), expected_amount_out);
+            assert_eq(quote::amount_out<BTC, ETH>(&request.pool, amount_in), expected_amount_out);
+
+            destroy_request(request);
+        };
+        test::end(scenario);    
+    }
+
+    #[test]
+    fun test_quote_amount_in_burn_fee() {
+        let mut scenario = scenario();
+        let (alice, _) = people();
+
+        let scenario_mut = &mut scenario;
+
+        set_up_test(scenario_mut);
+        deploy_btc_eth_pool(scenario_mut, 3 * BTC_DECIMAL_SCALAR, 15 * ETH_DECIMAL_SCALAR);
+
+        next_tx(scenario_mut, alice);
+        {
+            let mut request = request<BTC, ETH>(scenario_mut);
+
+            let admin = test::take_from_sender<Admin>(scenario_mut);
+
+            memez_amm::add_burn_coin<BTC, ETH, BTC>(&mut request.pool, &admin);
+
+            let amount_out = 3 * ETH_DECIMAL_SCALAR;
+
+            let amount_in = memez_amm_invariant::get_amount_in(amount_out, 3 * BTC_DECIMAL_SCALAR, 15 * ETH_DECIMAL_SCALAR);
+            let amount_in_before_swap_fee = fees::get_swap_amount_initial_amount(&request.pool_fees, amount_in);
+            let amount_in_before_burn_fee = fees::get_burn_amount_initial_amount(&request.pool_fees, amount_in_before_swap_fee);
+
+            assert_eq(quote::amount_in<BTC, ETH>(&request.pool, amount_out), amount_in_before_burn_fee);
+
+            test::return_to_sender(scenario_mut, admin);
+            destroy_request(request);
+        };
+
+        next_tx(scenario_mut, alice);
+        {
+            let request = request<BTC, ETH>(scenario_mut);
+
+            let amount_out = 1 * BTC_DECIMAL_SCALAR / 10;
+
+            let amount_in = memez_amm_invariant::get_amount_in(amount_out, 15 * ETH_DECIMAL_SCALAR, 3 * BTC_DECIMAL_SCALAR);
+            let amount_in_before_swap_fee = fees::get_swap_amount_initial_amount(&request.pool_fees, amount_in);
+
+            assert_eq(quote::amount_in<ETH, BTC>(&request.pool, amount_out), amount_in_before_swap_fee);
 
             destroy_request(request);
         };
