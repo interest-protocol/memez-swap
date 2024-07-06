@@ -16,9 +16,18 @@ It supports the following operations:
 
 - Create Pool
 - Swap
-- Flash loans for extra fees.
+- Referrals
+- Flash loans for extra bling bling!
 
 Thats it!!
+
+### Deployer
+
+The deployer is the user who creates the pool. He receives a `DeployerNFT` that earns trading fees for life. Meme coin devs can earn revenue to fund their marketing activities for life.
+
+### Referrals
+
+The more apes the better. Memez has a native referral system. Degens can refer other degens to earn extra money. We are ALL gonna make it.
 
 ### Fees
 

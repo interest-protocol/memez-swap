@@ -277,8 +277,8 @@ module amm::memez_amm {
     // === Admin Functions ===
 
     public fun add_burn_coin<CoinX, CoinY, BurnCoin>(
-        _: &Admin,
         pool: &mut MemezPool,
+        _: &Admin,
     ) {
         let pool_address = pool.id.uid_to_address();
 
@@ -296,8 +296,8 @@ module amm::memez_amm {
     }
 
     public fun remove_burn_coin<CoinX, CoinY>(
-        _: &Admin,
         pool: &mut MemezPool,
+        _: &Admin,
     ) {
         let pool_address = pool.id.uid_to_address();
 
@@ -308,8 +308,8 @@ module amm::memez_amm {
     }
 
     public fun update_fees<CoinX, CoinY>(
-        _: &Admin,
         pool: &mut MemezPool,
+        _: &Admin,
         swap: Option<u256>,
         burn: Option<u256>, 
         admin: Option<u256>,
@@ -327,8 +327,8 @@ module amm::memez_amm {
     }
 
     public fun take_admin_fees<CoinX, CoinY>(
-        _: &Admin,
         pool: &mut MemezPool,
+        _: &Admin,
         ctx: &mut TxContext
     ): (Coin<CoinX>, Coin<CoinY>) {
         let pool_address = pool.id.uid_to_address();
