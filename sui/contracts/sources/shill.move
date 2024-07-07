@@ -4,7 +4,7 @@ module amm::memez_amm_shill {
     use std::type_name::{Self, TypeName};
 
     use sui::{
-        table_vec::{Self, TableVec}
+        table::{Self, Table}
     };
 
     use amm::{
@@ -16,7 +16,7 @@ module amm::memez_amm_shill {
 
     public struct Shillers has key {
         id: UID,
-        list: TableVec<address>
+        list: Table<address, bool>
     }
 
     public struct Shill has key {
@@ -31,14 +31,14 @@ module amm::memez_amm_shill {
     fun init(ctx: &mut TxContext) {
         let shillers = Shillers {
             id: object::new(ctx),
-            list: table_vec::new(ctx)
+            list: table::new(ctx)
         };
 
         transfer::share_object(shillers);
     }
 
     public fun shill<CoinType>(shillers: &Shillers, recipient: address, ctx: &mut TxContext) {
-        assert!(shillers.list.contains(&ctx.sender()), errors::you_are_not_a_shiller());
+        assert!(shillers.list.contains(ctx.sender()), errors::you_are_not_a_shiller());
         assert!(ctx.sender() != recipient, errors::cannot_shill_yourself());
 
         let shill = Shill {
@@ -51,31 +51,31 @@ module amm::memez_amm_shill {
         transfer::transfer(shill, recipient);
     }
 
-    public fun destroy(shill: Shill, shillers) {
+    public fun destroy(shill: Shill, shillers: &Shillers) {
         let Shill { id, owner, .. } = shill;
-        assert!(shillers.list.contains(&owner), errors::you_are_not_a_shiller());
+        assert!(shillers.list.contains(owner), errors::you_are_not_a_shiller());
         id.delete();
     }
 
     // === Admin Only Functions ===
 
-    public fun add(shillers: &Shillers, _: &Admin, shiller: &address) {
+    public fun add(shillers: &mut Shillers, _: &Admin, shiller: address) {
         if (shillers.list.contains(shiller)) return;
-        shillers.list.add(shiller);
+        shillers.list.add(shiller, true);
     }
 
-    public fun remove(shillers: &Shillers, _: &Admin, shiller: &address) {
+    public fun remove(shillers: &mut Shillers, _: &Admin, shiller: address) {
         if (!shillers.list.contains(shiller)) return;
         shillers.list.remove(shiller);
     }
 
     // === Package Only Functions ===
 
-    public(package) fun coin(shill: Shill): TypeName {
+    public(package) fun coin(shill: &Shill): TypeName {
         shill.coin
     }
 
-    public(package) fun shiller(shill: Shill): address {
+    public(package) fun shiller(shill: &Shill): address {
         shill.shiller
     }
 }

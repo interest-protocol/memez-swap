@@ -502,8 +502,8 @@ module amm::memez_amm {
         pool: &mut MemezPool, 
         shillers: &Shillers,
         shill: Shill,
-        coin_in: Coin<CoinIn>,
-        coin_min_value: u64,
+        mut coin_x: Coin<CoinX>,
+        coin_y_min_value: u64,
         ctx: &mut TxContext  
     ): Coin<CoinY> {
         let pool_address = object::uid_to_address(&pool.id);
@@ -527,8 +527,9 @@ module amm::memez_amm {
 
         if (swap_amount.shiller_fee != 0) {
             transfer::public_transfer(coin_x.split(swap_amount.shiller_fee, ctx), shill.shiller());
-            shill.destroy(shillers);
         };
+
+        shill.destroy(shillers);
 
         if (swap_amount.admin_fee != 0) {
             pool_state.admin_balance_x.join(coin_x.split(swap_amount.admin_fee, ctx).into_balance());  
@@ -549,8 +550,8 @@ module amm::memez_amm {
         pool: &mut MemezPool, 
         shillers: &Shillers,
         shill: Shill,
-        coin_in: Coin<CoinIn>,
-        coin_min_value: u64,
+        mut coin_y: Coin<CoinY>,
+        coin_x_min_value: u64,
         ctx: &mut TxContext  
     ): Coin<CoinX> {
         let pool_address = pool.id.uid_to_address();
@@ -574,8 +575,9 @@ module amm::memez_amm {
 
         if (swap_amount.shiller_fee != 0) {
             transfer::public_transfer(coin_y.split(swap_amount.shiller_fee, ctx), shill.shiller());
-            shill.destroy(shillers);
         };
+
+        shill.destroy(shillers);
 
         if (swap_amount.admin_fee != 0) {
             pool_state.admin_balance_y.join(coin_y.split(swap_amount.admin_fee, ctx).into_balance());  
