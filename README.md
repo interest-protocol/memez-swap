@@ -15,6 +15,7 @@ The DEX uses the famous `k = x * y` popularized by [Uniswap](https://uniswap.org
 It supports the following operations:
 
 - Create Pool to get the fun going.
+- No LpCoin, so ruggers go play somewhere else!
 - Swap to retire or jeet.
 - Referrals to pump together.
 - Flash loans for extra bling bling!
