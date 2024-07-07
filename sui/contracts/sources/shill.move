@@ -57,6 +57,12 @@ module amm::memez_amm_shill {
         id.delete();
     }
 
+    // === View Function ===
+
+    public fun is_shiller(shillers: &Shillers, user: address): bool {
+        shillers.list.contains(user)
+    }
+
     // === Admin Only Functions ===
 
     public fun add(shillers: &mut Shillers, _: &Admin, shiller: address) {

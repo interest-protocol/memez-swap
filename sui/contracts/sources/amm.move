@@ -5,6 +5,7 @@ module amm::memez_amm {
 
     use sui::{
         coin::Coin,
+        clock::Clock,
         dynamic_field as df,
         table::{Self, Table},
         transfer::share_object,
@@ -20,6 +21,7 @@ module amm::memez_amm {
         memez_amm_events as events,
         memez_amm_shill::{Shillers, Shill},
         memez_amm_fees::{Self as fees, Fees},    
+        memez_amm_volume::{Self as volume, Volume},
         memez_amm_invariant::{invariant_, get_amount_out},
     };
 
@@ -30,6 +32,7 @@ module amm::memez_amm {
     const INITIAL_SHILLER_FEE: u256 = 100_000_000_000_000_000; // 10%
     const INITIAL_LIQUIDITY_FEE: u256 = 500_000_000_000_000_000; // 50%
     const FLASH_LOAN_FEE_PERCENT: u256 = 5_000_000_000_000_000; //0.5% 
+    const INITIAL_SWAP_MULTIPLIER: u256 = 3;
     const BURN_WALLET: address = @0x0;
 
     // === Structs ===
@@ -57,6 +60,7 @@ module amm::memez_amm {
         admin_balance_y: Balance<CoinY>,
         deployer_balance_x: Balance<CoinX>,
         deployer_balance_y: Balance<CoinY>,
+        volume: Volume
     } 
 
     public struct Deployer has key, store {
@@ -107,6 +111,7 @@ module amm::memez_amm {
 
     public fun swap<CoinIn, CoinOut>(
         pool: &mut MemezPool, 
+        clock: &Clock,
         coin_in: Coin<CoinIn>,
         coin_min_value: u64,
         ctx: &mut TxContext    
@@ -114,13 +119,14 @@ module amm::memez_amm {
         assert!(coin_in.value() != 0, errors::no_zero_coin());
 
         if (utils::is_coin_x<CoinIn, CoinOut>()) 
-            swap_coin_x<CoinIn, CoinOut>(pool, coin_in, coin_min_value, ctx)
+            swap_coin_x<CoinIn, CoinOut>(pool, clock, coin_in, coin_min_value, ctx)
         else 
-            swap_coin_y<CoinOut, CoinIn>(pool, coin_in, coin_min_value, ctx)
+            swap_coin_y<CoinOut, CoinIn>(pool, clock, coin_in, coin_min_value, ctx)
     }
 
     public fun shilled_swap<CoinIn, CoinOut>(
         pool: &mut MemezPool, 
+        clock: &Clock,
         shillers: &Shillers,
         shill: Shill,
         coin_in: Coin<CoinIn>,
@@ -131,9 +137,9 @@ module amm::memez_amm {
         assert!(type_name::get<CoinIn>() == shill.coin(), errors::invalid_shilled_coin());
 
         if (utils::is_coin_x<CoinIn, CoinOut>()) 
-            shilled_swap_coin_x<CoinIn, CoinOut>(pool, shillers, shill, coin_in, coin_min_value, ctx)
+            shilled_swap_coin_x<CoinIn, CoinOut>(pool, clock, shillers, shill, coin_in, coin_min_value, ctx)
         else 
-            shilled_swap_coin_y<CoinOut, CoinIn>(pool, shillers, shill, coin_in, coin_min_value, ctx)
+            shilled_swap_coin_y<CoinOut, CoinIn>(pool, clock, shillers, shill, coin_in, coin_min_value, ctx)
     }
 
     // === Flash Loans ===
@@ -394,6 +400,7 @@ module amm::memez_amm {
             deployer_balance_y: balance::zero(),
             admin_balance_x: balance::zero(),
             admin_balance_y: balance::zero(),
+            volume: volume::new(ctx)
         };
 
         let mut pool = MemezPool {
@@ -420,6 +427,7 @@ module amm::memez_amm {
 
     fun swap_coin_x<CoinX, CoinY>(
         pool: &mut MemezPool,
+        clock: &Clock,
         mut coin_x: Coin<CoinX>,
         coin_y_min_value: u64,
         ctx: &mut TxContext
@@ -432,6 +440,7 @@ module amm::memez_amm {
     
         let swap_amount = swap_amounts(
             pool_state, 
+            clock,
             coin_in_amount, 
             coin_y_min_value, 
             true,
@@ -460,6 +469,7 @@ module amm::memez_amm {
 
     fun swap_coin_y<CoinX, CoinY>(
         pool: &mut MemezPool,
+        clock: &Clock,
         mut coin_y: Coin<CoinY>,
         coin_x_min_value: u64,
         ctx: &mut TxContext
@@ -472,6 +482,7 @@ module amm::memez_amm {
         
         let swap_amount = swap_amounts(
             pool_state, 
+            clock,
             coin_in_amount, 
             coin_x_min_value, 
             false,
@@ -500,6 +511,7 @@ module amm::memez_amm {
 
     fun shilled_swap_coin_x<CoinX, CoinY>(
         pool: &mut MemezPool, 
+        clock: &Clock,
         shillers: &Shillers,
         shill: Shill,
         mut coin_x: Coin<CoinX>,
@@ -514,6 +526,7 @@ module amm::memez_amm {
     
         let swap_amount = swap_amounts(
             pool_state, 
+            clock,
             coin_in_amount, 
             coin_y_min_value, 
             true,
@@ -548,6 +561,7 @@ module amm::memez_amm {
 
     fun shilled_swap_coin_y<CoinX, CoinY>(
         pool: &mut MemezPool, 
+        clock: &Clock,
         shillers: &Shillers,
         shill: Shill,
         mut coin_y: Coin<CoinY>,
@@ -562,6 +576,7 @@ module amm::memez_amm {
         
         let swap_amount = swap_amounts(
             pool_state, 
+            clock,
             coin_in_amount, 
             coin_x_min_value, 
             false,
@@ -596,6 +611,7 @@ module amm::memez_amm {
 
     fun new_fees(): Fees {
         fees::new(
+            INITIAL_SWAP_MULTIPLIER,
             INITIAL_SWAP_FEE, 
             0,
             INITIAL_ADMIN_FEE, 
@@ -612,7 +628,8 @@ module amm::memez_amm {
     }
 
     fun swap_amounts<CoinX, CoinY>(
-        pool_state: &PoolState<CoinX, CoinY>,
+        pool_state: &mut PoolState<CoinX, CoinY>,
+        clock: &Clock,
         coin_in_amount: u64,
         coin_out_min_value: u64,
         is_x: bool,
@@ -631,7 +648,7 @@ module amm::memez_amm {
             false;
         
         let burn_fee = if (is_burn_coin) pool_state.fees.get_burn_amount(coin_in_amount) else 0;
-        let swap_fee = pool_state.fees.get_swap_amount(coin_in_amount - burn_fee);
+        let swap_fee = pool_state.dynamic_swap_fee_impl(clock, coin_in_amount - burn_fee, is_x);
         
         let shiller_fee = if (is_shilled) pool_state.fees.get_liquidity_amount(swap_fee) else 0;
         let liquidity_fee = pool_state.fees.get_liquidity_amount(swap_fee);
@@ -663,6 +680,20 @@ module amm::memez_amm {
             creator_fee,
             shiller_fee
         }  
+    }
+
+    fun dynamic_swap_fee_impl<CoinX, CoinY>(
+        pool_state: &mut PoolState<CoinX, CoinY>,
+        clock: &Clock,
+        coin_in_amount: u64,
+        is_x: bool
+    ): u64 {
+        let multiplier = if (is_x) 
+            pool_state.volume.add_coin_x(clock, coin_in_amount)
+        else 
+            pool_state.volume.add_coin_y(clock, coin_in_amount);
+
+        pool_state.fees.get_swap_amount(coin_in_amount, multiplier)
     }
 
     fun pool_state<CoinX, CoinY>(pool: &MemezPool): &PoolState<CoinX, CoinY> {

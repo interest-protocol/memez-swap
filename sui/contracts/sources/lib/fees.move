@@ -1,6 +1,6 @@
 module amm::memez_amm_fees {
 
-    use suitears::math256::mul_div_up;
+    use suitears::math256::{mul_div_up, clamp};
 
     use amm::memez_amm_errors as errors;
 
@@ -10,8 +10,10 @@ module amm::memez_amm_fees {
     const MAX_ADMIN_FEE: u256 = 300_000_000_000_000_000; // 30%
     const MAX_LIQUIDITY_FEE: u256 = 500_000_000_000_000_000; // 50%
     const MAX_SHILLER_FEE: u256 = 300_000_000_000_000_000; // 30%
+    const MAX_MULTIPLIER: u256 = 5;
 
     public struct Fees has store, copy, drop {
+        max_swap_multiplier: u256,
         swap: u256,   
         // Applied before the swap fee
         burn: u256,
@@ -22,6 +24,7 @@ module amm::memez_amm_fees {
     }
 
     public fun new(
+        max_swap_multiplier: u256,
         swap: u256,
         burn: u256,
         admin: u256,
@@ -29,6 +32,7 @@ module amm::memez_amm_fees {
         shiller: u256
     ): Fees {
         Fees {
+            max_swap_multiplier,
             swap,
             burn,
             admin, 
@@ -39,6 +43,10 @@ module amm::memez_amm_fees {
 
     public(package) fun swap(self: &Fees): u256 {
         self.swap
+    }
+
+    public(package) fun max_swap_multiplier(self: &Fees): u256 {
+        self.max_swap_multiplier
     }
 
     public(package) fun burn(self: &Fees): u256 {
@@ -63,6 +71,14 @@ module amm::memez_amm_fees {
     
         assert!(MAX_SWAP_FEE >= fee, errors::fee_is_too_high());
         self.swap = fee;
+    }
+
+    public(package) fun update_max_swap_multiplier(self: &mut Fees, mut multiplier: Option<u256>) {
+        if (option::is_none(&multiplier)) return;
+        let multiplier = option::extract(&mut multiplier);
+    
+        assert!(MAX_MULTIPLIER >= multiplier, errors::fee_is_too_high());
+        self.max_swap_multiplier = multiplier;
     }
 
     public(package) fun update_burn(self: &mut Fees, mut fee: Option<u256>) {
@@ -97,8 +113,9 @@ module amm::memez_amm_fees {
        self.shiller = fee;
     }
 
-    public(package) fun get_swap_amount(self: &Fees, amount: u64): u64 {
-        get_fee_amount(amount, self.swap)
+    public(package) fun get_swap_amount(self: &Fees, amount: u64, volume_multiplier: u64): u64 {
+        let swap = mul_div_up((volume_multiplier as u256), self.swap, PRECISION);
+        get_fee_amount(amount, clamp(swap, self.swap, self.swap * self.max_swap_multiplier))
     }
 
     public(package) fun get_burn_amount(self: &Fees, amount: u64): u64 {
