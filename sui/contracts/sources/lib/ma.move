@@ -9,7 +9,7 @@ module amm::memez_amm_moving_average {
 
     // === Structs ===
 
-    public struct Point(u64, u64) has store, drop, copy;
+    public struct Point(u256, u64) has store, drop, copy;
 
     public struct MovingAverage has store {
         interval: u64,
@@ -29,17 +29,22 @@ module amm::memez_amm_moving_average {
     }
 
     public(package) fun add(self: &mut MovingAverage, clock: &Clock, value: u64): u64 {
-
-        let timestamp = clock.timestamp_ms();
+        
+        // Convert Milliseconds => Minutes
+        let timestamp = clock.timestamp_ms() / 60000;
        
         while(self.data.length() > 0 && timestamp - self.data[0].1 >= self.interval) {
             let (_, point) = self.data.pop_front();
             self.sum = self.sum - (point.0 as u256);
         };
 
-        let len = self.data.length();
+        if (self.data.contains(timestamp)) {
+            let point = self.data.borrow_mut(timestamp);
+            point.0 = point.0 + (value as u256);
+        } else {
+            self.data.push_back(timestamp, Point((value as u256), timestamp));
+        };
 
-        self.data.push_back(len, Point(value, timestamp));
         self.sum = self.sum + (value as u256);
 
         (self.sum / (self.data.length() as u256) as u64)

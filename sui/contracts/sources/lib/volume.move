@@ -10,8 +10,8 @@ module amm::memez_amm_volume {
 
     // === Constants ===
 
-    const FIVE_MINUTES: u64 = 300000;
-    const ONE_HOUR: u64 = 3600000;
+    const FIVE_MINUTES: u64 = 5;
+    const ONE_HOUR: u64 = 60;
     const PRECISION: u64 = 1_000_000_000_000_000_000;
     
     // === Structs ===

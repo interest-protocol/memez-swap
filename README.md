@@ -25,7 +25,7 @@ Thats it!!
 
 ### Deployer
 
-The deployer is the user who creates the pool. He receives a `DeployerNFT` that earns trading fees for life. Meme coin devs can earn revenue to fund their marketing activities for life.
+The deployer is the user who creates the pool. He receives a `DeployerNFT` that earns trading fees for life. Meme coin devs can earn revenue to fund their marketing activities.
 
 ### Referrals
 
@@ -33,7 +33,7 @@ The more apes the better. Memez has a native referral system. Degens can refer o
 
 ### Fees
 
-Swap fees play a crucial role in Memez Swap. Fees are configurable per pool by the protocol admin. The pool applies a dynamic to trades based on the on-chain volume. This allows to maximize profitability and trading. Periods of high volume incur higher trading fees while low volume periods do not.
+Swap fees play a crucial role in Memez Swap. Fees are configurable per pool by the protocol admin. The pool applies a dynamic swap fee to trades based on the on-chain volume. This allows to maximize profitability and trading. Periods of high volume incur higher trading fees while low volume periods do not.
 
 #### Liquidity Fee
 
