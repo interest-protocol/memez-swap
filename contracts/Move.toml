@@ -6,7 +6,6 @@ authors = ["Jose Cerqueira (jose@interestprotocol.com)"]
 version = "1.0.0"
 
 [dependencies]
-MoveStdlib = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/move-stdlib", rev = "framework/testnet"  }
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet" }
 SuiTears = { git = "https://github.com/interest-protocol/suitears.git", subdir = "contracts", rev = "develop" }
 
