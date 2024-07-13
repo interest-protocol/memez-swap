@@ -48,14 +48,14 @@ module amm::memez_amm_volume {
        safe_mul_div(x, y)
     }
 
-    public(package) fun coin_x(self: &Volume): u256 {
+    public(package) fun multiplier_x(self: &Volume): u256 {
        let x =  self.short_x.last_ema_value();
        let y = self.long_x.last_ema_value();
 
        safe_mul_div(x, y)
     }
 
-    public(package) fun coin_y(self: &Volume): u256 {
+    public(package) fun multiplier_y(self: &Volume): u256 {
        let x =  self.short_y.last_ema_value();
        let y = self.long_y.last_ema_value();
 

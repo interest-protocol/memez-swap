@@ -245,6 +245,11 @@ module amm::memez_amm {
         pool_state.locked
     }
 
+    public fun volume<CoinX, CoinY>(pool: &MemezPool): &Volume {
+        let pool_state = pool_state<CoinX, CoinY>(pool);
+        &pool_state.volume
+    }
+
     public fun admin_balance_x<CoinX, CoinY>(pool: &MemezPool): u64 {
         let pool_state = pool_state<CoinX, CoinY>(pool);
         pool_state.admin_balance_x.value()
