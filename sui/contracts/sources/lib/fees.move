@@ -113,8 +113,8 @@ module amm::memez_amm_fees {
        self.shiller = fee;
     }
 
-    public(package) fun get_swap_amount(self: &Fees, amount: u64, volume_multiplier: u64): u64 {
-        let swap = mul_div_up((volume_multiplier as u256), self.swap, PRECISION);
+    public(package) fun get_swap_amount(self: &Fees, amount: u64, volume_multiplier: u256): u64 {
+        let swap = mul_div_up(volume_multiplier, self.swap, PRECISION);
         get_fee_amount(amount, clamp(swap, self.swap, self.swap * self.max_swap_multiplier))
     }
 

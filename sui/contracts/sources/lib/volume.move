@@ -4,73 +4,67 @@ module amm::memez_amm_volume {
 
     use sui::{clock::Clock};
 
-    use suitears::math64::mul_div_up;
+    use suitears::math256::mul_div_up;
 
-    use amm::memez_amm_moving_average::{Self as ma, MovingAverage};
+    use amm::memez_amm_ema::{Self as ema, EMA};
 
     // === Constants ===
 
-    const FIVE_MINUTES: u64 = 5;
-    const ONE_HOUR: u64 = 60;
-    const PRECISION: u64 = 1_000_000_000_000_000_000;
+    const FIVE_MINUTES: u64 = 300000;
+    const ONE_HOUR: u64 = 3600000;
+    const PRECISION: u256 = 1_000_000_000_000_000_000;
     
     // === Structs ===
 
     public struct Volume has store {
-        short_x: MovingAverage,
-        short_y: MovingAverage,
-        long_x: MovingAverage,
-        long_y: MovingAverage
+        short_x: EMA,
+        short_y: EMA,
+        long_x: EMA,
+        long_y: EMA
     }
 
     // === Mutative Functions ===
 
-    public(package) fun new(ctx: &mut TxContext): Volume {
+    public(package) fun new(): Volume {
         Volume {
-            short_x: ma::new(FIVE_MINUTES, ctx),
-            short_y: ma::new(FIVE_MINUTES, ctx),
-            long_x: ma::new(ONE_HOUR, ctx),
-            long_y: ma::new(ONE_HOUR, ctx)
+            short_x: ema::new(FIVE_MINUTES),
+            short_y: ema::new(FIVE_MINUTES),
+            long_x: ema::new(ONE_HOUR),
+            long_y: ema::new(ONE_HOUR)
         }
     }
 
-    public(package) fun add_coin_x(self: &mut Volume, clock: &Clock, value: u64): u64 {
-       let x =  self.short_x.add(clock, value);
-       let y = self.long_x.add(clock, value);
-
-       if (x == 0 || y == 0) return 0;
+    public(package) fun add_coin_x(self: &mut Volume, clock: &Clock, value: u64): u256 {
+       let x =  self.short_x.save_value(clock, (value as u256));
+       let y = self.long_x.save_value(clock, (value as u256));
 
        safe_mul_div(x, y)
     }
 
-    public(package) fun add_coin_y(self: &mut Volume, clock: &Clock, value: u64): u64 {
-       let x =  self.short_y.add(clock, value);
-       let y = self.long_y.add(clock, value);
-
-       if (x == 0 || y == 0) return 0;
+    public(package) fun add_coin_y(self: &mut Volume, clock: &Clock, value: u64): u256 {
+       let x =  self.short_y.save_value(clock, (value as u256));
+       let y = self.long_y.save_value(clock, (value as u256));
 
        safe_mul_div(x, y)
     }
 
-    public(package) fun coin_x(self: &Volume): u64 {
-       let x =  self.short_x.calculate();
-       let y = self.long_x.calculate();
-
-       if (x == 0 || y == 0) return 0;
+    public(package) fun coin_x(self: &Volume): u256 {
+       let x =  self.short_x.last_ema_value();
+       let y = self.long_x.last_ema_value();
 
        safe_mul_div(x, y)
     }
 
-    public(package) fun coin_y(self: &Volume): u64 {
-       let x =  self.short_y.calculate();
-       let y = self.long_y.calculate();
+    public(package) fun coin_y(self: &Volume): u256 {
+       let x =  self.short_y.last_ema_value();
+       let y = self.long_y.last_ema_value();
 
        safe_mul_div(x, y)
     }
 
     // === View Functions ===
 
-    fun safe_mul_div(x: u64, y: u64): u64 {
+    fun safe_mul_div(x: u256, y: u256): u256 {
         if (x == 0 || y == 0) return 0;
 
        mul_div_up(x, PRECISION, y)

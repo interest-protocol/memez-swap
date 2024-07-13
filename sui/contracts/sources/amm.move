@@ -400,7 +400,7 @@ module amm::memez_amm {
             deployer_balance_y: balance::zero(),
             admin_balance_x: balance::zero(),
             admin_balance_y: balance::zero(),
-            volume: volume::new(ctx)
+            volume: volume::new()
         };
 
         let mut pool = MemezPool {
