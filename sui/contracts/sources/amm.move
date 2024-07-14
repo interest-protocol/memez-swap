@@ -19,7 +19,9 @@ module amm::memez_amm {
         memez_amm_utils as utils,
         memez_amm_errors as errors,
         memez_amm_events as events,
-        memez_amm_fees::{Self as fees, Fees}
+        memez_amm_shill::{Shillers, Shill},
+        memez_amm_fees::{Self as fees, Fees},
+        memez_amm_volume::{Self as volume, Volume},
     };
 
     use memez_v2_invariant::memez_v2_invariant::{invariant_, get_amount_out};

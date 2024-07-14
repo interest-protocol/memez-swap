@@ -14,11 +14,19 @@ module amm::memez_amm_quote {
         if (is_coin_x<CoinIn, CoinOut>()) {
             let (balance_x, balance_y, multiplier_x, _, fees, burn_coin) = get_pool_data<CoinIn, CoinOut>(pool);
 
-            memez_v2_invariant::get_amount_out(sub_fees_out<CoinIn>(fees, amount_in, burn_coin), balance_x, balance_y)
+            memez_v2_invariant::get_amount_out(
+                sub_fees_out<CoinIn>(fees, amount_in, burn_coin, multiplier_x), 
+                balance_x, 
+                balance_y
+            )
         } else {
             let (balance_x, balance_y, _, multiplier_y, fees, burn_coin) = get_pool_data<CoinOut, CoinIn>(pool);
 
-            memez_v2_invariant::get_amount_out(sub_fees_out<CoinIn>(fees, amount_in, burn_coin), balance_y, balance_x)
+            memez_v2_invariant::get_amount_out(
+                sub_fees_out<CoinIn>(fees, amount_in, burn_coin, multiplier_y), 
+                balance_y, 
+                balance_x
+            )
         }
   }
 
@@ -27,11 +35,21 @@ module amm::memez_amm_quote {
         if (is_coin_x<CoinIn, CoinOut>()) {
             let (balance_x, balance_y, multiplier_x, _, fees, burn_coin) = get_pool_data<CoinIn, CoinOut>(pool);
             
-            sub_fees_in<CoinIn>(fees, memez_v2_invariant::get_amount_in(amount_out, balance_x, balance_y), burn_coin)
+            sub_fees_in<CoinIn>(
+                fees, 
+                memez_v2_invariant::get_amount_in(amount_out, balance_x, balance_y), 
+                burn_coin,
+                multiplier_x
+            )
         } else {
             let (balance_x, balance_y, _, multiplier_y, fees, burn_coin) = get_pool_data<CoinOut, CoinIn>(pool);
 
-            sub_fees_in<CoinIn>(fees, memez_v2_invariant::get_amount_in(amount_out, balance_y, balance_x), burn_coin)
+            sub_fees_in<CoinIn>(
+                fees, 
+                memez_v2_invariant::get_amount_in(amount_out, balance_y, balance_x), 
+                burn_coin,
+                multiplier_y
+            )
         }
     }
 

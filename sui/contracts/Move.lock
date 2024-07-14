@@ -2,21 +2,30 @@
 
 [move]
 version = 0
-manifest_digest = "DBF3D8765309D3F5D1C382FB1A643D0D5CCADB266AA5F4663D39BAAE33FAF6E0"
-deps_digest = "3C4103934B1E040BB6B23F1D610B4EF9F2F1166A50A104EADCF77467C004C600"
+manifest_digest = "78574437EE71EDBD7C5425EE38F2E66A47A6E41F0CB9242CD2F1D144E5965466"
+deps_digest = "060AD7E57DFB13104F21BE5F5C3759D03F0553FC3229247D9A7A6B45F50D03A3"
 
 dependencies = [
+  { name = "MemezV2Invariant" },
   { name = "Sui" },
   { name = "SuiTears" },
 ]
 
 [[move.package]]
+name = "MemezV2Invariant"
+source = { git = "https://github.com/interest-protocol/memez-v2-invariant.git", rev = "main", subdir = "" }
+
+dependencies = [
+  { name = "Sui" },
+]
+
+[[move.package]]
 name = "MoveStdlib"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "framework/testnet", subdir = "crates/sui-framework/packages/move-stdlib" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "testnet", subdir = "crates/sui-framework/packages/move-stdlib" }
 
 [[move.package]]
 name = "Sui"
-source = { git = "https://github.com/MystenLabs/sui.git", rev = "framework/testnet", subdir = "crates/sui-framework/packages/sui-framework" }
+source = { git = "https://github.com/MystenLabs/sui.git", rev = "testnet", subdir = "crates/sui-framework/packages/sui-framework" }
 
 dependencies = [
   { name = "MoveStdlib" },
@@ -24,15 +33,14 @@ dependencies = [
 
 [[move.package]]
 name = "SuiTears"
-source = { git = "https://github.com/interest-protocol/suitears.git", rev = "develop", subdir = "contracts" }
+source = { git = "https://github.com/interest-protocol/suitears.git", rev = "testnet", subdir = "contracts" }
 
 dependencies = [
-  { name = "MoveStdlib" },
   { name = "Sui" },
 ]
 
 [move.toolchain-version]
-compiler-version = "1.27.2"
+compiler-version = "1.28.3"
 edition = "2024.beta"
 flavor = "sui"
 
