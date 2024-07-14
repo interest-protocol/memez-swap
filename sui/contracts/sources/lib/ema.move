@@ -64,7 +64,7 @@ module amm::memez_amm_ema {
 
     // === Private Functions ===
 
-    fun ema_value(self: &mut EMA, clock: &Clock): u256 {
+    fun ema_value(self: &EMA, clock: &Clock): u256 {
         if (clock.timestamp_ms() > self.last_time) {
 
             let timestamp_delta = ((clock.timestamp_ms() - self.last_time) as u256);
