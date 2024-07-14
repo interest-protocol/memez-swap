@@ -3,21 +3,22 @@ module amm::memez_amm_quote {
     use std::type_name::{Self, TypeName};
 
     use amm::{
-        memez_amm_invariant,
         memez_amm_fees::Fees,
         memez_amm::MemezPool,
         memez_amm_utils::is_coin_x
     };
 
+    use memez_v2_invariant::memez_v2_invariant;
+
     public fun amount_out<CoinIn, CoinOut>(pool: &MemezPool, amount_in: u64): u64 { 
         if (is_coin_x<CoinIn, CoinOut>()) {
             let (balance_x, balance_y, fees, burn_coin) = get_pool_data<CoinIn, CoinOut>(pool);
 
-            memez_amm_invariant::get_amount_out(sub_fees_out<CoinIn>(fees, amount_in, burn_coin), balance_x, balance_y)
+            memez_v2_invariant::get_amount_out(sub_fees_out<CoinIn>(fees, amount_in, burn_coin), balance_x, balance_y)
         } else {
             let (balance_x, balance_y, fees, burn_coin) = get_pool_data<CoinOut, CoinIn>(pool);
 
-            memez_amm_invariant::get_amount_out(sub_fees_out<CoinIn>(fees, amount_in, burn_coin), balance_y, balance_x)
+            memez_v2_invariant::get_amount_out(sub_fees_out<CoinIn>(fees, amount_in, burn_coin), balance_y, balance_x)
         }
   }
 
@@ -26,11 +27,11 @@ module amm::memez_amm_quote {
         if (is_coin_x<CoinIn, CoinOut>()) {
             let (balance_x, balance_y, fees, burn_coin) = get_pool_data<CoinIn, CoinOut>(pool);
             
-            sub_fees_in<CoinIn>(fees, memez_amm_invariant::get_amount_in(amount_out, balance_x, balance_y), burn_coin)
+            sub_fees_in<CoinIn>(fees, memez_v2_invariant::get_amount_in(amount_out, balance_x, balance_y), burn_coin)
         } else {
             let (balance_x, balance_y, fees, burn_coin) = get_pool_data<CoinOut, CoinIn>(pool);
 
-            sub_fees_in<CoinIn>(fees, memez_amm_invariant::get_amount_in(amount_out, balance_y, balance_x), burn_coin)
+            sub_fees_in<CoinIn>(fees, memez_v2_invariant::get_amount_in(amount_out, balance_y, balance_x), burn_coin)
         }
     }
 

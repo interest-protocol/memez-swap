@@ -18,9 +18,10 @@ module amm::memez_amm {
         memez_amm_utils as utils,
         memez_amm_errors as errors,
         memez_amm_events as events,
-        memez_amm_fees::{Self as fees, Fees},    
-        memez_amm_invariant::{invariant_, get_amount_out},
+        memez_amm_fees::{Self as fees, Fees}
     };
+
+    use memez_v2_invariant::memez_v2_invariant::{invariant_, get_amount_out};
 
     // === Constants ===
     const PRECISION: u256 = 1_000_000_000_000_000_000;
